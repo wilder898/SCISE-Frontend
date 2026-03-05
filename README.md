@@ -5,65 +5,85 @@ Frontend de SCISE construido con Astro.
 ## Estructura del proyecto
 
 ```text
-/
-|-- .astro/                         # Cache y archivos generados por Astro (no editar manualmente)
-|-- .vscode/                        # Configuracion del editor (debug, extensiones recomendadas)
-|-- dist/                           # Build de produccion generado por `npm run build`
-|-- node_modules/                   # Dependencias instaladas por npm (no editar manualmente)
-|-- public/                         # Archivos estaticos servidos tal cual (favicon, imagenes publicas)
-|-- src/                            # Codigo fuente de la aplicacion
-|   |-- assets/                     # Recursos visuales internos (svg, imagenes, iconos)
-|   |-- components/                 # Componentes reutilizables de UI
-|   |   `-- navigation/             # Componentes de navegacion compartida (sidebar, header)
-|   |-- features/                   # Modulos funcionales por dominio
-|   |   |-- auth/                   # Modulo de autenticacion
-|   |   |   `-- views/              # Vistas .astro del modulo auth
-|   |   |-- dashboard/              # Modulo de panel principal
-|   |   |   `-- views/              # Vistas .astro del dashboard
-|   |   |-- usuarios/               # Modulo de gestion de usuarios
-|   |   |   `-- views/              # Vistas .astro de usuarios
-|   |   |-- roles/                  # Modulo de gestion de roles
-|   |   |   `-- views/              # Vistas .astro de roles
-|   |   |-- permisos/               # Modulo de gestion de permisos
-|   |   |   `-- views/              # Vistas .astro de permisos
-|   |   |-- cursos/                 # Modulo de gestion de cursos
-|   |   |   `-- views/              # Vistas .astro de cursos
-|   |   |-- grupos/                 # Modulo de gestion de grupos
-|   |   |   `-- views/              # Vistas .astro de grupos
-|   |   |-- inscripciones/          # Modulo de inscripciones
-|   |   |   `-- views/              # Vistas .astro de inscripciones
-|   |   `-- reportes/               # Modulo de reportes
-|   |       `-- views/              # Vistas .astro de reportes
-|   |-- layouts/                    # Layouts globales y plantillas base de pagina
-|   |-- pages/                      # Definicion de rutas de Astro (cada archivo = ruta)
-|   |   |-- auth/                   # Rutas de autenticacion (ej: /auth/login)
-|   |   |-- dashboard/              # Ruta del dashboard
-|   |   |-- usuarios/               # Rutas del modulo usuarios
-|   |   |-- roles/                  # Rutas del modulo roles
-|   |   |-- permisos/               # Rutas del modulo permisos
-|   |   |-- cursos/                 # Rutas del modulo cursos
-|   |   |-- grupos/                 # Rutas del modulo grupos
-|   |   |-- inscripciones/          # Rutas del modulo inscripciones
-|   |   `-- reportes/               # Rutas del modulo reportes
-|   `-- styles/                     # Estilos globales (ej: global.css)
-|-- astro.config.mjs                # Configuracion principal de Astro
-|-- package.json                    # Scripts y dependencias del proyecto
-|-- package-lock.json               # Versiones exactas bloqueadas de dependencias
-|-- tsconfig.json                   # Configuracion de TypeScript
-`-- README.md                       # Documentacion del proyecto
+/                                        # Raiz del proyecto
+|-- public/                              # Archivos estaticos publicos (favicon, imagenes, etc.)
+|-- src/                                 # Codigo fuente principal
+|   |-- assets/                          # Recursos graficos internos
+|   |   |-- astro.svg                    # Icono SVG de Astro
+|   |   `-- background.svg               # Fondo SVG base
+|   |-- components/                      # Componentes reutilizables de UI
+|   |   `-- navigation/                  # Componentes de navegacion
+|   |       |-- AppHeader.astro          # Encabezado de la aplicacion
+|   |       |-- AppNavbar.astro          # Barra de navegacion lateral/principal
+|   |       `-- AppSidebar.astro         # Sidebar de navegacion
+|   |-- features/                        # Vistas agrupadas por modulo funcional
+|   |   |-- auth/                        # Modulo de autenticacion
+|   |   |   |-- LoginView.astro          # Vista principal de login
+|   |   |   `-- views/                   # Carpeta reservada para vistas adicionales de auth
+|   |   |-- dashboard/                   # Modulo de dashboard
+|   |   |   `-- DashboardView.astro      # Vista de dashboard
+|   |   |-- ingreso/                     # Modulo de ingreso
+|   |   |   `-- IngresoView.astro        # Vista de ingreso
+|   |   |-- reportes/                    # Modulo de reportes
+|   |   |   `-- ReportesView.astro       # Vista de reportes
+|   |   |-- salida/                      # Modulo de salida
+|   |   |   `-- SalidaView.astro         # Vista de salida
+|   |   `-- usuarios/                    # Modulo de usuarios
+|   |       `-- UsuariosView.astro       # Vista de usuarios
+|   |-- layouts/                         # Layouts compartidos de la app
+|   |   |-- AppLayout.astro              # Layout del area interna con navegacion
+|   |   |-- AuthLayout.astro             # Layout para pantallas de autenticacion
+|   |   |-- BaseLayout.astro             # Estructura HTML base y metadatos
+|   |   `-- Layout.astro                 # Layout general/simple
+|   |-- pages/                           # Rutas de Astro (enrutamiento por archivos)
+|   |   |-- auth/                        # Grupo de rutas de autenticacion
+|   |   |   `-- login.astro              # Ruta /auth/login
+|   |   |-- dashboard/                   # Grupo de rutas de dashboard
+|   |   |   `-- index.astro              # Ruta /dashboard
+|   |   |-- ingreso/                     # Grupo de rutas de ingreso
+|   |   |   `-- index.astro              # Ruta /ingreso
+|   |   |-- reportes/                    # Grupo de rutas de reportes
+|   |   |   `-- index.astro              # Ruta /reportes
+|   |   |-- salida/                      # Grupo de rutas de salida
+|   |   |   `-- index.astro              # Ruta /salida
+|   |   |-- usuarios/                    # Grupo de rutas de usuarios
+|   |   |   `-- index.astro              # Ruta /usuarios
+|   |   `-- index.astro                  # Ruta principal /
+|   `-- styles/                          # Estilos globales
+|       `-- global.css                   # Hoja de estilos global de la aplicacion
+|-- astro.config.mjs                     # Configuracion de Astro
+|-- package.json                         # Scripts y dependencias directas del proyecto
+|-- package-lock.json                    # Versiones bloqueadas de dependencias
+|-- tsconfig.json                        # Configuracion de TypeScript
+`-- README.md                            # Documentacion del proyecto
 ```
 
-## Comandos
+## Conexiones entre archivos
 
-Todos los comandos se ejecutan desde la raiz del proyecto:
+- `src/pages/*` importa vistas de `src/features/*`.
+- `src/pages/*` usa `AppLayout` o `AuthLayout` segun el contexto.
+- `AppLayout` renderiza `AppNavbar` para la navegacion global.
+- `BaseLayout` define la base comun para los layouts.
+
+## Dependencias usadas hasta el momento
+
+### Instaladas en `package.json`
+
+| Dependencia | Version | Uso actual |
+| :--- | :--- | :--- |
+| `astro` | `^5.17.1` | Framework principal para rutas, layouts y componentes `.astro`. |
+
+### Referenciadas en el codigo
+
+| Dependencia | Donde se usa | Estado |
+| :--- | :--- | :--- |
+| `tailwindcss` | `src/styles/global.css` con `@import "tailwindcss";` | Referenciada en estilos, no declarada en `package.json`. |
+
+## Comandos
 
 | Comando | Descripcion |
 | :--- | :--- |
 | `npm install` | Instala dependencias |
-| `npm run dev` | Inicia servidor local en `localhost:4321` |
-| `npm run build` | Genera build de produccion en `dist/` |
-| `npm run preview` | Previsualiza el build generado |
-
-## Referencias
-
-- Estructura de Astro: https://docs.astro.build/en/basics/project-structure/
+| `npm run dev` | Levanta entorno local |
+| `npm run build` | Genera build de produccion |
+| `npm run preview` | Previsualiza el build |

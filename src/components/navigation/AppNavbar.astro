@@ -1,0 +1,25 @@
+﻿---
+const links = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/ingreso", label: "Ingreso" },
+  { href: "/salida", label: "Salida" },
+  { href: "/reportes", label: "Reportes" },
+  { href: "/usuarios", label: "usuario" },
+
+];
+---
+
+<aside class="app-sidebar">
+  <div class="app-sidebar-brand" aria-hidden="true">
+    <span></span>
+    <span></span>
+  </div>
+
+  <nav class="app-nav" aria-label="Navegacion principal">
+    {links.map((link) => (
+      <a href={link.href}>{link.label}</a>
+    ))}
+  </nav>
+
+  <a class="app-logout" href="/auth/login">Cerrar sesion</a>
+</aside>
