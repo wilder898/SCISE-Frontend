@@ -1,16 +1,11 @@
-﻿---
-import Layout from "../layouts/Layout.astro";
+---
+import AuthLayout from "../layouts/AuthLayout.astro";
+import LoginView from "../features/auth/LoginView.astro";
+import "../styles/login.css";
 ---
 
-<Layout>
-  <section class="page-card">
-    <h1>SCISE Frontend</h1>
-    <ul>
-      <li><a href="/dashboard">/dashboard</a></li>
-      <li><a href="/ingreso">/ingreso</a></li>
-      <li><a href="/salida">/salida</a></li>
-      <li><a href="/reportes">/reportes</a></li>
-      <li><a href="/usuarios">/usuarios</a></li>
-    </ul>
-  </section>
-</Layout>
+<AuthLayout title="SCISE - Login">
+  <div class="auth-card">
+    <LoginView />
+  </div>
+</AuthLayout>
