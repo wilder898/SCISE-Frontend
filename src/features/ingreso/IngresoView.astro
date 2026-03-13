@@ -1,6 +1,5 @@
 <section class="layout">
-    <aside class="sidebar">
-    </aside>
+    <aside class="sidebar"></aside>
 
     <main class="main">
         <header class="topbar">
@@ -64,3 +63,20 @@
         <footer id="message" class="message"></footer>
     </main>
 </section>
+
+<script>
+    // Guard de seguridad: solo accesible para usuarios autenticados
+    const raw = localStorage.getItem("scise-session");
+    if (!raw) {
+        window.location.replace("/auth/login");
+    } else {
+        try {
+            const session = JSON.parse(raw);
+            if (session.role !== "admin" && session.role !== "user") {
+                window.location.replace("/auth/login");
+            }
+        } catch {
+            window.location.replace("/auth/login");
+        }
+    }
+</script>
