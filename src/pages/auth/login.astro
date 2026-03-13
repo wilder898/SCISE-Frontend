@@ -1,4 +1,4 @@
-﻿---
+---
 import AuthLayout from "../../layouts/AuthLayout.astro";
 import LoginView from "../../features/auth/LoginView.astro";
 import "../../styles/login.css";
@@ -17,8 +17,8 @@ import "../../styles/login.css";
   ];
 
   const form = document.getElementById("loginForm");
-  const usernameInput = document.getElementById("username");
-  const passwordInput = document.getElementById("password");
+  const usernameInput = document.getElementById("username") as HTMLInputElement | null;
+  const passwordInput = document.getElementById("password") as HTMLInputElement | null;
   const loading = document.getElementById("loading");
   const error = document.getElementById("error");
 
@@ -51,7 +51,11 @@ import "../../styles/login.css";
         })
       );
 
-      window.location.href = "/ingreso";
+      if (match.role === "admin") {
+        window.location.href = "/dashboard/admin";
+      } else {
+        window.location.href = "/dashboard/user";
+      }
     });
   }
 </script>

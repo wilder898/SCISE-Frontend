@@ -1,0 +1,36 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import DashbordUser from "../../features/dashboard/dashbordUser.astro";
+import "../../styles/dashbordUser.css";
+---
+
+<AppLayout title="SCISE - Dashboard Usuario">
+  <DashbordUser />
+</AppLayout>
+
+<script>
+  // Guard de seguridad: solo accesible con sesión activa
+  const raw = localStorage.getItem("scise-session");
+  if (!raw) {
+    window.location.replace("/auth/login");
+  } else {
+    try {
+      const session = JSON.parse(raw);
+      if (session.role === "admin") {
+        // Si es admin y entra aquí, redirigir a su dashboard
+        window.location.replace("/dashboard/admin");
+      }
+    } catch {
+      window.location.replace("/auth/login");
+    }
+  }
+
+  // Botón cerrar sesión
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("scise-session");
+      window.location.href = "/auth/login";
+    });
+  }
+</script>
