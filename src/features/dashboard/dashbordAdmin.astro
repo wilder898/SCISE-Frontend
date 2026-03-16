@@ -1,0 +1,63 @@
+<section class="dashboard">
+    <aside class="sidebar">
+        <h2>SCISE</h2>
+
+        <nav class="menu">
+            <a href="#">Inicio</a>
+            <a href="#">Usuarios</a>
+            <a href="#">Equipos</a>
+            <a href="#">Reportes</a>
+            <a href="#">Configuracion</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <h1>Dashboard Administrador</h1>
+        </header>
+
+        <section class="cards">
+            <article class="card">
+                <h3>Usuarios Registrados</h3>
+                <p>124</p>
+            </article>
+
+            <article class="card">
+                <h3>Equipos Activos</h3>
+                <p>87</p>
+            </article>
+
+            <article class="card">
+                <h3>Ingresos Hoy</h3>
+                <p>32</p>
+            </article>
+        </section>
+
+        <section class="panel">
+            <h2>Actividad Reciente</h2>
+
+            <article class="panel-box">Registro de ingreso - Usuario 1</article>
+
+            <article class="panel-box">Salida de equipo - Usuario 2</article>
+
+            <article class="panel-box">Nuevo usuario creado</article>
+        </section>
+    </main>
+</section>
+
+<script>
+    // Guard de seguridad: solo accesible para admins
+    const raw = localStorage.getItem("scise-session");
+    if (!raw) {
+        window.location.replace("/auth/login");
+    } else {
+        try {
+            const session = JSON.parse(raw);
+            if (session.role !== "admin") {
+                window.location.replace("/dashboard/user");
+            }
+        } catch {
+            window.location.replace("/auth/login");
+        }
+    }
+</script>

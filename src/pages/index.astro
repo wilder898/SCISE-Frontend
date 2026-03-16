@@ -1,7 +1,6 @@
 ---
-import AuthLayout from "../layouts/AuthLayout.astro";
 import LoginView from "../features/auth/LoginView.astro";
-import "../styles/login.css";
+import AuthLayout from "../layouts/AuthLayout.astro";
 ---
 
 <AuthLayout title="SCISE - Login">
@@ -10,48 +9,36 @@ import "../styles/login.css";
   </div>
 </AuthLayout>
 
-<script>
-  const users = [
-    { username: "admin", password: "admin123", role: "admin" },
-    { username: "user", password: "user123", role: "user" },
-  ];
+  <script>
+    // Se ejecuta en el cliente
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Verificar sesión activa
+      const rawSession = localStorage.getItem("scise-session");
 
-  const form = document.getElementById("loginForm");
-  const usernameInput = document.getElementById("username");
-  const passwordInput = document.getElementById("password");
-  const loading = document.getElementById("loading");
-  const error = document.getElementById("error");
-
-  if (form && usernameInput && passwordInput && loading && error) {
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      error.textContent = "";
-      loading.textContent = "Validando credenciales...";
-
-      const username = String(usernameInput.value || "").trim();
-      const password = String(passwordInput.value || "");
-
-      const match = users.find(
-        (user) => user.username === username && user.password === password
-      );
-
-      if (!match) {
-        loading.textContent = "";
-        error.textContent = "Usuario o contraseña incorrectos.";
+      if (!rawSession) {
+        // No hay sesión -> ir al login
+        window.location.replace("/auth/login");
         return;
       }
 
-      // Guardar sesión mínima para uso posterior (si se requiere).
-      localStorage.setItem(
-        "scise-session",
-        JSON.stringify({
-          username: match.username,
-          role: match.role,
-          loginAt: new Date().toISOString(),
-        })
-      );
-
-      window.location.href = "/ingreso";
+      try {
+        const session = JSON.parse(rawSession);
+        
+        // 2. Hay sesión -> redirigir a dashboard
+        if (session.role === "login") {
+          window.location.replace("/dashboard/admin");
+        } else if (session.role === "login") {
+          window.location.replace("/dashboard/user");
+        } else {
+          // Rol inválido -> ir al login por seguridad
+          localStorage.removeItem("scise-session");
+          window.location.replace("/auth/login");
+        }
+      } catch (err) {
+        // Datos corruptos en localStorage -> ir al login
+        localStorage.removeItem("scise-session");
+        window.location.replace("/auth/login");
+      }
     });
-  }
-</script>
+  </script>
+

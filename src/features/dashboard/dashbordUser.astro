@@ -1,0 +1,56 @@
+<section class="dashboard">
+    <aside class="sidebar">
+        <h2>SCISE</h2>
+
+        <nav class="menu">
+            <a href="#">Inicio</a>
+            <a href="#">Mis Equipos</a>
+            <a href="#">Historial</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <h1>Dashboard Usuario</h1>
+        </header>
+
+        <section class="cards">
+            <article class="card">
+                <h3>Equipos Registrados</h3>
+                <p>3</p>
+            </article>
+
+            <article class="card">
+                <h3>Ingresos Activos</h3>
+                <p>1</p>
+            </article>
+        </section>
+
+        <section class="panel">
+            <h2>Ultimos Movimientos</h2>
+
+            <article class="panel-box">Ingreso Laptop - 08:30 AM</article>
+
+            <article class="panel-box">Salida Proyector - 02:10 PM</article>
+        </section>
+    </main>
+</section>
+
+<script>
+    // Guard de seguridad: solo accesible con sesión activa
+    const raw = localStorage.getItem("scise-session");
+    if (!raw) {
+        window.location.replace("/auth/login");
+    } else {
+        try {
+            const session = JSON.parse(raw);
+            if (session.role === "admin") {
+                // Si es admin y entra aquí, redirigir a su dashboard
+                window.location.replace("/dashboard/admin");
+            }
+        } catch {
+            window.location.replace("/auth/login");
+        }
+    }
+
+</script>
