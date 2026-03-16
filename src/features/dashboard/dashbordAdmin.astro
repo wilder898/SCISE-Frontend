@@ -1,6 +1,5 @@
 <section class="dashboard">
-
-    <!-- <aside class="sidebar">
+    <aside class="sidebar">
         <h2>SCISE</h2>
 
         <nav class="menu">
@@ -10,12 +9,11 @@
             <a href="#">Reportes</a>
             <a href="#">Configuracion</a>
         </nav>
-    </aside> -->
+    </aside>
 
     <main class="content">
         <header class="topbar">
             <h1>Dashboard Administrador</h1>
-            <button id="logoutBtn">Cerrar Sesion</button>
         </header>
 
         <section class="cards">
@@ -46,3 +44,20 @@
         </section>
     </main>
 </section>
+
+<script>
+    // Guard de seguridad: solo accesible para admins
+    const raw = localStorage.getItem("scise-session");
+    if (!raw) {
+        window.location.replace("/auth/login");
+    } else {
+        try {
+            const session = JSON.parse(raw);
+            if (session.role !== "admin") {
+                window.location.replace("/dashboard/user");
+            }
+        } catch {
+            window.location.replace("/auth/login");
+        }
+    }
+</script>

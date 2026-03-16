@@ -1,13 +1,11 @@
 ---
 import LoginView from "../features/auth/LoginView.astro";
 import AuthLayout from "../layouts/AuthLayout.astro";
-import IngresoView from "../features/ingreso/ingresoView.astro";
 ---
 
 <AuthLayout title="SCISE - Login">
   <div class="auth-card">
     <LoginView />
-    <IngresoView />
   </div>
 </AuthLayout>
 
@@ -27,9 +25,9 @@ import IngresoView from "../features/ingreso/ingresoView.astro";
         const session = JSON.parse(rawSession);
         
         // 2. Hay sesión -> redirigir a dashboard
-        if (session.role === "admin") {
+        if (session.role === "login") {
           window.location.replace("/dashboard/admin");
-        } else if (session.role === "user") {
+        } else if (session.role === "login") {
           window.location.replace("/dashboard/user");
         } else {
           // Rol inválido -> ir al login por seguridad
