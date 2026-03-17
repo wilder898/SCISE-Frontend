@@ -176,44 +176,20 @@ body {
 }
 
 .app-content {
-  padding: 0.75rem;
+  background: #ffffff;
 }
 
-.app-content-top {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+.app-header {
+  padding: 2rem 2rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 0.6rem;
-  margin-bottom: 0.75rem;
+  background: #ffffff;
 }
 
-.app-user-avatar {
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #f8fafc;
-}
-
-.app-user-lines {
-  display: grid;
-  gap: 0.28rem;
-}
-
-.app-user-lines span {
-  display: block;
-  height: 0.22rem;
-  border-radius: 999px;
-  background: #d1d5db;
-}
-
-.app-user-lines span:first-child {
-  width: 3rem;
-}
-
-.app-user-lines span:last-child {
-  width: 4.5rem;
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: #0f172a;
 }
 
 .page-card {
@@ -260,5 +236,9 @@ body {
 
   .app-logout {
     margin-top: 0;
+  }
+
+  .app-header {
+    padding: 1.25rem;
   }
 }
