@@ -1,3 +1,51 @@
-<section>
-  <h2>Ingreso</h2>
+<section class="layout">
+    <aside class="sidebar"></aside>
+
+    <main class="main">
+        <header class="topbar">
+            <section class="title">
+                <h1>Registro de Ingreso de Equipo</h1>
+            </section>
+        </header>
+
+        <section class="cards">
+            <article class="card">
+                <header class="card-header">
+                    <span class="icon">👤</span>
+                    <h2>Escaneo Carnet</h2>
+                </header>
+
+                <section class="scan-area">
+                    <input
+                        type="text"
+                        id="barcodeUser"
+                        placeholder="Escanear codigo de barras del carnet..."
+                    />
+                </section>
+            </article>
+            <article class="card">
+                <header class="card-header">
+                    <span class="icon">💻</span>
+                    <h2>Escaneo Equipo</h2>
+                </header>
+            </article>
+        </section>
+
+        <section class="actions">
+            <button class="btn-cancelar" onclick="cancelar()">Cancelar</button>
+            <button class="btn-registrar" id="btnSalida" disabled>
+                Registrar ingreso
+            </button>
+        </section>
+
+        <section class="info-panel">
+            <h3>ℹ️ Instrucciones:</h3>
+            <ul>
+                <li>Escanea el código de barras del carnet del usuario.</li>
+                <li>Se mostrarán los equipos disponibles del usuario.</li>
+            </ul>
+        </section>
+
+        <footer id="message" class="message"></footer>
+    </main>
 </section>
