@@ -1,0 +1,82 @@
+.descripcion {
+  color: #64748b;
+  margin: 0.25rem 0 0.9rem;
+  text-align: center;
+}
+
+.equipos {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.equipo-item {
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 1rem;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.equipo-item:hover {
+  background: #f1f5f9;
+}
+
+.equipo-item small {
+  color: #64748b;
+}
+
+.equipo-box {
+  background: #fef3c7;
+  padding: 1rem;
+  border-radius: 1rem;
+  margin-top: 0.9rem;
+}
+
+.equipo-box p {
+  margin: 0 0 0.75rem;
+  color: #333333;
+}
+
+.equipo-box p:last-child {
+  margin-bottom: 0;
+}
+
+.equipo-box strong {
+  display: block;
+  color: #555555;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.equipo-box span {
+  font-size: 0.95rem;
+  color: #000000;
+  font-weight: 500;
+}
+
+input[type="radio"] {
+  cursor: pointer;
+  margin-right: 0.2rem;
+}
+
+label {
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+.equipo-item input[type="radio"]:checked ~ label {
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.equipo-item:has(input[type="radio"]:checked) {
+  border: 2px solid #ea580c;
+  background: #fff5e8;
+}

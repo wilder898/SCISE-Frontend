@@ -1,0 +1,120 @@
+.ingreso-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(23, 134, 58, 0.08), transparent 24%),
+    linear-gradient(180deg, #fbfffc 0%, #edf8ef 100%);
+}
+
+.ingreso-toolbar,
+.ingreso-card,
+.ingreso-note-card {
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09);
+}
+
+.ingreso-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ingreso-card {
+  border-radius: 1.4rem;
+  padding: 1.5rem;
+}
+
+.ingreso-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.ingreso-card__header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.35rem;
+}
+
+.ingreso-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  display: grid;
+  place-items: center;
+}
+
+.ingreso-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.ingreso-icon.is-blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.ingreso-icon.is-orange {
+  background: #fde7d8;
+  color: #ea580c;
+}
+
+.success {
+  color: #16a34a;
+  font-weight: 600;
+  margin-top: 0.9rem;
+}
+
+.loading {
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 0.9rem;
+  animation: pulse 1.5s infinite;
+}
+
+.error {
+  color: #dc2626;
+  font-weight: 600;
+  margin-top: 0.9rem;
+}
+
+.oculto {
+  display: none;
+}
+
+.ingreso-message {
+  text-align: center;
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 1100px) {
+  .ingreso-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .ingreso-page {
+    padding: 1.25rem;
+  }
+
+  .ingreso-card,
+  .ingreso-note-card {
+    padding: 1.2rem;
+  }
+}
