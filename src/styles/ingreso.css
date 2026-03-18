@@ -1,7 +1,7 @@
 body {
     margin: 0;
     font-family: system-ui, -apple-system, sans-serif;
-    background: linear-gradient(180deg, #f4f6f9, #d9efe2);
+    background: linear-gradient(to right, #d1fae5, #ecfdf5);
 }
 
 .layout {
@@ -10,43 +10,19 @@ body {
     min-height: 100vh;
 }
 
-.topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.title h1 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 600;
-}
-
-.btn-profile {
-    background: #f3f4f6;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
 .cards {
     display: flex;
     gap: 30px;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 30px;
 }
 
 .card {
-    background: white;
+    background: #f8fafc;
     width: 420px;
     padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
@@ -58,78 +34,99 @@ body {
 
 .card-header h2 {
     margin: 0;
-    font-size: 20px;
 }
 
 .icon {
-    background: #e5edf7;
-    padding: 10px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.scan-area {
-    margin-top: 10px;
+.icon.blue {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.icon.orange {
+    background: #fde7d8;
+    color: #ea580c;
 }
 
 .scan-area input {
     width: 100%;
-    padding: 14px;
-    border: 2px dashed #93c5fd;
-    border-radius: 10px;
-    font-size: 14px;
-    outline: none;
+    padding: 16px;
+    border: 2px dashed #3b82f6;
+    border-radius: 14px;
+    text-align: center;
+    font-size: 16px;
 }
 
-.card input {
-    width: 100%;
-    padding: 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    margin-top: 10px;
-}
-
-.info {
-    margin-top: 15px;
-    font-weight: 500;
-    color: #374151;
-}
-
-.status {
-    margin-top: 10px;
+.descripcion {
+    text-align: center;
     color: #6b7280;
+    margin-top: 20px;
+}
+
+.success {
+    color: #16a34a;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+.user-box {
+    background: #cbd5e1;
+    padding: 20px;
+    border-radius: 16px;
+    margin-top: 15px;
+}
+
+.equipos {
+    margin-top: 20px;
+}
+
+.equipo-item {
+    display: flex;
+    gap: 15px;
+    padding: 18px;
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    background: #f9fafb;
+}
+
+.equipo-item:hover {
+    background: #f1f5f9;
+}
+
+.oculto {
+    display: none;
 }
 
 .actions {
     display: flex;
     justify-content: center;
     gap: 20px;
-    margin-bottom: 30px;
+    margin: 30px;
 }
 
 .btn-cancelar {
     background: #e5e7eb;
+    padding: 12px 28px;
+    border-radius: 12px;
     border: none;
-    padding: 12px 26px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 500;
 }
 
 .btn-registrar {
-    background: #22c55e;
-    color: white;
+    background: #86efac;
+    padding: 12px 28px;
+    border-radius: 12px;
     border: none;
-    padding: 12px 26px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
 }
 
-.btn-registrar:disabled {
-    background: #0dd86c77;
-    cursor: not-allowed;
-}
 
 .info-panel {
     background: #e8f1fb;

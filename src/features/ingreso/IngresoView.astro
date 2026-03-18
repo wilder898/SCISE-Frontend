@@ -1,18 +1,12 @@
 <section class="layout">
     <aside class="sidebar"></aside>
-
     <main class="main">
-        <header class="topbar">
-            <section class="title">
-                <h1>Registro de Ingreso de Equipo</h1>
-            </section>
-        </header>
-
         <section class="cards">
+            <!-- USUARIO -->
             <article class="card">
                 <header class="card-header">
-                    <span class="icon">👤</span>
-                    <h2>Escaneo Carnet</h2>
+                    <span class="icon blue">||||</span>
+                    <h2>Escanear Carnet</h2>
                 </header>
 
                 <section class="scan-area">
@@ -20,22 +14,49 @@
                         type="text"
                         id="barcodeUser"
                         placeholder="Escanear codigo de barras del carnet..."
+                        autocomplete="off"
                     />
                 </section>
+
+                <p id="userSuccess" class="success oculto">✔ Usuario detectado</p>
+                <p id="userError" class="error oculto"></p>
+                <p id="loadingUser" class="loading oculto">Cargando usuario...</p>
+
+                <section id="userBox" class="user-box oculto">
+                    <p><strong>NOMBRE</strong><br /><span id="nombre"></span></p>
+                    <p><strong>DOCUMENTO</strong><br /><span id="documento"></span></p>
+                    <p><strong>ROL</strong><br /><span id="rol"></span></p>
+                </section>
             </article>
+
+            <!-- EQUIPOS -->
             <article class="card">
                 <header class="card-header">
-                    <span class="icon">💻</span>
-                    <h2>Escaneo Equipo</h2>
+                    <span class="icon orange">💻</span>
+                    <h2>Seleccionar Equipo</h2>
                 </header>
+
+                <p id="textoInicial" class="descripcion">
+                    Escanea primero el carnet del usuario para ver sus equipos
+                    en la instalación
+                </p>
+
+                <p id="loadingEquipos" class="loading oculto">Cargando equipos...</p>
+                <p id="equiposError" class="error oculto"></p>
+
+                <section id="listaEquipos" class="equipos oculto">
+                    <!-- Los equipos se cargarán dinámicamente aquí -->
+                </section>
+
+                <p id="equipoSuccess" class="success oculto">✔ Equipo seleccionado</p>
+                <p id="equipoError" class="error oculto"></p>
+                <p id="loadingEquipo" class="loading oculto">Cargando equipo...</p>
             </article>
         </section>
 
         <section class="actions">
-            <button class="btn-cancelar" onclick="cancelar()">Cancelar</button>
-            <button class="btn-registrar" id="btnSalida" disabled>
-                Registrar ingreso
-            </button>
+            <button class="btn-cancelar" id="btnCancelar">Cancelar</button>
+            <button class="btn-registrar" id="btnRegistrar" disabled>Registrar ingreso</button>
         </section>
 
         <section class="info-panel">
@@ -43,9 +64,12 @@
             <ul>
                 <li>Escanea el código de barras del carnet del usuario.</li>
                 <li>Se mostrarán los equipos disponibles del usuario.</li>
+                <li>Selecciona el equipo a registrar</li>
+                <li>Haz clic en "Registrar Ingreso" para confirmar</li>
             </ul>
         </section>
 
         <footer id="message" class="message"></footer>
     </main>
 </section>
+
