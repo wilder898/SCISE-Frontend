@@ -1,3 +1,376 @@
-﻿<section>
-  <h2>Reportes</h2>
+﻿---
+const initialMovements = [ ];
+---
+
+<section class="reportes-page">
+  <div class="reportes-toolbar">
+    <div>
+      <p class="reportes-eyebrow">Gestion operativa</p>
+      <h1>Panel de Administracion</h1>
+      <p class="reportes-copy">
+        Consulta analitica, historial de movimientos, reportes y comportamiento
+        general del flujo de ingresos y salidas.
+      </p>
+    </div>
+  </div>
+
+  <section class="reportes-stats" id="reportesStats">
+    <article class="stat-card stat-card--green">
+      <div>
+        <p>Equipos Totales</p>
+        <strong id="totalEquiposValue">0</strong>
+        <span id="totalEquiposMeta">Base actual de equipos</span>
+      </div>
+      <div class="stat-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Zm0 0v9m0 0 8-4.5M12 12 4 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+    </article>
+
+    <article class="stat-card stat-card--blue">
+      <div>
+        <p>En la Instalacion</p>
+        <strong id="insideEquiposValue">0</strong>
+        <span id="insideEquiposMeta">0% del total</span>
+      </div>
+      <div class="stat-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 12h12m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+    </article>
+
+    <article class="stat-card stat-card--orange">
+      <div>
+        <p>Fuera de Instalacion</p>
+        <strong id="outsideEquiposValue">0</strong>
+        <span id="outsideEquiposMeta">0% del total</span>
+      </div>
+      <div class="stat-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 12H6m5-5-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+    </article>
+
+    <article class="stat-card stat-card--violet">
+      <div>
+        <p>Movimientos Hoy</p>
+        <strong id="todayMovementsValue">0</strong>
+        <span id="todayMovementsMeta">0 movimientos registrados</span>
+      </div>
+      <div class="stat-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="m7 17 10-10m0 0h-6m6 0v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+    </article>
+  </section>
+
+  <section class="reportes-filter-card">
+    <div class="reportes-filters">
+      <label class="reportes-field">
+        <span>Filtrar por Tipo</span>
+        <select id="movementTypeFilter">
+          <option value="">Todos los Movimientos</option>
+          <option value="Ingreso">Ingresos</option>
+          <option value="Salida">Salidas</option>
+        </select>
+      </label>
+
+      <label class="reportes-field">
+        <span>Fecha</span>
+        <input id="movementDateFilter" type="date" />
+      </label>
+    </div>
+
+    <div class="reportes-filter-actions">
+      <button class="reportes-button reportes-button--ghost" id="reportesCsvButton" type="button">
+        Descargar CSV
+      </button>
+      <button class="reportes-button reportes-button--accent" id="reportesPdfButton" type="button">
+        Descargar PDF
+      </button>
+    </div>
+  </section>
+
+  <section class="reportes-table-card">
+    <div class="reportes-table-header">
+      <div>
+        <h2>Historial de Movimientos</h2>
+        <p>Ultimos ingresos y salidas registrados en el sistema.</p>
+      </div>
+      <button class="reportes-button reportes-button--outline" id="reportesAllButton" type="button">
+        Descargar Todo
+      </button>
+    </div>
+
+    <div class="reportes-table-wrap">
+      <table class="reportes-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Usuario</th>
+            <th>Equipo</th>
+            <th>Serial</th>
+            <th>Fecha y Hora</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="reportesTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="reportes-empty-state" id="reportesEmptyState" hidden>
+      No hay movimientos que coincidan con los filtros aplicados.
+    </div>
+
+    <div class="reportes-pagination">
+      <button class="reportes-button reportes-button--outline" id="reportesPrevButton" type="button">
+        Anterior
+      </button>
+      <span id="reportesPageInfo">Pagina 1 de 1</span>
+      <button class="reportes-button reportes-button--outline" id="reportesNextButton" type="button">
+        Siguiente
+      </button>
+    </div>
+  </section>
+
+  <section class="reportes-info-grid">
+    <article class="reportes-info-card">
+      <strong>Descarga y filtros</strong>
+      <p>
+        Usa el filtro por tipo y fecha para descargar reportes mas precisos en
+        CSV o preparar la salida en PDF.
+      </p>
+    </article>
+
+    <article class="reportes-info-card reportes-info-card--accent">
+      <strong>Estadisticas disponibles</strong>
+      <p>
+        El panel resume equipos dentro y fuera de la instalacion, movimientos
+        del dia y comportamiento historico del inventario.
+      </p>
+    </article>
+  </section>
 </section>
+
+<script define:vars={{ initialMovements }}>
+  const state = {
+    movements: [...initialMovements],
+    currentPage: 1,
+    pageSize: 5,
+  };
+
+  const tableBody = document.getElementById("reportesTableBody");
+  const emptyState = document.getElementById("reportesEmptyState");
+  const typeFilter = document.getElementById("movementTypeFilter");
+  const dateFilter = document.getElementById("movementDateFilter");
+  const csvButton = document.getElementById("reportesCsvButton");
+  const pdfButton = document.getElementById("reportesPdfButton");
+  const allButton = document.getElementById("reportesAllButton");
+  const prevButton = document.getElementById("reportesPrevButton");
+  const nextButton = document.getElementById("reportesNextButton");
+  const pageInfo = document.getElementById("reportesPageInfo");
+
+  const totalEquiposValue = document.getElementById("totalEquiposValue");
+  const totalEquiposMeta = document.getElementById("totalEquiposMeta");
+  const insideEquiposValue = document.getElementById("insideEquiposValue");
+  const insideEquiposMeta = document.getElementById("insideEquiposMeta");
+  const outsideEquiposValue = document.getElementById("outsideEquiposValue");
+  const outsideEquiposMeta = document.getElementById("outsideEquiposMeta");
+  const todayMovementsValue = document.getElementById("todayMovementsValue");
+  const todayMovementsMeta = document.getElementById("todayMovementsMeta");
+
+  function formatDateTime(value) {
+    const date = new Date(value);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  function getTodayIsoDate() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function getCurrentEquipmentState() {
+    const latestBySerial = new Map();
+
+    state.movements.forEach((movement) => {
+      const current = latestBySerial.get(movement.serial);
+
+      if (!current || new Date(movement.fechaHora) > new Date(current.fechaHora)) {
+        latestBySerial.set(movement.serial, movement);
+      }
+    });
+
+    return Array.from(latestBySerial.values());
+  }
+
+  function updateStats() {
+    const latestMovements = getCurrentEquipmentState();
+    const totalEquipos = latestMovements.length;
+    const enInstalacion = latestMovements.filter((movement) => movement.tipo === "Ingreso").length;
+    const fueraInstalacion = latestMovements.filter((movement) => movement.tipo === "Salida").length;
+    const movimientosHoy = state.movements.filter(
+      (movement) => movement.fechaHora.slice(0, 10) === getTodayIsoDate()
+    ).length;
+
+    const insidePct = totalEquipos ? Math.round((enInstalacion / totalEquipos) * 100) : 0;
+    const outsidePct = totalEquipos ? Math.round((fueraInstalacion / totalEquipos) * 100) : 0;
+
+    totalEquiposValue.textContent = String(totalEquipos);
+    totalEquiposMeta.textContent = `${enInstalacion + fueraInstalacion} estados consolidados`;
+    insideEquiposValue.textContent = String(enInstalacion);
+    insideEquiposMeta.textContent = `${insidePct}% de los equipos`;
+    outsideEquiposValue.textContent = String(fueraInstalacion);
+    outsideEquiposMeta.textContent = `${outsidePct}% de los equipos`;
+    todayMovementsValue.textContent = String(movimientosHoy);
+    todayMovementsMeta.textContent = `${movimientosHoy} movimientos registrados`;
+  }
+
+  function getFilteredMovements() {
+    const selectedType = String(typeFilter?.value || "");
+    const selectedDate = String(dateFilter?.value || "");
+
+    return state.movements.filter((movement) => {
+      const matchesType = !selectedType || movement.tipo === selectedType;
+      const matchesDate = !selectedDate || movement.fechaHora.slice(0, 10) === selectedDate;
+      return matchesType && matchesDate;
+    });
+  }
+
+  function renderTable() {
+    const filteredMovements = getFilteredMovements();
+    const totalPages = Math.max(1, Math.ceil(filteredMovements.length / state.pageSize));
+
+    if (state.currentPage > totalPages) {
+      state.currentPage = totalPages;
+    }
+
+    const start = (state.currentPage - 1) * state.pageSize;
+    const pageRows = filteredMovements.slice(start, start + state.pageSize);
+
+    pageInfo.textContent = `Pagina ${state.currentPage} de ${totalPages}`;
+    prevButton.disabled = state.currentPage === 1;
+    nextButton.disabled = state.currentPage === totalPages;
+
+    if (!pageRows.length) {
+      tableBody.innerHTML = "";
+      emptyState.hidden = false;
+      return;
+    }
+
+    emptyState.hidden = true;
+    tableBody.innerHTML = pageRows
+      .map(
+        (movement) => `
+          <tr>
+            <td>
+              <span class="movement-pill ${movement.tipo === "Ingreso" ? "is-ingreso" : "is-salida"}">
+                ${movement.tipo}
+              </span>
+            </td>
+            <td>
+              <div class="movement-user">
+                <strong>${movement.nombre} ${movement.apellido}</strong>
+                <span>${movement.documento}</span>
+              </div>
+            </td>
+            <td>${movement.equipo}</td>
+            <td>${movement.serial}</td>
+            <td>${formatDateTime(movement.fechaHora)}</td>
+            <td><span class="movement-status">${movement.estado}</span></td>
+            <td>
+              <button class="movement-more" type="button" data-movement-id="${movement.id}" aria-label="Mas opciones">
+                ...
+              </button>
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+
+  function exportRows(filename, rows) {
+    const header = ["Tipo", "Usuario", "Documento", "Equipo", "Serial", "FechaHora", "Estado"];
+    const csvRows = rows.map((movement) => [
+      movement.tipo,
+      `${movement.nombre} ${movement.apellido}`,
+      movement.documento,
+      movement.equipo,
+      movement.serial,
+      movement.fechaHora,
+      movement.estado,
+    ]);
+
+    const csvContent = [header, ...csvRows]
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  typeFilter?.addEventListener("change", () => {
+    state.currentPage = 1;
+    renderTable();
+  });
+
+  dateFilter?.addEventListener("change", () => {
+    state.currentPage = 1;
+    renderTable();
+  });
+
+  csvButton?.addEventListener("click", () => {
+    exportRows("movimientos-filtrados.csv", getFilteredMovements());
+  });
+
+  allButton?.addEventListener("click", () => {
+    exportRows("movimientos-completos.csv", state.movements);
+  });
+
+  pdfButton?.addEventListener("click", () => {
+    alert("La descarga en PDF queda lista para implementar.");
+  });
+
+  prevButton?.addEventListener("click", () => {
+    if (state.currentPage > 1) {
+      state.currentPage -= 1;
+      renderTable();
+    }
+  });
+
+  nextButton?.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(getFilteredMovements().length / state.pageSize));
+
+    if (state.currentPage < totalPages) {
+      state.currentPage += 1;
+      renderTable();
+    }
+  });
+
+  tableBody?.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    if (target.classList.contains("movement-more")) {
+      alert("Menu de acciones listo para la siguiente iteracion.");
+    }
+  });
+
+  updateStats();
+  renderTable();
+</script>
