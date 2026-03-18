@@ -1,0 +1,39 @@
+<section class="config-card">
+  <div class="config-card__header">
+    <div>
+      <h2>Cambio de contrasena</h2>
+      <p>Restablece la clave de acceso para cualquier usuario autorizado.</p>
+    </div>
+  </div>
+
+  <div class="password-target-card">
+    <span class="password-target-card__eyebrow">Usuario seleccionado</span>
+    <strong id="passwordTargetName">Ningun usuario seleccionado</strong>
+    <p id="passwordTargetMeta">
+      Usa la tabla de accesos para elegir a quien deseas cambiar la contrasena.
+    </p>
+  </div>
+
+  <form class="config-form" id="passwordResetForm">
+    <div class="config-form-grid config-form-grid--single">
+      <label class="config-field">
+        <span>Nueva contrasena</span>
+        <input id="passwordNueva" type="password" placeholder="Nueva contrasena" />
+      </label>
+
+      <label class="config-field">
+        <span>Confirmar contrasena</span>
+        <input id="passwordConfirmacion" type="password" placeholder="Confirmar contrasena" />
+      </label>
+    </div>
+
+    <div class="config-actions-row">
+      <p class="config-form-note" id="passwordResetFeedback">
+        Al aplicar el cambio se eliminara el estado pendiente de actualizacion.
+      </p>
+      <button class="config-button config-button--secondary" id="applyPasswordChange" type="submit">
+        Actualizar contrasena
+      </button>
+    </div>
+  </form>
+</section>

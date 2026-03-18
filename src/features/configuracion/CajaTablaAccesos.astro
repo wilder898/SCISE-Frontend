@@ -1,0 +1,45 @@
+<section class="config-card">
+  <div class="config-card__header">
+    <div>
+      <h2>Accesos registrados</h2>
+      <p>Administra estados, permisos, edicion y seguridad de cada cuenta.</p>
+    </div>
+  </div>
+
+  <div class="config-table-tools">
+    <label class="config-field">
+      <span>Buscar acceso</span>
+      <input id="accessSearchInput" type="search" placeholder="Nombre, usuario o correo" />
+    </label>
+
+    <label class="config-field">
+      <span>Estado</span>
+      <select id="accessStatusFilter">
+        <option value="">Todos</option>
+        <option value="Activo">Activo</option>
+        <option value="Inactivo">Inactivo</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="config-table-wrap">
+    <table class="config-table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Perfil</th>
+          <th>Permisos</th>
+          <th>Estado</th>
+          <th>Ultimo acceso</th>
+          <th>Seguridad</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="configAccessTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="config-empty-state" id="configAccessEmpty" hidden>
+    No hay accesos que coincidan con los filtros aplicados.
+  </div>
+</section>

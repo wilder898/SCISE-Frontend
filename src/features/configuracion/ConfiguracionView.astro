@@ -1,3 +1,509 @@
-<section>
-  <h2>Configuracion</h2>
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaResumenAccesos from "./CajaResumenAccesos.astro";
+import CajaGestionAccesos from "./CajaGestionAccesos.astro";
+import CajaCambioContrasena from "./CajaCambioContrasena.astro";
+import CajaTablaAccesos from "./CajaTablaAccesos.astro";
+import CajaInformacion from "./CajaInformacion.astro";
+import CajaAccesoDenegado from "./CajaAccesoDenegado.astro";
+
+const permissionCatalog = [
+  { id: "dashboard", label: "Panel inicial", description: "Acceso al resumen general del sistema." },
+  { id: "ingreso", label: "Registrar ingreso", description: "Puede registrar entradas de equipos." },
+  { id: "salida", label: "Registrar salida", description: "Puede registrar salidas de equipos." },
+  { id: "reportes", label: "Panel de administracion", description: "Consulta historial, estadisticas y reportes." },
+  { id: "usuarios", label: "Gestionar usuarios", description: "Administra personas, perfiles y equipos asociados." },
+  { id: "configuracion", label: "Configuracion", description: "Gestiona accesos, permisos y seguridad." },
+  { id: "descargas", label: "Exportar reportes", description: "Permite descargar CSV y PDF desde la plataforma." },
+];
+
+const initialAccessUsers = [
+  {
+    id: 1,
+    nombre: "Admin SENA",
+    usuario: "admin",
+    email: "admin@sena.edu.co",
+    rol: "Administrador",
+    estado: "Activo",
+    permisos: ["dashboard", "ingreso", "salida", "reportes", "usuarios", "configuracion", "descargas"],
+    ultimoAcceso: "2026-03-18 08:10",
+    requiereCambioClave: false,
+  },
+  {
+    id: 2,
+    nombre: "Mesa de Soporte",
+    usuario: "soporte.scise",
+    email: "soporte@sena.edu.co",
+    rol: "Soporte",
+    estado: "Activo",
+    permisos: ["dashboard", "reportes", "usuarios", "descargas"],
+    ultimoAcceso: "2026-03-17 16:45",
+    requiereCambioClave: true,
+  },
+  {
+    id: 3,
+    nombre: "Coordinacion TIC",
+    usuario: "coordinacion.tic",
+    email: "tic@sena.edu.co",
+    rol: "Supervisor",
+    estado: "Inactivo",
+    permisos: ["dashboard", "reportes", "usuarios"],
+    ultimoAcceso: "2026-03-10 09:20",
+    requiereCambioClave: false,
+  },
+];
+---
+
+<section class="config-page">
+  <CajaPanelInicial />
+
+  <div id="configAdminContent" hidden>
+    <CajaResumenAccesos />
+
+    <div class="config-management-grid">
+      <CajaGestionAccesos permissions={permissionCatalog} />
+      <CajaCambioContrasena />
+    </div>
+
+    <CajaTablaAccesos />
+    <CajaInformacion />
+  </div>
+
+  <div id="configDeniedContent" hidden>
+    <CajaAccesoDenegado />
+  </div>
 </section>
+
+<script define:vars={{ initialAccessUsers, permissionCatalog }}>
+  const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
+  const isAdmin = sessionData.role === "admin";
+
+  const adminContent = document.getElementById("configAdminContent");
+  const deniedContent = document.getElementById("configDeniedContent");
+
+  if (adminContent && deniedContent) {
+    adminContent.hidden = !isAdmin;
+    deniedContent.hidden = isAdmin;
+  }
+
+  if (!isAdmin) {
+    // El modulo queda visible solo para administradores.
+  } else {
+    const permissionLabelMap = Object.fromEntries(
+      permissionCatalog.map((permission) => [permission.id, permission.label])
+    );
+
+    const state = {
+      accesses: initialAccessUsers.map((access) => ({
+        ...access,
+        permisos: [...access.permisos],
+      })),
+      editingId: null,
+      passwordTargetId: null,
+    };
+
+    const summaryTotalAccesses = document.getElementById("summaryTotalAccesses");
+    const summaryActiveAccesses = document.getElementById("summaryActiveAccesses");
+    const summaryAdminAccesses = document.getElementById("summaryAdminAccesses");
+    const summaryPendingResets = document.getElementById("summaryPendingResets");
+
+    const accessForm = document.getElementById("configAccessForm");
+    const accessId = document.getElementById("accessId");
+    const accessNombre = document.getElementById("accessNombre");
+    const accessUsuario = document.getElementById("accessUsuario");
+    const accessEmail = document.getElementById("accessEmail");
+    const accessRol = document.getElementById("accessRol");
+    const accessEstado = document.getElementById("accessEstado");
+    const saveAccessButton = document.getElementById("saveAccessButton");
+    const cancelEditButton = document.getElementById("cancelEditButton");
+    const permissionInputs = Array.from(
+      document.querySelectorAll('input[name="permissionOption"]')
+    );
+
+    const searchInput = document.getElementById("accessSearchInput");
+    const statusFilter = document.getElementById("accessStatusFilter");
+    const tableBody = document.getElementById("configAccessTableBody");
+    const emptyState = document.getElementById("configAccessEmpty");
+
+    const passwordTargetName = document.getElementById("passwordTargetName");
+    const passwordTargetMeta = document.getElementById("passwordTargetMeta");
+    const passwordResetForm = document.getElementById("passwordResetForm");
+    const passwordNueva = document.getElementById("passwordNueva");
+    const passwordConfirmacion = document.getElementById("passwordConfirmacion");
+    const passwordResetFeedback = document.getElementById("passwordResetFeedback");
+    const applyPasswordChange = document.getElementById("applyPasswordChange");
+
+    function getSelectedPermissions() {
+      return permissionInputs
+        .filter(
+          (input) => input instanceof HTMLInputElement && input.checked
+        )
+        .map((input) => input.value);
+    }
+
+    function findAccessById(accessIdValue) {
+      return state.accesses.find((access) => access.id === accessIdValue) || null;
+    }
+
+    function resetForm() {
+      state.editingId = null;
+
+      if (accessId instanceof HTMLInputElement) accessId.value = "";
+      if (accessNombre instanceof HTMLInputElement) accessNombre.value = "";
+      if (accessUsuario instanceof HTMLInputElement) accessUsuario.value = "";
+      if (accessEmail instanceof HTMLInputElement) accessEmail.value = "";
+      if (accessRol instanceof HTMLSelectElement) accessRol.value = "Administrador";
+      if (accessEstado instanceof HTMLSelectElement) accessEstado.value = "Activo";
+
+      permissionInputs.forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+          input.checked = false;
+        }
+      });
+
+      if (saveAccessButton instanceof HTMLButtonElement) {
+        saveAccessButton.textContent = "Guardar acceso";
+      }
+
+      if (cancelEditButton instanceof HTMLButtonElement) {
+        cancelEditButton.hidden = true;
+      }
+    }
+
+    function updateSummary() {
+      const total = state.accesses.length;
+      const active = state.accesses.filter((access) => access.estado === "Activo").length;
+      const admins = state.accesses.filter((access) => access.rol === "Administrador").length;
+      const pending = state.accesses.filter((access) => access.requiereCambioClave).length;
+
+      if (summaryTotalAccesses) summaryTotalAccesses.textContent = String(total);
+      if (summaryActiveAccesses) summaryActiveAccesses.textContent = String(active);
+      if (summaryAdminAccesses) summaryAdminAccesses.textContent = String(admins);
+      if (summaryPendingResets) summaryPendingResets.textContent = String(pending);
+    }
+
+    function getFilteredAccesses() {
+      const search = String(searchInput?.value || "").trim().toLowerCase();
+      const status = String(statusFilter?.value || "");
+
+      return state.accesses.filter((access) => {
+        const matchesSearch =
+          !search ||
+          [access.nombre, access.usuario, access.email].some((value) =>
+            String(value).toLowerCase().includes(search)
+          );
+        const matchesStatus = !status || access.estado === status;
+        return matchesSearch && matchesStatus;
+      });
+    }
+
+    function renderTable() {
+      if (!(tableBody instanceof HTMLElement) || !(emptyState instanceof HTMLElement)) {
+        return;
+      }
+
+      const filteredAccesses = getFilteredAccesses();
+
+      if (!filteredAccesses.length) {
+        tableBody.innerHTML = "";
+        emptyState.hidden = false;
+        return;
+      }
+
+      emptyState.hidden = true;
+      tableBody.innerHTML = filteredAccesses
+        .map((access) => {
+          const permissions = access.permisos
+            .map((permissionId) => {
+              const label = permissionLabelMap[permissionId] || permissionId;
+              return `<span class="config-chip">${label}</span>`;
+            })
+            .join("");
+
+          const statusClass =
+            access.estado === "Activo" ? "is-active" : "is-inactive";
+          const securityLabel = access.requiereCambioClave
+            ? "Cambio pendiente"
+            : "Clave al dia";
+          const securityClass = access.requiereCambioClave
+            ? "is-warning"
+            : "is-ok";
+
+          return `
+            <tr>
+              <td>
+                <div class="config-user-cell">
+                  <strong>${access.nombre}</strong>
+                  <span>@${access.usuario}</span>
+                  <small>${access.email}</small>
+                </div>
+              </td>
+              <td><span class="config-role-pill">${access.rol}</span></td>
+              <td><div class="config-chip-list">${permissions}</div></td>
+              <td><span class="config-state-pill ${statusClass}">${access.estado}</span></td>
+              <td>${access.ultimoAcceso}</td>
+              <td><span class="config-security-pill ${securityClass}">${securityLabel}</span></td>
+              <td>
+                <div class="config-table-actions">
+                  <button class="config-table-button" type="button" data-action="edit" data-access-id="${access.id}">
+                    Editar
+                  </button>
+                  <button class="config-table-button" type="button" data-action="toggle" data-access-id="${access.id}">
+                    ${access.estado === "Activo" ? "Desactivar" : "Activar"}
+                  </button>
+                  <button class="config-table-button" type="button" data-action="password" data-access-id="${access.id}">
+                    Clave
+                  </button>
+                  <button class="config-table-button is-danger" type="button" data-action="delete" data-access-id="${access.id}">
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    function startEdit(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      state.editingId = access.id;
+
+      if (accessId instanceof HTMLInputElement) accessId.value = String(access.id);
+      if (accessNombre instanceof HTMLInputElement) accessNombre.value = access.nombre;
+      if (accessUsuario instanceof HTMLInputElement) accessUsuario.value = access.usuario;
+      if (accessEmail instanceof HTMLInputElement) accessEmail.value = access.email;
+      if (accessRol instanceof HTMLSelectElement) accessRol.value = access.rol;
+      if (accessEstado instanceof HTMLSelectElement) accessEstado.value = access.estado;
+
+      permissionInputs.forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+          input.checked = access.permisos.includes(input.value);
+        }
+      });
+
+      if (saveAccessButton instanceof HTMLButtonElement) {
+        saveAccessButton.textContent = "Actualizar acceso";
+      }
+
+      if (cancelEditButton instanceof HTMLButtonElement) {
+        cancelEditButton.hidden = false;
+      }
+    }
+
+    function saveAccess(event) {
+      event.preventDefault();
+
+      if (
+        !(accessNombre instanceof HTMLInputElement) ||
+        !(accessUsuario instanceof HTMLInputElement) ||
+        !(accessEmail instanceof HTMLInputElement) ||
+        !(accessRol instanceof HTMLSelectElement) ||
+        !(accessEstado instanceof HTMLSelectElement)
+      ) {
+        return;
+      }
+
+      const nombre = accessNombre.value.trim();
+      const usuario = accessUsuario.value.trim();
+      const email = accessEmail.value.trim();
+      const rol = accessRol.value;
+      const estado = accessEstado.value;
+      const permisos = getSelectedPermissions();
+
+      if (!nombre || !usuario || !email || !permisos.length) {
+        alert("Completa los datos basicos y selecciona al menos un permiso.");
+        return;
+      }
+
+      if (state.editingId) {
+        const access = findAccessById(state.editingId);
+
+        if (!access) {
+          return;
+        }
+
+        access.nombre = nombre;
+        access.usuario = usuario;
+        access.email = email;
+        access.rol = rol;
+        access.estado = estado;
+        access.permisos = permisos;
+      } else {
+        state.accesses.unshift({
+          id: Date.now(),
+          nombre,
+          usuario,
+          email,
+          rol,
+          estado,
+          permisos,
+          ultimoAcceso: "Sin ingreso",
+          requiereCambioClave: true,
+        });
+      }
+
+      resetForm();
+      updateSummary();
+      renderTable();
+    }
+
+    function toggleAccess(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      access.estado = access.estado === "Activo" ? "Inactivo" : "Activo";
+      updateSummary();
+      renderTable();
+    }
+
+    function deleteAccess(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Vas a eliminar el acceso de ${access.nombre}. Esta accion no se puede deshacer en este mock.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      state.accesses = state.accesses.filter((item) => item.id !== accessIdValue);
+
+      if (state.passwordTargetId === accessIdValue) {
+        state.passwordTargetId = null;
+      }
+
+      if (state.editingId === accessIdValue) {
+        resetForm();
+      }
+
+      updatePasswordTarget();
+      updateSummary();
+      renderTable();
+    }
+
+    function selectPasswordTarget(accessIdValue) {
+      state.passwordTargetId = accessIdValue;
+      updatePasswordTarget();
+    }
+
+    function updatePasswordTarget() {
+      const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
+
+      if (passwordTargetName instanceof HTMLElement) {
+        passwordTargetName.textContent = access
+          ? `${access.nombre} (@${access.usuario})`
+          : "Ningun usuario seleccionado";
+      }
+
+      if (passwordTargetMeta instanceof HTMLElement) {
+        passwordTargetMeta.textContent = access
+          ? `Perfil ${access.rol}. Estado ${access.estado}.`
+          : "Usa la tabla de accesos para elegir a quien deseas cambiar la contrasena.";
+      }
+
+      if (applyPasswordChange instanceof HTMLButtonElement) {
+        applyPasswordChange.disabled = !access;
+      }
+
+      if (passwordResetFeedback instanceof HTMLElement) {
+        passwordResetFeedback.textContent = access
+          ? "Ingresa una nueva contrasena segura y confirrmala antes de aplicar."
+          : "Al aplicar el cambio se eliminara el estado pendiente de actualizacion.";
+      }
+    }
+
+    function applyPasswordReset(event) {
+      event.preventDefault();
+
+      const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
+
+      if (
+        !access ||
+        !(passwordNueva instanceof HTMLInputElement) ||
+        !(passwordConfirmacion instanceof HTMLInputElement) ||
+        !(passwordResetFeedback instanceof HTMLElement)
+      ) {
+        return;
+      }
+
+      const newPassword = passwordNueva.value.trim();
+      const confirmPassword = passwordConfirmacion.value.trim();
+
+      if (!newPassword || !confirmPassword) {
+        passwordResetFeedback.textContent = "Completa ambos campos de contrasena.";
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        passwordResetFeedback.textContent = "La contrasena debe tener al menos 6 caracteres.";
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        passwordResetFeedback.textContent = "Las contrasenas no coinciden.";
+        return;
+      }
+
+      access.requiereCambioClave = false;
+      passwordNueva.value = "";
+      passwordConfirmacion.value = "";
+      passwordResetFeedback.textContent = `Contrasena actualizada para ${access.nombre}.`;
+      updateSummary();
+      renderTable();
+    }
+
+    accessForm?.addEventListener("submit", saveAccess);
+    cancelEditButton?.addEventListener("click", resetForm);
+
+    searchInput?.addEventListener("input", renderTable);
+    statusFilter?.addEventListener("change", renderTable);
+
+    tableBody?.addEventListener("click", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+
+      if (!(target instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const accessIdValue = Number(target.dataset.accessId || 0);
+      const action = target.dataset.action;
+
+      if (action === "edit") {
+        startEdit(accessIdValue);
+      }
+
+      if (action === "toggle") {
+        toggleAccess(accessIdValue);
+      }
+
+      if (action === "password") {
+        selectPasswordTarget(accessIdValue);
+      }
+
+      if (action === "delete") {
+        deleteAccess(accessIdValue);
+      }
+    });
+
+    passwordResetForm?.addEventListener("submit", applyPasswordReset);
+
+    resetForm();
+    updatePasswordTarget();
+    updateSummary();
+    renderTable();
+  }
+</script>
