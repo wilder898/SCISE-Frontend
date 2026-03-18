@@ -1,38 +1,11 @@
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaAcciones from "./CajaAcciones.astro";
+import CajaBienvenida from "./CajaBienvenida.astro";
+---
+
 <section class="dashboard-page">
-  <div class="dashboard-toolbar">
-    <div>
-      <p class="dashboard-eyebrow">Gestion operativa</p>
-      <h1>Panel inicial - SCISE</h1>
-      <p class="dashboard-copy">
-        Vista general del sistema de control de ingreso y salida de equipos.
-      </p>
-    </div>
-  </div>
-
-  <div class="dashboard-actions">
-    <a class="dashboard-action dashboard-action--ingreso" href="/ingreso">
-      <span class="dashboard-action__icon" aria-hidden="true">+</span>
-      <span>Registrar Ingreso</span>
-    </a>
-
-    <a class="dashboard-action dashboard-action--salida" href="/salida">
-      <span class="dashboard-action__icon" aria-hidden="true">+</span>
-      <span>Registrar Salida</span>
-    </a>
-  </div>
-
-  <article class="dashboard-card">
-    <h2>Bienvenido a SCISE</h2>
-    <p>
-      Este espacio central queda preparado para resumenes, metricas, alertas y
-      componentes de seguimiento operativo.
-    </p>
-
-    <ul>
-      <li>Registrar ingresos y salidas de equipos</li>
-      <li>Gestionar usuarios y equipos</li>
-      <li>Ver reportes y estadisticas</li>
-      <li>Configurar el sistema</li>
-    </ul>
-  </article>
+  <CajaPanelInicial />
+  <CajaAcciones />
+  <CajaBienvenida />
 </section>
