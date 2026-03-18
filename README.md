@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-# SCISE-Frontend
-=======
-﻿# SCISE-Frontend
-
 Frontend de SCISE construido con Astro.
 
 ## Estructura del proyecto
