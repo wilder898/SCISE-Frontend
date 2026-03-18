@@ -51,6 +51,12 @@
                 <p id="equipoSuccess" class="success oculto">✔ Equipo seleccionado</p>
                 <p id="equipoError" class="error oculto"></p>
                 <p id="loadingEquipo" class="loading oculto">Cargando equipo...</p>
+
+                <section id="equipoDetalles" class="equipo-box oculto">
+                    <p><strong>SERIAL</strong><br /><span id="equipoSerial"></span></p>
+                    <p><strong>TIPO</strong><br /><span id="equipoTipo"></span></p>
+                    <p><strong>DESCRIPCION</strong><br /><span id="equipoDescripcion"></span></p>
+                </section>
             </article>
         </section>
 
@@ -72,4 +78,314 @@
         <footer id="message" class="message"></footer>
     </main>
 </section>
+
+<script>
+    // Tipos para objetos
+    interface Usuario {
+        id: string;
+        nombre: string;
+        documento: string;
+        rol: string;
+    }
+
+    interface Equipo {
+        id: string;
+        serial: string;
+        tipo: string;
+        descripcion: string;
+    }
+
+    // Datos Mock para pruebas
+    const usuariosMock: Record<string, Usuario> = {
+        '1234567890': {
+            id: 'usr-001',
+            nombre: 'Juan Pérez García',
+            documento: '1234567890',
+            rol: 'Aprendiz',
+        },
+        '9876543210': {
+            id: 'usr-002',
+            nombre: 'María López Torres',
+            documento: '9876543210',
+            rol: 'Instructor',
+        },
+        '5555555555': {
+            id: 'usr-003',
+            nombre: 'Carlos Rodríguez Martínez',
+            documento: '5555555555',
+            rol: 'Coordinador',
+        },
+    };
+
+    const equiposMock: Record<string, Equipo[]> = {
+        'usr-001': [
+            {
+                id: 'equipo-001',
+                serial: 'LAP-2024-0012345',
+                tipo: 'Portátil',
+                descripcion: 'Lenovo ThinkPad E15',
+            },
+            {
+                id: 'equipo-002',
+                serial: 'MON-2024-0054321',
+                tipo: 'Monitor',
+                descripcion: 'Dell UltraSharp 27"',
+            },
+        ],
+        'usr-002': [
+            {
+                id: 'equipo-003',
+                serial: 'LAP-2024-0067890',
+                tipo: 'Portátil',
+                descripcion: 'HP ProBook 450 G9',
+            },
+        ],
+        'usr-003': [
+            {
+                id: 'equipo-004',
+                serial: 'LAP-2024-0011111',
+                tipo: 'Portátil',
+                descripcion: 'HP EliteBook 840 G8',
+            },
+            {
+                id: 'equipo-005',
+                serial: 'MON-2024-0022222',
+                tipo: 'Monitor',
+                descripcion: 'LG 24UP550',
+            },
+            {
+                id: 'equipo-006',
+                serial: 'KEY-2024-0033333',
+                tipo: 'Teclado',
+                descripcion: 'Logitech MX Keys',
+            },
+        ],
+    };
+
+    // Variables globales
+    let usuarioActual: Usuario | null = null;
+    let equipoSeleccionado: Equipo | null = null;
+
+    // Elementos del DOM - con type assertions
+    const barcodeInput = document.getElementById('barcodeUser') as HTMLInputElement;
+    const userSuccess = document.getElementById('userSuccess') as HTMLElement;
+    const userError = document.getElementById('userError') as HTMLElement;
+    const loadingUser = document.getElementById('loadingUser') as HTMLElement;
+    const userBox = document.getElementById('userBox') as HTMLElement;
+    const nombreSpan = document.getElementById('nombre') as HTMLElement;
+    const documentoSpan = document.getElementById('documento') as HTMLElement;
+    const rolSpan = document.getElementById('rol') as HTMLElement;
+
+    const loadingEquipos = document.getElementById('loadingEquipos') as HTMLElement;
+    const textoInicial = document.getElementById('textoInicial') as HTMLElement;
+    const equiposError = document.getElementById('equiposError') as HTMLElement;
+    const listaEquipos = document.getElementById('listaEquipos') as HTMLElement;
+    const equipoSuccess = document.getElementById('equipoSuccess') as HTMLElement;
+    const equipoError = document.getElementById('equipoError') as HTMLElement;
+    const loadingEquipo = document.getElementById('loadingEquipo') as HTMLElement;
+    const equipoDetalles = document.getElementById('equipoDetalles') as HTMLElement;
+    const btnCancelar = document.getElementById('btnCancelar') as HTMLButtonElement;
+    const btnRegistrar = document.getElementById('btnRegistrar') as HTMLButtonElement;
+    const messageFooter = document.getElementById('message') as HTMLElement;
+
+    // Función para obtener usuario por documento
+    async function obtenerUsuario(documento: string): Promise<void> {
+        try {
+            loadingUser.classList.remove('oculto');
+            userError.classList.add('oculto');
+            userSuccess.classList.add('oculto');
+            userBox.classList.add('oculto');
+
+            // Simular delay de red
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Buscar en datos mock
+            const usuario = usuariosMock[documento];
+            
+            if (!usuario) {
+                throw new Error('Usuario no encontrado. Intenta con: 1234567890, 9876543210 o 5555555555');
+            }
+            
+            usuarioActual = usuario;
+
+            // Mostrar información del usuario
+            nombreSpan.textContent = usuario.nombre;
+            documentoSpan.textContent = usuario.documento;
+            rolSpan.textContent = usuario.rol;
+
+            loadingUser.classList.add('oculto');
+            userSuccess.classList.remove('oculto');
+            userBox.classList.remove('oculto');
+            barcodeInput.value = '';
+
+            // Cargar equipos del usuario
+            await cargarEquiposUsuario(usuario.id);
+        } catch (error) {
+            loadingUser.classList.add('oculto');
+            userError.textContent = error instanceof Error ? error.message : 'Error desconocido';
+            userError.classList.remove('oculto');
+            barcodeInput.value = '';
+        }
+    }
+
+    // Función para cargar equipos del usuario
+    async function cargarEquiposUsuario(usuarioId: string): Promise<void> {
+        try {
+            loadingEquipos.classList.remove('oculto');
+            textoInicial.classList.add('oculto');
+            equiposError.classList.add('oculto');
+            listaEquipos.classList.add('oculto');
+
+            // Simular delay de red
+            await new Promise(resolve => setTimeout(resolve, 600));
+
+            // Buscar equipos en datos mock
+            const equipos = equiposMock[usuarioId] || [];
+
+            if (equipos.length === 0) {
+                equiposError.textContent = 'El usuario no tiene equipos registrados';
+                equiposError.classList.remove('oculto');
+                loadingEquipos.classList.add('oculto');
+                return;
+            }
+
+            // Limpiar lista anterior
+            listaEquipos.innerHTML = '';
+
+            // Agregar equipos a la lista
+            equipos.forEach((equipo) => {
+                const equipoItem = document.createElement('div');
+                equipoItem.className = 'equipo-item';
+                equipoItem.innerHTML = `
+                    <input type="radio" name="equipo" value="${equipo.id}" id="equipo-${equipo.id}">
+                    <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
+                        <strong>${equipo.descripcion}</strong><br>
+                        <small>${equipo.serial}</small><br>
+                        <small>${equipo.tipo}</small><br>
+                    </label>
+                `;
+                
+                equipoItem.addEventListener('click', () => seleccionarEquipo(equipo));
+                listaEquipos.appendChild(equipoItem);
+            });
+
+            loadingEquipos.classList.add('oculto');
+            listaEquipos.classList.remove('oculto');
+        } catch (error) {
+            loadingEquipos.classList.add('oculto');
+            equiposError.textContent = error instanceof Error ? error.message : 'Error desconocido';
+            equiposError.classList.remove('oculto');
+        }
+    }
+
+    // Función para seleccionar un equipo
+    function seleccionarEquipo(equipo: Equipo): void {
+        try {
+            equipoSeleccionado = equipo;
+            loadingEquipo.classList.remove('oculto');
+            equipoError.classList.add('oculto');
+            equipoSuccess.classList.add('oculto');
+            equipoDetalles.classList.add('oculto');
+
+            // Simular carga (en un caso real, podrías hacer otra llamada API)
+            setTimeout(() => {
+                // Mostrar detalles del equipo
+                const equipoSerialEl = document.getElementById('equipoSerial') as HTMLElement;
+                const equipoTipoEl = document.getElementById('equipoTipo') as HTMLElement;
+                const equipoDescripcionEl = document.getElementById('equipoDescripcion') as HTMLElement;
+
+                equipoSerialEl.textContent = equipo.serial;
+                equipoTipoEl.textContent = equipo.tipo;
+                equipoDescripcionEl.textContent = equipo.descripcion;
+
+                loadingEquipo.classList.add('oculto');
+                equipoSuccess.classList.remove('oculto');
+                equipoDetalles.classList.remove('oculto');
+                btnRegistrar.disabled = false;
+
+                // Marcar el radio button
+                const radioInput = document.getElementById(`equipo-${equipo.id}`) as HTMLInputElement;
+                if (radioInput) {
+                    radioInput.checked = true;
+                }
+            }, 500);
+        } catch (error) {
+            loadingEquipo.classList.add('oculto');
+            equipoError.textContent = error instanceof Error ? error.message : 'Error desconocido';
+            equipoError.classList.remove('oculto');
+        }
+    }
+
+    // Event listeners
+    barcodeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const documento = barcodeInput.value.trim();
+            if (documento) {
+                obtenerUsuario(documento);
+            }
+        }
+    });
+
+    btnCancelar.addEventListener('click', () => {
+        // Resetear todo
+        usuarioActual = null;
+        equipoSeleccionado = null;
+        barcodeInput.value = '';
+        userBox.classList.add('oculto');
+        userSuccess.classList.add('oculto');
+        userError.classList.add('oculto');
+        loadingUser.classList.add('oculto');
+        listaEquipos.classList.add('oculto');
+        textoInicial.classList.remove('oculto');
+        equipoSuccess.classList.add('oculto');
+        equipoError.classList.add('oculto');
+        loadingEquipo.classList.add('oculto');
+        equipoDetalles.classList.add('oculto');
+        btnRegistrar.disabled = true;
+        messageFooter.textContent = '';
+        barcodeInput.focus();
+    });
+
+    btnRegistrar.addEventListener('click', async () => {
+        if (!usuarioActual || !equipoSeleccionado) {
+            messageFooter.textContent = 'Por favor selecciona un usuario y un equipo';
+            (messageFooter as HTMLElement).style.color = 'red';
+            return;
+        }
+
+        try {
+            messageFooter.textContent = 'Registrando ingreso...';
+            (messageFooter as HTMLElement).style.color = '#666';
+            btnRegistrar.disabled = true;
+
+            // Simular delay de red
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Simular respuesta del servidor
+            const ingresoData = {
+                success: true,
+                message: 'Ingreso registrado correctamente',
+                ingresoId: `ingreso-${Math.random().toString(36).substring(7)}`,
+                usuarioNombre: usuarioActual.nombre,
+                equipoDescripcion: equipoSeleccionado.descripcion,
+                horaRegistro: new Date().toLocaleTimeString('es-CO'),
+            };
+
+            messageFooter.textContent = `✔ ${ingresoData.message} - ${ingresoData.horaRegistro}`;
+            (messageFooter as HTMLElement).style.color = '#16a34a';
+            
+            // Resetear después de 2 segundos
+            setTimeout(() => {
+                btnCancelar.click();
+            }, 2000);
+        } catch (error) {
+            messageFooter.textContent = error instanceof Error ? error.message : 'Error desconocido';
+            (messageFooter as HTMLElement).style.color = 'red';
+            btnRegistrar.disabled = false;
+        }
+    });
+
+    // Enfocar el input al cargar
+    barcodeInput.focus();
+</script>
 
