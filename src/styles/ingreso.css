@@ -156,3 +156,68 @@ body {
     margin-top: 10px;
     font-weight: 500;
 }
+
+.equipo-box {
+    background: #fef3c7;
+    padding: 20px;
+    border-radius: 16px;
+    margin-top: 15px;
+}
+
+.equipo-box p {
+    margin: 12px 0;
+    color: #333;
+}
+
+.equipo-box strong {
+    display: block;
+    color: #555;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.equipo-box span {
+    font-size: 15px;
+    color: #000;
+    font-weight: 500;
+}
+
+.loading {
+    color: #666;
+    font-weight: 500;
+    margin-top: 15px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.error {
+    color: #dc2626;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+input[type="radio"] {
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+label {
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+.equipo-item input[type="radio"]:checked ~ label {
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.equipo-item:has(input[type="radio"]:checked) {
+    border: 2px solid #ea580c;
+    background: #fff5e8;
+}
