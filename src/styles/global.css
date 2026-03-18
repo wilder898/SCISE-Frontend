@@ -179,19 +179,6 @@ body {
   background: #ffffff;
 }
 
-.app-header {
-  padding: 2rem 2rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #ffffff;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 2rem;
-  line-height: 1.1;
-  color: #0f172a;
-}
-
 .page-card {
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
@@ -236,9 +223,5 @@ body {
 
   .app-logout {
     margin-top: 0;
-  }
-
-  .app-header {
-    padding: 1.25rem;
   }
 }
