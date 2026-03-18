@@ -34,8 +34,6 @@ const initialMovements = [];
   const nextButton = document.getElementById("reportesNextButton");
   const pageInfo = document.getElementById("reportesPageInfo");
 
-  const totalEquiposValue = document.getElementById("totalEquiposValue");
-  const totalEquiposMeta = document.getElementById("totalEquiposMeta");
   const insideEquiposValue = document.getElementById("insideEquiposValue");
   const insideEquiposMeta = document.getElementById("insideEquiposMeta");
   const outsideEquiposValue = document.getElementById("outsideEquiposValue");
@@ -83,14 +81,12 @@ const initialMovements = [];
     const insidePct = totalEquipos ? Math.round((enInstalacion / totalEquipos) * 100) : 0;
     const outsidePct = totalEquipos ? Math.round((fueraInstalacion / totalEquipos) * 100) : 0;
 
-    totalEquiposValue.textContent = String(totalEquipos);
-    totalEquiposMeta.textContent = `${enInstalacion + fueraInstalacion} estados consolidados`;
     insideEquiposValue.textContent = String(enInstalacion);
-    insideEquiposMeta.textContent = `${insidePct}% de los equipos`;
+    insideEquiposMeta.textContent = `${insidePct}% del inventario actual`;
     outsideEquiposValue.textContent = String(fueraInstalacion);
-    outsideEquiposMeta.textContent = `${outsidePct}% de los equipos`;
+    outsideEquiposMeta.textContent = `${outsidePct}% del inventario actual`;
     todayMovementsValue.textContent = String(movimientosHoy);
-    todayMovementsMeta.textContent = `${movimientosHoy} movimientos registrados`;
+    todayMovementsMeta.textContent = `${movimientosHoy} movimientos registrados hoy`;
   }
 
   function getFilteredMovements() {
