@@ -1,0 +1,131 @@
+.reportes-table-card {
+  border-radius: 1.5rem;
+  padding: 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.reportes-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.reportes-table-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.reportes-table-header p {
+  margin: 0.4rem 0 0;
+  color: #64748b;
+}
+
+.reportes-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.reportes-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.reportes-table th,
+.reportes-table td {
+  padding: 1.15rem 1rem;
+  border-bottom: 1px solid #edf2f7;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.reportes-table th {
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.reportes-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.reportes-table tbody tr:hover {
+  background: rgba(23, 134, 58, 0.04);
+}
+
+.movement-pill,
+.movement-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.movement-pill.is-ingreso {
+  background: rgba(34, 197, 94, 0.14);
+  color: #17863a;
+}
+
+.movement-pill.is-salida {
+  background: rgba(249, 115, 22, 0.14);
+  color: #ea580c;
+}
+
+.movement-user strong {
+  display: block;
+  color: #0f172a;
+}
+
+.movement-user span {
+  display: block;
+  margin-top: 0.25rem;
+  color: #64748b;
+}
+
+.movement-status {
+  background: rgba(34, 197, 94, 0.16);
+  color: #166534;
+}
+
+.movement-more {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.reportes-empty-state {
+  padding: 1rem 0.25rem;
+  color: #64748b;
+}
+
+.reportes-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  justify-content: flex-end;
+  margin-top: 1.2rem;
+}
+
+@media (max-width: 900px) {
+  .reportes-table-header {
+    flex-wrap: wrap;
+  }
+
+  .reportes-table-header h2 {
+    font-size: 1.6rem;
+  }
+
+  .reportes-pagination {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}

@@ -1,0 +1,40 @@
+.dashboard-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.75rem 1.8rem;
+  border-radius: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-eyebrow {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #17863a;
+}
+
+.dashboard-toolbar h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.dashboard-copy {
+  margin: 0.45rem 0 0;
+  color: #475569;
+  font-size: 1.02rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard-toolbar {
+    padding: 1.4rem;
+  }
+
+  .dashboard-toolbar h1 {
+    font-size: 1.65rem;
+  }
+}
