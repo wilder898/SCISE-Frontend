@@ -1,8 +1,8 @@
-@import "./base.css";
+﻿@import "./base.css";
 @import "./caja-panel-inicial.css";
-@import "./caja-resumen-accesos.css";
-@import "./caja-gestion-accesos.css";
 @import "./caja-tabla-accesos.css";
-@import "./caja-cambio-contrasena.css";
+@import "./caja-auditoria-accesos.css";
+@import "./caja-gestion-accesos.css";
 @import "./caja-informacion.css";
 @import "./caja-acceso-denegado.css";
+@import "./modales.css";

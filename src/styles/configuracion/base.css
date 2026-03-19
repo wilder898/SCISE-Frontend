@@ -1,4 +1,4 @@
-.config-page {
+﻿.config-page {
   min-height: 100vh;
   padding: 2rem;
   background:
@@ -8,7 +8,6 @@
 
 .config-toolbar,
 .config-card,
-.config-summary-card,
 .config-info-card,
 .config-denied-card {
   background: #ffffff;
@@ -16,16 +15,10 @@
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09);
 }
 
-.config-management-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(22rem, 0.9fr);
-  gap: 1.25rem;
-  margin-bottom: 1.25rem;
-}
-
 .config-card {
   border-radius: 1.5rem;
   padding: 1.4rem;
+  margin-bottom: 1.25rem;
 }
 
 .config-card__header {
@@ -65,6 +58,10 @@
 .config-field {
   display: grid;
   gap: 0.45rem;
+}
+
+.config-field--full {
+  grid-column: 1 / -1;
 }
 
 .config-field span {
@@ -149,10 +146,17 @@
   font-size: 0.9rem;
 }
 
-@media (max-width: 1100px) {
-  .config-management-grid {
-    grid-template-columns: 1fr;
-  }
+.config-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #334155;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.config-check input {
+  accent-color: #17863a;
 }
 
 @media (max-width: 900px) {
@@ -161,7 +165,6 @@
   }
 
   .config-card,
-  .config-summary-card,
   .config-info-card,
   .config-denied-card {
     padding: 1.2rem;

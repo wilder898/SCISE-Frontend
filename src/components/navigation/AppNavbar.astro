@@ -4,7 +4,7 @@ const links = [
   { href: "/ingreso", label: "Registrar Ingreso", variant: "ghost", icon: "enter" },
   { href: "/salida", label: "Registrar Salida", variant: "ghost", icon: "exit" },
   { href: "/usuarios", label: "Gestionar Usuarios", variant: "pill", icon: "users" },
-  { href: "/configuracion", label: "Configuracion", variant: "pill", icon: "settings" },
+  { href: "/configuracion", label: "Configuracion", variant: "pill", icon: "settings", adminOnly: true },
 ];
 ---
 
@@ -19,8 +19,8 @@ const links = [
     </a>
 
     <div class="app-sidebar-user">
-      <span class="user-name">Admin SENA</span>
-      <span class="user-role">Administrador</span>
+      <span class="user-name" data-sidebar-name>Admin SENA</span>
+      <span class="user-role" data-sidebar-role>Administrador</span>
     </div>
   </div>
 
@@ -30,6 +30,8 @@ const links = [
         <a
           href={link.href}
           class:list={["app-nav-link", `is-${link.variant}`]}
+          hidden={link.adminOnly}
+          data-admin-only={link.adminOnly ? "true" : undefined}
         >
           <span class:list={["nav-icon", `is-${link.icon}`]} aria-hidden="true">
             {link.icon === "bar" && (
@@ -107,3 +109,25 @@ const links = [
     <a class="app-logout" href="/auth/login">Cerrar sesion</a>
   </div>
 </aside>
+
+<script>
+  const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
+  const isAdmin = sessionData.role === "admin";
+  const sidebarName = document.querySelector("[data-sidebar-name]");
+  const sidebarRole = document.querySelector("[data-sidebar-role]");
+  const adminOnlyLinks = document.querySelectorAll('[data-admin-only="true"]');
+
+  adminOnlyLinks.forEach((link) => {
+    if (link instanceof HTMLElement) {
+      link.hidden = !isAdmin;
+    }
+  });
+
+  if (sidebarName instanceof HTMLElement) {
+    sidebarName.textContent = isAdmin ? "Admin SENA" : "Usuario SCISE";
+  }
+
+  if (sidebarRole instanceof HTMLElement) {
+    sidebarRole.textContent = isAdmin ? "Administrador" : "Usuario";
+  }
+</script>

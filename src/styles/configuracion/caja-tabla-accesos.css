@@ -1,8 +1,24 @@
-.config-table-tools {
-  display: grid;
-  grid-template-columns: minmax(16rem, 2fr) minmax(12rem, 1fr);
+﻿.config-users-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin: -1.4rem -1.4rem 1rem;
+  padding: 1rem 1.35rem;
+  border-bottom: 1px solid #dbe3ee;
+  background: linear-gradient(180deg, #dbeafe 0%, #e8f1ff 100%);
+  border-radius: 1.5rem 1.5rem 0 0;
+}
+
+.config-users-card__top h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.55rem;
+}
+
+.config-users-card__top p {
+  margin: 0.35rem 0 0;
+  color: #475569;
 }
 
 .config-table-wrap {
@@ -12,7 +28,7 @@
 .config-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1100px;
+  min-width: 980px;
 }
 
 .config-table th,
@@ -20,7 +36,7 @@
   padding: 1rem 0.85rem;
   border-bottom: 1px solid #edf2f7;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .config-table th {
@@ -35,7 +51,6 @@
   color: #0f172a;
 }
 
-.config-user-cell span,
 .config-user-cell small {
   display: block;
   margin-top: 0.2rem;
@@ -43,9 +58,7 @@
 }
 
 .config-role-pill,
-.config-state-pill,
-.config-security-pill,
-.config-chip {
+.config-state-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -70,57 +83,76 @@
 }
 
 .config-state-pill.is-inactive {
-  background: rgba(148, 163, 184, 0.2);
-  color: #475569;
-}
-
-.config-security-pill {
-  padding: 0.42rem 0.8rem;
-}
-
-.config-security-pill.is-warning {
-  background: rgba(249, 115, 22, 0.14);
-  color: #c2410c;
-}
-
-.config-security-pill.is-ok {
-  background: rgba(34, 197, 94, 0.14);
-  color: #166534;
-}
-
-.config-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.config-chip {
-  padding: 0.38rem 0.7rem;
-  background: #f1f5f9;
-  color: #334155;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
 }
 
 .config-table-actions {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
 }
 
-.config-table-button {
-  border: 1px solid #dbe3ee;
+.config-icon-button {
+  width: 2.15rem;
+  height: 2.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
   background: #ffffff;
   color: #0f172a;
-  border-radius: 0.8rem;
-  padding: 0.55rem 0.8rem;
-  font-size: 0.84rem;
-  font-weight: 600;
+  border-radius: 999px;
+  padding: 0;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.config-table-button.is-danger {
-  color: #b91c1c;
-  border-color: rgba(239, 68, 68, 0.25);
-  background: rgba(254, 242, 242, 0.9);
+.config-icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.config-icon-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.config-icon-button.is-lock {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.config-icon-button.is-password {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.config-icon-button.is-success {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.config-icon-button.is-edit {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.config-icon-button.is-danger {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.config-users-card__footer {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.95rem;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.config-users-card__footer strong {
+  color: #17863a;
 }
 
 .config-empty-state {
@@ -129,7 +161,10 @@
 }
 
 @media (max-width: 900px) {
-  .config-table-tools {
-    grid-template-columns: 1fr;
+  .config-users-card__top {
+    margin: -1.2rem -1.2rem 1rem;
+    padding: 1rem 1.2rem;
+    flex-direction: column;
+    align-items: stretch;
   }
 }

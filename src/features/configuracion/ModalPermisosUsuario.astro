@@ -1,0 +1,68 @@
+﻿---
+const { permissions = [] } = Astro.props;
+---
+
+<div class="config-modal" id="configPermissionsModal" hidden>
+  <div class="config-modal__overlay" data-close-modal="configPermissionsModal"></div>
+
+  <section
+    class="config-modal__dialog config-modal__dialog--wide"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="configPermissionsModalTitle"
+  >
+    <div class="config-modal__header">
+      <div>
+        <h2 id="configPermissionsModalTitle">Gestionar permisos</h2>
+        <p>Activa o desactiva los accesos que tendra disponibles el usuario.</p>
+      </div>
+
+      <button
+        class="config-modal__close"
+        type="button"
+        aria-label="Cerrar modal de permisos"
+        data-close-modal="configPermissionsModal"
+      >
+        x
+      </button>
+    </div>
+
+    <div class="config-modal__context">
+      <strong id="permissionsTargetName">Ningun usuario seleccionado</strong>
+      <p id="permissionsTargetMeta">
+        Selecciona un usuario desde la tabla para administrar sus permisos.
+      </p>
+    </div>
+
+    <form class="config-form" id="permissionsForm">
+      <div class="config-permissions-grid">
+        {permissions.map((permission) => (
+          <label class="config-permission-item">
+            <input
+              class="config-permission-item__checkbox"
+              type="checkbox"
+              name="permissionAssignment"
+              value={permission.id}
+            />
+            <span class="config-permission-item__content">
+              <strong>{permission.label}</strong>
+              <small>{permission.description}</small>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      <div class="config-actions-row">
+        <p class="config-form-note">Los permisos se actualizan al guardar la configuracion.</p>
+        <div class="config-modal__actions">
+          <button class="config-button config-button--ghost" type="button" data-close-modal="configPermissionsModal">
+            Cancelar
+          </button>
+          <button class="config-button config-button--primary" id="savePermissionsButton" type="submit">
+            Guardar permisos
+          </button>
+        </div>
+      </div>
+    </form>
+  </section>
+</div>

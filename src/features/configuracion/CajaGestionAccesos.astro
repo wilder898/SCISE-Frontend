@@ -1,88 +1,22 @@
----
+﻿---
 const { permissions = [] } = Astro.props;
 ---
 
 <section class="config-card">
   <div class="config-card__header">
     <div>
-      <h2>Gestion de accesos</h2>
-      <p>Crea nuevos accesos o actualiza permisos, rol y estado operativo.</p>
+      <h2>Permisos Disponibles</h2>
+      <p>Referencia rapida de los permisos que se pueden asignar a cada usuario.</p>
     </div>
-    <button class="config-button config-button--ghost" id="cancelEditButton" type="button">
-      Cancelar edicion
-    </button>
   </div>
 
-  <form class="config-form" id="configAccessForm">
-    <input id="accessId" type="hidden" />
-
-    <div class="config-form-grid">
-      <label class="config-field">
-        <span>Nombre completo</span>
-        <input id="accessNombre" type="text" placeholder="Nombre del usuario con acceso" required />
-      </label>
-
-      <label class="config-field">
-        <span>Usuario</span>
-        <input id="accessUsuario" type="text" placeholder="usuario.scise" required />
-      </label>
-
-      <label class="config-field">
-        <span>Email</span>
-        <input id="accessEmail" type="email" placeholder="correo@dominio.com" required />
-      </label>
-
-      <label class="config-field">
-        <span>Perfil de acceso</span>
-        <select id="accessRol">
-          <option value="Administrador">Administrador</option>
-          <option value="Supervisor">Supervisor</option>
-          <option value="Soporte">Soporte</option>
-          <option value="Consulta">Consulta</option>
-        </select>
-      </label>
-
-      <label class="config-field">
-        <span>Estado</span>
-        <select id="accessEstado">
-          <option value="Activo">Activo</option>
-          <option value="Inactivo">Inactivo</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="config-permissions-block">
-      <div class="config-section-title">
-        <strong>Permisos habilitados</strong>
-        <span>Selecciona a que modulos puede entrar este perfil.</span>
-      </div>
-
-      <div class="config-permissions-grid">
-        {permissions.map((permission) => (
-          <label class="config-permission-item">
-            <input
-              class="config-permission-item__checkbox"
-              type="checkbox"
-              name="permissionOption"
-              value={permission.id}
-            />
-            <span class="config-permission-item__content">
-              <strong>{permission.label}</strong>
-              <small>{permission.description}</small>
-            </span>
-          </label>
-        ))}
-      </div>
-    </div>
-
-    <div class="config-actions-row">
-      <p class="config-form-note">
-        Los nuevos accesos quedan activos de inmediato y se marcan con cambio de
-        clave pendiente por seguridad.
-      </p>
-      <button class="config-button config-button--primary" id="saveAccessButton" type="submit">
-        Guardar acceso
-      </button>
-    </div>
-  </form>
+  <div class="config-permissions-reference-grid">
+    {permissions.map((permission) => (
+      <article class="config-permission-reference-card">
+        <strong>{permission.label}</strong>
+        <p>{permission.description}</p>
+        <code>{permission.id}</code>
+      </article>
+    ))}
+  </div>
 </section>

@@ -1,55 +1,93 @@
----
+﻿---
 import CajaPanelInicial from "./CajaPanelInicial.astro";
-import CajaResumenAccesos from "./CajaResumenAccesos.astro";
 import CajaGestionAccesos from "./CajaGestionAccesos.astro";
-import CajaCambioContrasena from "./CajaCambioContrasena.astro";
 import CajaTablaAccesos from "./CajaTablaAccesos.astro";
 import CajaInformacion from "./CajaInformacion.astro";
 import CajaAccesoDenegado from "./CajaAccesoDenegado.astro";
+import CajaCambioContrasena from "./CajaCambioContrasena.astro";
+import CajaAuditoriaAccesos from "./CajaAuditoriaAccesos.astro";
+import ModalNuevoUsuario from "./ModalNuevoUsuario.astro";
+import ModalEditarUsuario from "./ModalEditarUsuario.astro";
+import ModalPermisosUsuario from "./ModalPermisosUsuario.astro";
+
+const roleCatalog = ["Administrador", "Seguridad", "Operador", "Consulta"];
 
 const permissionCatalog = [
-  { id: "dashboard", label: "Panel inicial", description: "Acceso al resumen general del sistema." },
-  { id: "ingreso", label: "Registrar ingreso", description: "Puede registrar entradas de equipos." },
-  { id: "salida", label: "Registrar salida", description: "Puede registrar salidas de equipos." },
-  { id: "reportes", label: "Panel de administracion", description: "Consulta historial, estadisticas y reportes." },
-  { id: "usuarios", label: "Gestionar usuarios", description: "Administra personas, perfiles y equipos asociados." },
-  { id: "configuracion", label: "Configuracion", description: "Gestiona accesos, permisos y seguridad." },
-  { id: "descargas", label: "Exportar reportes", description: "Permite descargar CSV y PDF desde la plataforma." },
+  { id: "ver_equipos", label: "Ver Equipos", description: "Visualizar listado de equipos y detalle operativo." },
+  { id: "registrar_ingreso", label: "Registrar Ingreso", description: "Registrar entrada de equipos al sistema." },
+  { id: "registrar_salida", label: "Registrar Salida", description: "Registrar salida de equipos y controlar tiempos." },
+  { id: "ver_reportes", label: "Ver Reportes", description: "Acceder a reportes, historial y analitica." },
+  { id: "gestionar_usuarios", label: "Gestionar Usuarios", description: "Crear, editar y administrar usuarios con acceso." },
+  { id: "gestionar_permisos", label: "Gestionar Permisos", description: "Modificar permisos, estados y seguridad del sistema." },
 ];
 
 const initialAccessUsers = [
   {
     id: 1,
     nombre: "Admin SENA",
-    usuario: "admin",
+    documento: "1000000001",
     email: "admin@sena.edu.co",
     rol: "Administrador",
+    departamento: "Administracion del Sistema",
     estado: "Activo",
-    permisos: ["dashboard", "ingreso", "salida", "reportes", "usuarios", "configuracion", "descargas"],
-    ultimoAcceso: "2026-03-18 08:10",
-    requiereCambioClave: false,
+    permisos: permissionCatalog.map((permission) => permission.id),
   },
   {
     id: 2,
-    nombre: "Mesa de Soporte",
-    usuario: "soporte.scise",
-    email: "soporte@sena.edu.co",
-    rol: "Soporte",
+    nombre: "Control Principal",
+    documento: "1000000002",
+    email: "seguridad.scise@sena.edu.co",
+    rol: "Seguridad",
+    departamento: "Seguridad",
     estado: "Activo",
-    permisos: ["dashboard", "reportes", "usuarios", "descargas"],
-    ultimoAcceso: "2026-03-17 16:45",
-    requiereCambioClave: true,
+    permisos: ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"],
   },
   {
     id: 3,
-    nombre: "Coordinacion TIC",
-    usuario: "coordinacion.tic",
-    email: "tic@sena.edu.co",
-    rol: "Supervisor",
+    nombre: "Operador TIC",
+    documento: "1000000003",
+    email: "operacion.scise@sena.edu.co",
+    rol: "Operador",
+    departamento: "Soporte Tecnico",
+    estado: "Activo",
+    permisos: ["ver_equipos", "registrar_ingreso", "registrar_salida"],
+  },
+  {
+    id: 4,
+    nombre: "Consulta Coordinacion",
+    documento: "1000000004",
+    email: "consulta.scise@sena.edu.co",
+    rol: "Consulta",
+    departamento: "Coordinacion",
     estado: "Inactivo",
-    permisos: ["dashboard", "reportes", "usuarios"],
-    ultimoAcceso: "2026-03-10 09:20",
-    requiereCambioClave: false,
+    permisos: ["ver_equipos", "ver_reportes"],
+  },
+];
+
+const initialAuditLog = [
+  {
+    id: 1,
+    tipo: "activar",
+    usuario: "Control Principal",
+    actor: "Admin SENA",
+    detalle: "Acceso habilitado para control de ingresos y salidas.",
+    fecha: "2026-03-18 08:10",
+  },
+  {
+    id: 2,
+    tipo: "permisos",
+    usuario: "Operador TIC",
+    actor: "Admin SENA",
+    detalle: "Permisos ajustados para operacion diaria del sistema.",
+    fecha: "2026-03-18 08:32",
+  },
+  {
+    id: 3,
+    tipo: "desactivar",
+    usuario: "Consulta Coordinacion",
+    actor: "Admin SENA",
+    detalle: "Cuenta pausada temporalmente por inactividad.",
+    fecha: "2026-03-18 09:05",
   },
 ];
 ---
@@ -58,15 +96,14 @@ const initialAccessUsers = [
   <CajaPanelInicial />
 
   <div id="configAdminContent" hidden>
-    <CajaResumenAccesos />
-
-    <div class="config-management-grid">
-      <CajaGestionAccesos permissions={permissionCatalog} />
-      <CajaCambioContrasena />
-    </div>
-
     <CajaTablaAccesos />
+    <CajaAuditoriaAccesos />
+    <CajaGestionAccesos permissions={permissionCatalog} />
     <CajaInformacion />
+    <ModalNuevoUsuario />
+    <ModalEditarUsuario />
+    <CajaCambioContrasena />
+    <ModalPermisosUsuario permissions={permissionCatalog} />
   </div>
 
   <div id="configDeniedContent" hidden>
@@ -74,9 +111,12 @@ const initialAccessUsers = [
   </div>
 </section>
 
-<script define:vars={{ initialAccessUsers, permissionCatalog }}>
+<script define:vars={{ initialAccessUsers, initialAuditLog, permissionCatalog, roleCatalog }}>
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
+  const usersStorageKey = "scise-config-users";
+  const auditStorageKey = "scise-config-audit-log";
+  const actorName = sessionData.username === "admin" ? "Admin SENA" : sessionData.username || "Administrador";
 
   const adminContent = document.getElementById("configAdminContent");
   const deniedContent = document.getElementById("configDeniedContent");
@@ -86,45 +126,113 @@ const initialAccessUsers = [
     deniedContent.hidden = isAdmin;
   }
 
-  if (!isAdmin) {
-    // El modulo queda visible solo para administradores.
-  } else {
-    const permissionLabelMap = Object.fromEntries(
-      permissionCatalog.map((permission) => [permission.id, permission.label])
-    );
+  if (isAdmin) {
+    function getDefaultPermissions(role) {
+      if (role === "Administrador") {
+        return permissionCatalog.map((permission) => permission.id);
+      }
+
+      if (role === "Seguridad") {
+        return ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"];
+      }
+
+      if (role === "Consulta") {
+        return ["ver_equipos", "ver_reportes"];
+      }
+
+      return ["ver_equipos", "registrar_ingreso", "registrar_salida"];
+    }
+
+    function normalizeUser(user) {
+      const normalizedRole = roleCatalog.includes(user?.rol) ? user.rol : "Operador";
+      const normalizedState = user?.estado === "Inactivo" ? "Inactivo" : "Activo";
+
+      return {
+        id: Number(user?.id) || Date.now(),
+        nombre: String(user?.nombre || "Usuario sin nombre"),
+        documento: String(user?.documento || "Sin documento"),
+        email: String(user?.email || "sin-correo@sena.edu.co"),
+        rol: normalizedRole,
+        departamento: String(user?.departamento || "Sin departamento"),
+        estado: normalizedState,
+        permisos: Array.isArray(user?.permisos) && user.permisos.length
+          ? [...user.permisos]
+          : getDefaultPermissions(normalizedRole),
+      };
+    }
+
+    function loadUsers() {
+      try {
+        const raw = localStorage.getItem(usersStorageKey);
+
+        if (!raw) {
+          return initialAccessUsers.map((user) => normalizeUser(user));
+        }
+
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) && parsed.length
+          ? parsed.map((user) => normalizeUser(user))
+          : initialAccessUsers.map((user) => normalizeUser(user));
+      } catch {
+        return initialAccessUsers.map((user) => normalizeUser(user));
+      }
+    }
+
+    function loadAuditLog() {
+      try {
+        const raw = localStorage.getItem(auditStorageKey);
+
+        if (!raw) {
+          return [...initialAuditLog];
+        }
+
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [...initialAuditLog];
+      } catch {
+        return [...initialAuditLog];
+      }
+    }
 
     const state = {
-      accesses: initialAccessUsers.map((access) => ({
-        ...access,
-        permisos: [...access.permisos],
-      })),
+      accesses: loadUsers(),
+      auditLog: loadAuditLog(),
       editingId: null,
       passwordTargetId: null,
+      permissionsTargetId: null,
     };
 
-    const summaryTotalAccesses = document.getElementById("summaryTotalAccesses");
-    const summaryActiveAccesses = document.getElementById("summaryActiveAccesses");
-    const summaryAdminAccesses = document.getElementById("summaryAdminAccesses");
-    const summaryPendingResets = document.getElementById("summaryPendingResets");
+    const tableBody = document.getElementById("configUsersTableBody");
+    const emptyState = document.getElementById("configUsersEmpty");
+    const totalUsers = document.getElementById("configTotalUsers");
+    const activeUsers = document.getElementById("configActiveUsers");
+    const auditList = document.getElementById("configAuditList");
+    const auditEmpty = document.getElementById("configAuditEmpty");
+    const openCreateUserModalButton = document.getElementById("openCreateUserModal");
 
-    const accessForm = document.getElementById("configAccessForm");
-    const accessId = document.getElementById("accessId");
-    const accessNombre = document.getElementById("accessNombre");
-    const accessUsuario = document.getElementById("accessUsuario");
-    const accessEmail = document.getElementById("accessEmail");
-    const accessRol = document.getElementById("accessRol");
-    const accessEstado = document.getElementById("accessEstado");
-    const saveAccessButton = document.getElementById("saveAccessButton");
-    const cancelEditButton = document.getElementById("cancelEditButton");
-    const permissionInputs = Array.from(
-      document.querySelectorAll('input[name="permissionOption"]')
-    );
+    const newUserModal = document.getElementById("configNewUserModal");
+    const newUserForm = document.getElementById("newUserForm");
+    const newUserNombre = document.getElementById("newUserNombre");
+    const newUserEmail = document.getElementById("newUserEmail");
+    const newUserDocumento = document.getElementById("newUserDocumento");
+    const newUserRol = document.getElementById("newUserRol");
+    const newUserDepartamento = document.getElementById("newUserDepartamento");
 
-    const searchInput = document.getElementById("accessSearchInput");
-    const statusFilter = document.getElementById("accessStatusFilter");
-    const tableBody = document.getElementById("configAccessTableBody");
-    const emptyState = document.getElementById("configAccessEmpty");
+    const editUserModal = document.getElementById("configEditUserModal");
+    const editUserForm = document.getElementById("editUserForm");
+    const editUserId = document.getElementById("editUserId");
+    const editUserNombre = document.getElementById("editUserNombre");
+    const editUserEmail = document.getElementById("editUserEmail");
+    const editUserDocumento = document.getElementById("editUserDocumento");
+    const editUserRol = document.getElementById("editUserRol");
+    const editUserDepartamento = document.getElementById("editUserDepartamento");
 
+    const permissionsModal = document.getElementById("configPermissionsModal");
+    const permissionsForm = document.getElementById("permissionsForm");
+    const permissionInputs = Array.from(document.querySelectorAll('input[name="permissionAssignment"]'));
+    const permissionsTargetName = document.getElementById("permissionsTargetName");
+    const permissionsTargetMeta = document.getElementById("permissionsTargetMeta");
+
+    const passwordModal = document.getElementById("configPasswordModal");
     const passwordTargetName = document.getElementById("passwordTargetName");
     const passwordTargetMeta = document.getElementById("passwordTargetMeta");
     const passwordResetForm = document.getElementById("passwordResetForm");
@@ -132,69 +240,114 @@ const initialAccessUsers = [
     const passwordConfirmacion = document.getElementById("passwordConfirmacion");
     const passwordResetFeedback = document.getElementById("passwordResetFeedback");
     const applyPasswordChange = document.getElementById("applyPasswordChange");
+    const togglePasswordVisibility = document.getElementById("togglePasswordVisibility");
 
-    function getSelectedPermissions() {
-      return permissionInputs
-        .filter(
-          (input) => input instanceof HTMLInputElement && input.checked
-        )
-        .map((input) => input.value);
+    function persistUsers() {
+      localStorage.setItem(usersStorageKey, JSON.stringify(state.accesses));
+    }
+
+    function persistAuditLog() {
+      localStorage.setItem(auditStorageKey, JSON.stringify(state.auditLog));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function formatAuditType(type) {
+      const map = {
+        crear: "Creacion",
+        editar: "Edicion",
+        permisos: "Permisos",
+        activar: "Activacion",
+        desactivar: "Desactivacion",
+        contrasena: "Contrasena",
+        eliminar: "Eliminacion",
+      };
+
+      return map[type] || "Movimiento";
+    }
+
+    function getAuditTone(type) {
+      const toneMap = {
+        crear: "is-success",
+        editar: "is-info",
+        permisos: "is-blue",
+        activar: "is-success",
+        desactivar: "is-warning",
+        contrasena: "is-orange",
+        eliminar: "is-danger",
+      };
+
+      return toneMap[type] || "is-info";
+    }
+
+    function addAuditEntry(type, userName, detail) {
+      state.auditLog.unshift({
+        id: Date.now(),
+        tipo: type,
+        usuario: userName,
+        actor: actorName,
+        detalle: detail,
+        fecha: new Date().toLocaleString("es-CO", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
+      });
+
+      state.auditLog = state.auditLog.slice(0, 8);
+      renderAudit();
     }
 
     function findAccessById(accessIdValue) {
       return state.accesses.find((access) => access.id === accessIdValue) || null;
     }
 
-    function resetForm() {
-      state.editingId = null;
-
-      if (accessId instanceof HTMLInputElement) accessId.value = "";
-      if (accessNombre instanceof HTMLInputElement) accessNombre.value = "";
-      if (accessUsuario instanceof HTMLInputElement) accessUsuario.value = "";
-      if (accessEmail instanceof HTMLInputElement) accessEmail.value = "";
-      if (accessRol instanceof HTMLSelectElement) accessRol.value = "Administrador";
-      if (accessEstado instanceof HTMLSelectElement) accessEstado.value = "Activo";
-
-      permissionInputs.forEach((input) => {
-        if (input instanceof HTMLInputElement) {
-          input.checked = false;
-        }
-      });
-
-      if (saveAccessButton instanceof HTMLButtonElement) {
-        saveAccessButton.textContent = "Guardar acceso";
-      }
-
-      if (cancelEditButton instanceof HTMLButtonElement) {
-        cancelEditButton.hidden = true;
-      }
-    }
-
-    function updateSummary() {
+    function updateCounters() {
       const total = state.accesses.length;
       const active = state.accesses.filter((access) => access.estado === "Activo").length;
-      const admins = state.accesses.filter((access) => access.rol === "Administrador").length;
-      const pending = state.accesses.filter((access) => access.requiereCambioClave).length;
 
-      if (summaryTotalAccesses) summaryTotalAccesses.textContent = String(total);
-      if (summaryActiveAccesses) summaryActiveAccesses.textContent = String(active);
-      if (summaryAdminAccesses) summaryAdminAccesses.textContent = String(admins);
-      if (summaryPendingResets) summaryPendingResets.textContent = String(pending);
+      if (totalUsers instanceof HTMLElement) totalUsers.textContent = String(total);
+      if (activeUsers instanceof HTMLElement) activeUsers.textContent = String(active);
     }
 
-    function getFilteredAccesses() {
-      const search = String(searchInput?.value || "").trim().toLowerCase();
-      const status = String(statusFilter?.value || "");
+    function renderAudit() {
+      if (!(auditList instanceof HTMLElement) || !(auditEmpty instanceof HTMLElement)) {
+        return;
+      }
 
-      return state.accesses.filter((access) => {
-        const matchesSearch =
-          !search ||
-          [access.nombre, access.usuario, access.email].some((value) =>
-            String(value).toLowerCase().includes(search)
-          );
-        const matchesStatus = !status || access.estado === status;
-        return matchesSearch && matchesStatus;
-      });
+      if (!state.auditLog.length) {
+        auditList.innerHTML = "";
+        auditEmpty.hidden = false;
+        persistAuditLog();
+        return;
+      }
+
+      auditEmpty.hidden = true;
+      auditList.innerHTML = state.auditLog
+        .map((item) => `
+          <article class="config-audit-item">
+            <div class="config-audit-item__meta">
+              <span class="config-audit-badge ${getAuditTone(item.tipo)}">${escapeHtml(formatAuditType(item.tipo))}</span>
+              <strong>${escapeHtml(item.usuario)}</strong>
+              <small>${escapeHtml(item.fecha)}</small>
+            </div>
+            <p>${escapeHtml(item.detalle)}</p>
+            <span class="config-audit-item__actor">Accion realizada por ${escapeHtml(item.actor)}</span>
+          </article>
+        `)
+        .join("");
+
+      persistAuditLog();
     }
 
     function renderTable() {
@@ -202,70 +355,162 @@ const initialAccessUsers = [
         return;
       }
 
-      const filteredAccesses = getFilteredAccesses();
-
-      if (!filteredAccesses.length) {
+      if (!state.accesses.length) {
         tableBody.innerHTML = "";
         emptyState.hidden = false;
+        updateCounters();
+        persistUsers();
         return;
       }
 
-      emptyState.hidden = true;
-      tableBody.innerHTML = filteredAccesses
-        .map((access) => {
-          const permissions = access.permisos
-            .map((permissionId) => {
-              const label = permissionLabelMap[permissionId] || permissionId;
-              return `<span class="config-chip">${label}</span>`;
-            })
-            .join("");
+      const lockIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 10V8a4 4 0 1 1 8 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="6" y="10" width="12" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        </svg>
+      `;
+      const keyIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 0h6m-2 0v3m-2-3v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      const editIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20h4l10-10-4-4L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="m12 6 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      `;
+      const deleteIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 7h14M9 7V5h6v2m-7 3v7m4-7v7m4-7v7M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      const activeIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      const inactiveIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `;
 
-          const statusClass =
-            access.estado === "Activo" ? "is-active" : "is-inactive";
-          const securityLabel = access.requiereCambioClave
-            ? "Cambio pendiente"
-            : "Clave al dia";
-          const securityClass = access.requiereCambioClave
-            ? "is-warning"
-            : "is-ok";
+      emptyState.hidden = true;
+      tableBody.innerHTML = state.accesses
+        .map((access) => {
+          const statusClass = access.estado === "Activo" ? "is-active" : "is-inactive";
+          const toggleLabel = access.estado === "Activo" ? "Desactivar acceso" : "Activar acceso";
+          const toggleIcon = access.estado === "Activo" ? inactiveIcon : activeIcon;
 
           return `
             <tr>
               <td>
                 <div class="config-user-cell">
-                  <strong>${access.nombre}</strong>
-                  <span>@${access.usuario}</span>
-                  <small>${access.email}</small>
+                  <strong>${escapeHtml(access.nombre)}</strong>
+                  <small>${escapeHtml(access.documento)}</small>
                 </div>
               </td>
-              <td><span class="config-role-pill">${access.rol}</span></td>
-              <td><div class="config-chip-list">${permissions}</div></td>
-              <td><span class="config-state-pill ${statusClass}">${access.estado}</span></td>
-              <td>${access.ultimoAcceso}</td>
-              <td><span class="config-security-pill ${securityClass}">${securityLabel}</span></td>
+              <td>${escapeHtml(access.email)}</td>
+              <td><span class="config-role-pill">${escapeHtml(access.rol)}</span></td>
+              <td>${escapeHtml(access.departamento)}</td>
+              <td><span class="config-state-pill ${statusClass}">${escapeHtml(access.estado)}</span></td>
               <td>
-                <div class="config-table-actions">
-                  <button class="config-table-button" type="button" data-action="edit" data-access-id="${access.id}">
-                    Editar
-                  </button>
-                  <button class="config-table-button" type="button" data-action="toggle" data-access-id="${access.id}">
-                    ${access.estado === "Activo" ? "Desactivar" : "Activar"}
-                  </button>
-                  <button class="config-table-button" type="button" data-action="password" data-access-id="${access.id}">
-                    Clave
-                  </button>
-                  <button class="config-table-button is-danger" type="button" data-action="delete" data-access-id="${access.id}">
-                    Eliminar
-                  </button>
+                <div class="config-table-actions" aria-label="Acciones de usuario">
+                  <button class="config-icon-button is-lock" type="button" title="Gestionar permisos" data-action="permissions" data-access-id="${access.id}">${lockIcon}</button>
+                  <button class="config-icon-button is-password" type="button" title="Cambiar contrasena" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
+                  <button class="config-icon-button ${access.estado === "Activo" ? "is-danger" : "is-success"}" type="button" title="${toggleLabel}" data-action="toggle" data-access-id="${access.id}">${toggleIcon}</button>
+                  <button class="config-icon-button is-edit" type="button" title="Editar usuario" data-action="edit" data-access-id="${access.id}">${editIcon}</button>
+                  <button class="config-icon-button is-danger" type="button" title="Eliminar usuario" data-action="delete" data-access-id="${access.id}">${deleteIcon}</button>
                 </div>
               </td>
             </tr>
           `;
         })
         .join("");
+
+      updateCounters();
+      persistUsers();
     }
 
-    function startEdit(accessIdValue) {
+    function openModal(modal) {
+      if (modal instanceof HTMLElement) {
+        modal.hidden = false;
+        document.body.classList.add("config-modal-open");
+      }
+    }
+
+    function closeModal(modal) {
+      if (modal instanceof HTMLElement) {
+        modal.hidden = true;
+      }
+
+      const hasOpenModal = Array.from(document.querySelectorAll(".config-modal")).some(
+        (element) => element instanceof HTMLElement && !element.hidden
+      );
+
+      if (!hasOpenModal) {
+        document.body.classList.remove("config-modal-open");
+      }
+    }
+
+    function resetNewUserForm() {
+      if (newUserForm instanceof HTMLFormElement) {
+        newUserForm.reset();
+      }
+
+      if (newUserRol instanceof HTMLSelectElement) {
+        newUserRol.value = "Operador";
+      }
+    }
+
+    function openCreateUser() {
+      resetNewUserForm();
+      openModal(newUserModal);
+    }
+
+    function createUser(event) {
+      event.preventDefault();
+
+      if (
+        !(newUserNombre instanceof HTMLInputElement) ||
+        !(newUserEmail instanceof HTMLInputElement) ||
+        !(newUserDocumento instanceof HTMLInputElement) ||
+        !(newUserRol instanceof HTMLSelectElement) ||
+        !(newUserDepartamento instanceof HTMLInputElement)
+      ) {
+        return;
+      }
+
+      const nombre = newUserNombre.value.trim();
+      const email = newUserEmail.value.trim();
+      const documento = newUserDocumento.value.trim();
+      const rol = newUserRol.value;
+      const departamento = newUserDepartamento.value.trim();
+
+      if (!nombre || !email || !documento || !departamento) {
+        alert("Completa todos los campos requeridos del nuevo usuario.");
+        return;
+      }
+
+      state.accesses.unshift({
+        id: Date.now(),
+        nombre,
+        documento,
+        email,
+        rol,
+        departamento,
+        estado: "Activo",
+        permisos: getDefaultPermissions(rol),
+      });
+
+      renderTable();
+      addAuditEntry("crear", nombre, `Se creo una nueva cuenta con perfil ${rol}.`);
+      closeModal(newUserModal);
+      resetNewUserForm();
+    }
+
+    function openEdit(accessIdValue) {
       const access = findAccessById(accessIdValue);
 
       if (!access) {
@@ -274,83 +519,48 @@ const initialAccessUsers = [
 
       state.editingId = access.id;
 
-      if (accessId instanceof HTMLInputElement) accessId.value = String(access.id);
-      if (accessNombre instanceof HTMLInputElement) accessNombre.value = access.nombre;
-      if (accessUsuario instanceof HTMLInputElement) accessUsuario.value = access.usuario;
-      if (accessEmail instanceof HTMLInputElement) accessEmail.value = access.email;
-      if (accessRol instanceof HTMLSelectElement) accessRol.value = access.rol;
-      if (accessEstado instanceof HTMLSelectElement) accessEstado.value = access.estado;
+      if (editUserId instanceof HTMLInputElement) editUserId.value = String(access.id);
+      if (editUserNombre instanceof HTMLInputElement) editUserNombre.value = access.nombre;
+      if (editUserEmail instanceof HTMLInputElement) editUserEmail.value = access.email;
+      if (editUserDocumento instanceof HTMLInputElement) editUserDocumento.value = access.documento;
+      if (editUserRol instanceof HTMLSelectElement) editUserRol.value = roleCatalog.includes(access.rol) ? access.rol : "Operador";
+      if (editUserDepartamento instanceof HTMLInputElement) editUserDepartamento.value = access.departamento;
 
-      permissionInputs.forEach((input) => {
-        if (input instanceof HTMLInputElement) {
-          input.checked = access.permisos.includes(input.value);
-        }
-      });
-
-      if (saveAccessButton instanceof HTMLButtonElement) {
-        saveAccessButton.textContent = "Actualizar acceso";
-      }
-
-      if (cancelEditButton instanceof HTMLButtonElement) {
-        cancelEditButton.hidden = false;
-      }
+      openModal(editUserModal);
     }
 
-    function saveAccess(event) {
+    function saveEdit(event) {
       event.preventDefault();
 
       if (
-        !(accessNombre instanceof HTMLInputElement) ||
-        !(accessUsuario instanceof HTMLInputElement) ||
-        !(accessEmail instanceof HTMLInputElement) ||
-        !(accessRol instanceof HTMLSelectElement) ||
-        !(accessEstado instanceof HTMLSelectElement)
+        !(editUserId instanceof HTMLInputElement) ||
+        !(editUserNombre instanceof HTMLInputElement) ||
+        !(editUserEmail instanceof HTMLInputElement) ||
+        !(editUserDocumento instanceof HTMLInputElement) ||
+        !(editUserRol instanceof HTMLSelectElement) ||
+        !(editUserDepartamento instanceof HTMLInputElement)
       ) {
         return;
       }
 
-      const nombre = accessNombre.value.trim();
-      const usuario = accessUsuario.value.trim();
-      const email = accessEmail.value.trim();
-      const rol = accessRol.value;
-      const estado = accessEstado.value;
-      const permisos = getSelectedPermissions();
+      const access = findAccessById(Number(editUserId.value || 0));
 
-      if (!nombre || !usuario || !email || !permisos.length) {
-        alert("Completa los datos basicos y selecciona al menos un permiso.");
+      if (!access) {
         return;
       }
 
-      if (state.editingId) {
-        const access = findAccessById(state.editingId);
-
-        if (!access) {
-          return;
-        }
-
-        access.nombre = nombre;
-        access.usuario = usuario;
-        access.email = email;
-        access.rol = rol;
-        access.estado = estado;
-        access.permisos = permisos;
-      } else {
-        state.accesses.unshift({
-          id: Date.now(),
-          nombre,
-          usuario,
-          email,
-          rol,
-          estado,
-          permisos,
-          ultimoAcceso: "Sin ingreso",
-          requiereCambioClave: true,
-        });
+      access.nombre = editUserNombre.value.trim();
+      access.email = editUserEmail.value.trim();
+      access.documento = editUserDocumento.value.trim();
+      access.rol = editUserRol.value;
+      access.departamento = editUserDepartamento.value.trim();
+      if (!Array.isArray(access.permisos) || !access.permisos.length) {
+        access.permisos = getDefaultPermissions(access.rol);
       }
 
-      resetForm();
-      updateSummary();
       renderTable();
+      addAuditEntry("editar", access.nombre, `Se actualizo la informacion del perfil ${access.rol}.`);
+      closeModal(editUserModal);
     }
 
     function toggleAccess(accessIdValue) {
@@ -361,8 +571,14 @@ const initialAccessUsers = [
       }
 
       access.estado = access.estado === "Activo" ? "Inactivo" : "Activo";
-      updateSummary();
       renderTable();
+      addAuditEntry(
+        access.estado === "Activo" ? "activar" : "desactivar",
+        access.nombre,
+        access.estado === "Activo"
+          ? "La cuenta fue habilitada nuevamente para operar SCISE."
+          : "La cuenta fue deshabilitada para impedir acceso al sistema."
+      );
     }
 
     function deleteAccess(accessIdValue) {
@@ -372,9 +588,8 @@ const initialAccessUsers = [
         return;
       }
 
-      const confirmed = window.confirm(
-        `Vas a eliminar el acceso de ${access.nombre}. Esta accion no se puede deshacer en este mock.`
-      );
+      const userName = access.nombre;
+      const confirmed = window.confirm(`Vas a eliminar el usuario ${userName}. Esta accion no se puede deshacer en este entorno local.`);
 
       if (!confirmed) {
         return;
@@ -386,33 +601,77 @@ const initialAccessUsers = [
         state.passwordTargetId = null;
       }
 
-      if (state.editingId === accessIdValue) {
-        resetForm();
+      if (state.permissionsTargetId === accessIdValue) {
+        state.permissionsTargetId = null;
       }
 
-      updatePasswordTarget();
-      updateSummary();
       renderTable();
+      updatePasswordTarget();
+      updatePermissionsTarget();
+      addAuditEntry("eliminar", userName, "La cuenta fue eliminada del catalogo de accesos del sistema.");
     }
 
-    function selectPasswordTarget(accessIdValue) {
-      state.passwordTargetId = accessIdValue;
-      updatePasswordTarget();
+    function updatePermissionsTarget() {
+      const access = state.permissionsTargetId ? findAccessById(state.permissionsTargetId) : null;
+
+      if (permissionsTargetName instanceof HTMLElement) {
+        permissionsTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningun usuario seleccionado";
+      }
+
+      if (permissionsTargetMeta instanceof HTMLElement) {
+        permissionsTargetMeta.textContent = access
+          ? `Documento ${access.documento}. Departamento ${access.departamento}.`
+          : "Selecciona un usuario desde la tabla para administrar sus permisos.";
+      }
+
+      permissionInputs.forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+          input.checked = !!access && access.permisos.includes(input.value);
+        }
+      });
+    }
+
+    function openPermissions(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      state.permissionsTargetId = access.id;
+      updatePermissionsTarget();
+      openModal(permissionsModal);
+    }
+
+    function savePermissions(event) {
+      event.preventDefault();
+
+      const access = state.permissionsTargetId ? findAccessById(state.permissionsTargetId) : null;
+
+      if (!access) {
+        return;
+      }
+
+      access.permisos = permissionInputs
+        .filter((input) => input instanceof HTMLInputElement && input.checked)
+        .map((input) => input.value);
+
+      renderTable();
+      addAuditEntry("permisos", access.nombre, `Se actualizaron permisos del perfil ${access.rol}.`);
+      closeModal(permissionsModal);
     }
 
     function updatePasswordTarget() {
       const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
 
       if (passwordTargetName instanceof HTMLElement) {
-        passwordTargetName.textContent = access
-          ? `${access.nombre} (@${access.usuario})`
-          : "Ningun usuario seleccionado";
+        passwordTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningun usuario seleccionado";
       }
 
       if (passwordTargetMeta instanceof HTMLElement) {
         passwordTargetMeta.textContent = access
-          ? `Perfil ${access.rol}. Estado ${access.estado}.`
-          : "Usa la tabla de accesos para elegir a quien deseas cambiar la contrasena.";
+          ? `Documento ${access.documento}. Estado ${access.estado}.`
+          : "Usa la tabla de usuarios para elegir a quien deseas cambiar la contrasena.";
       }
 
       if (applyPasswordChange instanceof HTMLButtonElement) {
@@ -422,8 +681,24 @@ const initialAccessUsers = [
       if (passwordResetFeedback instanceof HTMLElement) {
         passwordResetFeedback.textContent = access
           ? "Ingresa una nueva contrasena segura y confirrmala antes de aplicar."
-          : "Al aplicar el cambio se eliminara el estado pendiente de actualizacion.";
+          : "La nueva contrasena debe tener al menos 6 caracteres.";
       }
+    }
+
+    function openPassword(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      state.passwordTargetId = access.id;
+      updatePasswordTarget();
+
+      if (passwordNueva instanceof HTMLInputElement) passwordNueva.value = "";
+      if (passwordConfirmacion instanceof HTMLInputElement) passwordConfirmacion.value = "";
+
+      openModal(passwordModal);
     }
 
     function applyPasswordReset(event) {
@@ -458,21 +733,14 @@ const initialAccessUsers = [
         return;
       }
 
-      access.requiereCambioClave = false;
       passwordNueva.value = "";
       passwordConfirmacion.value = "";
+      addAuditEntry("contrasena", access.nombre, "Se realizo un cambio de contrasena desde configuracion.");
       passwordResetFeedback.textContent = `Contrasena actualizada para ${access.nombre}.`;
-      updateSummary();
-      renderTable();
+      closeModal(passwordModal);
     }
 
-    accessForm?.addEventListener("submit", saveAccess);
-    cancelEditButton?.addEventListener("click", resetForm);
-
-    searchInput?.addEventListener("input", renderTable);
-    statusFilter?.addEventListener("change", renderTable);
-
-    tableBody?.addEventListener("click", (event) => {
+    function handleTableAction(event) {
       const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
 
       if (!(target instanceof HTMLButtonElement)) {
@@ -482,28 +750,51 @@ const initialAccessUsers = [
       const accessIdValue = Number(target.dataset.accessId || 0);
       const action = target.dataset.action;
 
-      if (action === "edit") {
-        startEdit(accessIdValue);
+      if (action === "permissions") openPermissions(accessIdValue);
+      if (action === "password") openPassword(accessIdValue);
+      if (action === "toggle") toggleAccess(accessIdValue);
+      if (action === "edit") openEdit(accessIdValue);
+      if (action === "delete") deleteAccess(accessIdValue);
+    }
+
+    function handleModalClose(event) {
+      const closeTarget = event.target instanceof HTMLElement ? event.target.closest("[data-close-modal]") : null;
+
+      if (!(closeTarget instanceof HTMLElement)) {
+        return;
       }
 
-      if (action === "toggle") {
-        toggleAccess(accessIdValue);
+      const modalId = closeTarget.dataset.closeModal;
+
+      if (!modalId) {
+        return;
       }
 
-      if (action === "password") {
-        selectPasswordTarget(accessIdValue);
-      }
+      closeModal(document.getElementById(modalId));
+    }
 
-      if (action === "delete") {
-        deleteAccess(accessIdValue);
-      }
+    openCreateUserModalButton?.addEventListener("click", openCreateUser);
+    newUserForm?.addEventListener("submit", createUser);
+    editUserForm?.addEventListener("submit", saveEdit);
+    permissionsForm?.addEventListener("submit", savePermissions);
+    passwordResetForm?.addEventListener("submit", applyPasswordReset);
+    tableBody?.addEventListener("click", handleTableAction);
+    document.addEventListener("click", handleModalClose);
+
+    togglePasswordVisibility?.addEventListener("change", () => {
+      const inputType =
+        togglePasswordVisibility instanceof HTMLInputElement && togglePasswordVisibility.checked
+          ? "text"
+          : "password";
+
+      if (passwordNueva instanceof HTMLInputElement) passwordNueva.type = inputType;
+      if (passwordConfirmacion instanceof HTMLInputElement) passwordConfirmacion.type = inputType;
     });
 
-    passwordResetForm?.addEventListener("submit", applyPasswordReset);
-
-    resetForm();
+    updatePermissionsTarget();
     updatePasswordTarget();
-    updateSummary();
+    resetNewUserForm();
     renderTable();
+    renderAudit();
   }
 </script>

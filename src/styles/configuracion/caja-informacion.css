@@ -1,4 +1,4 @@
-.config-info-grid {
+﻿.config-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
@@ -13,6 +13,7 @@
   display: block;
   margin-bottom: 0.7rem;
   color: #166534;
+  font-size: 1.1rem;
 }
 
 .config-info-card ul {
@@ -23,8 +24,14 @@
   color: #475569;
 }
 
-.config-info-card--accent {
-  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+.config-info-card--context {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+}
+
+.config-info-card--tips {
+  background: linear-gradient(180deg, #f2fff6 0%, #ffffff 100%);
+  border: 1px solid rgba(34, 197, 94, 0.24);
 }
 
 @media (max-width: 900px) {

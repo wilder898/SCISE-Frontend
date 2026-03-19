@@ -1,25 +1,12 @@
-<section class="config-card">
-  <div class="config-card__header">
+﻿<section class="config-card">
+  <div class="config-users-card__top">
     <div>
-      <h2>Accesos registrados</h2>
-      <p>Administra estados, permisos, edicion y seguridad de cada cuenta.</p>
+      <h2>Usuarios con acceso al sistema</h2>
+      <p>Administra las cuentas que operan SCISE. Este modulo controla accesos internos, no historial operativo.</p>
     </div>
-  </div>
-
-  <div class="config-table-tools">
-    <label class="config-field">
-      <span>Buscar acceso</span>
-      <input id="accessSearchInput" type="search" placeholder="Nombre, usuario o correo" />
-    </label>
-
-    <label class="config-field">
-      <span>Estado</span>
-      <select id="accessStatusFilter">
-        <option value="">Todos</option>
-        <option value="Activo">Activo</option>
-        <option value="Inactivo">Inactivo</option>
-      </select>
-    </label>
+    <button class="config-button config-button--primary" id="openCreateUserModal" type="button">
+      Nuevo Usuario
+    </button>
   </div>
 
   <div class="config-table-wrap">
@@ -27,19 +14,23 @@
       <thead>
         <tr>
           <th>Usuario</th>
+          <th>Email</th>
           <th>Perfil</th>
-          <th>Permisos</th>
+          <th>Departamento</th>
           <th>Estado</th>
-          <th>Ultimo acceso</th>
-          <th>Seguridad</th>
           <th>Acciones</th>
         </tr>
       </thead>
-      <tbody id="configAccessTableBody"></tbody>
+      <tbody id="configUsersTableBody"></tbody>
     </table>
   </div>
 
-  <div class="config-empty-state" id="configAccessEmpty" hidden>
-    No hay accesos que coincidan con los filtros aplicados.
+  <div class="config-empty-state" id="configUsersEmpty" hidden>
+    No hay usuarios registrados en este momento.
+  </div>
+
+  <div class="config-users-card__footer">
+    <span>Total de usuarios: <strong id="configTotalUsers">0</strong></span>
+    <span>Activos: <strong id="configActiveUsers">0</strong></span>
   </div>
 </section>
