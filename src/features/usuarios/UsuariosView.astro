@@ -655,4 +655,9 @@ const initialUsers = [
   });
 
   renderTable();
+
+  // Check if navigated from ingreso to create new user
+  if (window.location.search.includes('new=true')) {
+    openCreateModal();
+  }
 </script>

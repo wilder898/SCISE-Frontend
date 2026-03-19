@@ -25,36 +25,12 @@ import CajaInformacion from "./CajaInformacion.astro";
     appendMovement,
     getActiveEquipmentsForUser,
   } from "../../lib/movimientos";
+  import {
+    findOperationalUserByDocument,
+    type OperationalUser,
+  } from "../../lib/operacion";
 
-  interface Usuario {
-    id: string;
-    nombre: string;
-    documento: string;
-    rol: string;
-  }
-
-  const usuariosMock: Record<string, Usuario> = {
-    "1234567890": {
-      id: "usr-001",
-      nombre: "Juan Perez Garcia",
-      documento: "1234567890",
-      rol: "Aprendiz",
-    },
-    "9876543210": {
-      id: "usr-002",
-      nombre: "Maria Lopez Torres",
-      documento: "9876543210",
-      rol: "Instructor",
-    },
-    "5555555555": {
-      id: "usr-003",
-      nombre: "Carlos Rodriguez Martinez",
-      documento: "5555555555",
-      rol: "Coordinador",
-    },
-  };
-
-  let usuarioActual: Usuario | null = null;
+  let usuarioActual: OperationalUser | null = null;
   let equiposDisponibles = getActiveEquipmentsForUser("none");
   const equiposSeleccionados = new Set<string>();
 
@@ -167,7 +143,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const usuario = usuariosMock[documento];
+      const usuario = findOperationalUserByDocument(documento);
 
       if (!usuario) {
         throw new Error(

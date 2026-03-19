@@ -25,89 +25,16 @@ import CajaInformacion from "./CajaInformacion.astro";
     appendMovement,
     getActiveEquipmentIdsForUser,
   } from "../../lib/movimientos";
+  import {
+    findOperationalUserByDocument,
+    listEquipmentsForUser,
+    type EquipmentCatalogItem,
+    type OperationalUser,
+  } from "../../lib/operacion";
 
-  interface Usuario {
-    id: string;
-    nombre: string;
-    documento: string;
-    rol: string;
-  }
-
-  interface Equipo {
-    id: string;
-    serial: string;
-    tipo: string;
-    descripcion: string;
-  }
-
-  const usuariosMock: Record<string, Usuario> = {
-    "1234567890": {
-      id: "usr-001",
-      nombre: "Juan Perez Garcia",
-      documento: "1234567890",
-      rol: "Aprendiz",
-    },
-    "9876543210": {
-      id: "usr-002",
-      nombre: "Maria Lopez Torres",
-      documento: "9876543210",
-      rol: "Instructor",
-    },
-    "5555555555": {
-      id: "usr-003",
-      nombre: "Carlos Rodriguez Martinez",
-      documento: "5555555555",
-      rol: "Coordinador",
-    },
-  };
-
-  const equiposMock: Record<string, Equipo[]> = {
-    "usr-001": [
-      {
-        id: "equipo-001",
-        serial: "LAP-2024-0012345",
-        tipo: "Portatil",
-        descripcion: "Lenovo ThinkPad E15",
-      },
-      {
-        id: "equipo-002",
-        serial: "MON-2024-0054321",
-        tipo: "Monitor",
-        descripcion: 'Dell UltraSharp 27"',
-      },
-    ],
-    "usr-002": [
-      {
-        id: "equipo-003",
-        serial: "LAP-2024-0067890",
-        tipo: "Portatil",
-        descripcion: "HP ProBook 450 G9",
-      },
-    ],
-    "usr-003": [
-      {
-        id: "equipo-004",
-        serial: "LAP-2024-0011111",
-        tipo: "Portatil",
-        descripcion: "HP EliteBook 840 G8",
-      },
-      {
-        id: "equipo-005",
-        serial: "MON-2024-0022222",
-        tipo: "Monitor",
-        descripcion: "LG 24UP550",
-      },
-      {
-        id: "equipo-006",
-        serial: "KEY-2024-0033333",
-        tipo: "Teclado",
-        descripcion: "Logitech MX Keys",
-      },
-    ],
-  };
-
-  let usuarioActual: Usuario | null = null;
-  let equipoSeleccionado: Equipo | null = null;
+  let usuarioActual: OperationalUser | null = null;
+  let equiposDisponibles: EquipmentCatalogItem[] = [];
+  const equiposSeleccionados = new Set<string>();
 
   const barcodeInput = document.getElementById("barcodeUser") as HTMLInputElement;
   const userSuccess = document.getElementById("userSuccess") as HTMLElement;
@@ -121,14 +48,100 @@ import CajaInformacion from "./CajaInformacion.astro";
   const loadingEquipos = document.getElementById("loadingEquipos") as HTMLElement;
   const textoInicial = document.getElementById("textoInicial") as HTMLElement;
   const equiposError = document.getElementById("equiposError") as HTMLElement;
+
+  const registerUserButton = document.getElementById("registerUserButton") as HTMLButtonElement;
+
+  registerUserButton?.addEventListener("click", () => {
+    window.location.href = "/usuarios?new=true";
+  });
   const listaEquipos = document.getElementById("listaEquipos") as HTMLElement;
   const equipoSuccess = document.getElementById("equipoSuccess") as HTMLElement;
   const equipoError = document.getElementById("equipoError") as HTMLElement;
   const loadingEquipo = document.getElementById("loadingEquipo") as HTMLElement;
   const equipoDetalles = document.getElementById("equipoDetalles") as HTMLElement;
+  const equiposSeleccionadosCantidad = document.getElementById(
+    "equiposSeleccionadosCantidad"
+  ) as HTMLElement;
+  const equiposSeleccionadosSeriales = document.getElementById(
+    "equiposSeleccionadosSeriales"
+  ) as HTMLElement;
+  const equiposSeleccionadosDescripcion = document.getElementById(
+    "equiposSeleccionadosDescripcion"
+  ) as HTMLElement;
   const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
   const btnRegistrar = document.getElementById("btnRegistrar") as HTMLButtonElement;
   const messageFooter = document.getElementById("message") as HTMLElement;
+
+  function getSelectedEquipments() {
+    return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
+  }
+
+  function renderEquipmentList() {
+    if (!listaEquipos) {
+      return;
+    }
+
+    if (!equiposDisponibles.length) {
+      listaEquipos.innerHTML = "";
+      listaEquipos.classList.add("oculto");
+      equiposError.textContent =
+        "No hay equipos disponibles para ingreso. Los asociados ya se encuentran registrados dentro de la instalacion.";
+      equiposError.classList.remove("oculto");
+      return;
+    }
+
+    equiposError.classList.add("oculto");
+    listaEquipos.innerHTML = equiposDisponibles
+      .map(
+        (equipo) => `
+          <div class="equipo-item ${equiposSeleccionados.has(equipo.id) ? "is-selected" : ""}">
+            <input
+              type="checkbox"
+              name="equipo"
+              value="${equipo.id}"
+              id="equipo-${equipo.id}"
+              ${equiposSeleccionados.has(equipo.id) ? "checked" : ""}
+            >
+            <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
+              <strong>${equipo.descripcion}</strong><br>
+              <small>${equipo.serial}</small><br>
+              <small>${equipo.tipo}</small>
+            </label>
+          </div>
+        `
+      )
+      .join("");
+    listaEquipos.classList.remove("oculto");
+  }
+
+  function updateSelectedSummary() {
+    const selected = getSelectedEquipments();
+
+    if (!selected.length) {
+      equipoSuccess.classList.add("oculto");
+      equipoDetalles.classList.add("oculto");
+      loadingEquipo.classList.add("oculto");
+      equipoError.classList.add("oculto");
+      btnRegistrar.disabled = true;
+      return;
+    }
+
+    equiposSeleccionadosCantidad.textContent = `${selected.length} equipo(s) listos para ingreso`;
+    equiposSeleccionadosSeriales.textContent = selected
+      .map((equipo) => equipo.serial)
+      .join(", ");
+    equiposSeleccionadosDescripcion.textContent = selected
+      .map((equipo) => equipo.descripcion)
+      .join(" | ");
+
+    equipoSuccess.textContent =
+      selected.length === 1
+        ? "1 equipo seleccionado para ingreso."
+        : `${selected.length} equipos seleccionados para ingreso.`;
+    equipoSuccess.classList.remove("oculto");
+    equipoDetalles.classList.remove("oculto");
+    btnRegistrar.disabled = false;
+  }
 
   async function obtenerUsuario(documento: string): Promise<void> {
     try {
@@ -139,7 +152,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const usuario = usuariosMock[documento];
+      const usuario = findOperationalUserByDocument(documento);
 
       if (!usuario) {
         throw new Error(
@@ -177,43 +190,19 @@ import CajaInformacion from "./CajaInformacion.astro";
       await new Promise((resolve) => setTimeout(resolve, 600));
 
       const activeEquipmentIds = getActiveEquipmentIdsForUser(usuarioId);
-      const equipos = (equiposMock[usuarioId] || []).filter(
+      equiposDisponibles = listEquipmentsForUser(usuarioId).filter(
         (equipo) => !activeEquipmentIds.has(equipo.id)
       );
 
-      if (!equipos.length) {
-        equiposError.textContent =
-          "No hay equipos disponibles para ingreso. Los asociados ya se encuentran registrados dentro de la instalacion.";
-        equiposError.classList.remove("oculto");
-        loadingEquipos.classList.add("oculto");
-        return;
-      }
-
-      listaEquipos.innerHTML = "";
-      equipoSeleccionado = null;
+      equiposSeleccionados.clear();
       equipoDetalles.classList.add("oculto");
       equipoSuccess.classList.add("oculto");
       equipoError.classList.add("oculto");
       btnRegistrar.disabled = true;
 
-      equipos.forEach((equipo) => {
-        const equipoItem = document.createElement("div");
-        equipoItem.className = "equipo-item";
-        equipoItem.innerHTML = `
-          <input type="radio" name="equipo" value="${equipo.id}" id="equipo-${equipo.id}">
-          <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
-            <strong>${equipo.descripcion}</strong><br>
-            <small>${equipo.serial}</small><br>
-            <small>${equipo.tipo}</small>
-          </label>
-        `;
-
-        equipoItem.addEventListener("click", () => seleccionarEquipo(equipo));
-        listaEquipos.appendChild(equipoItem);
-      });
-
       loadingEquipos.classList.add("oculto");
-      listaEquipos.classList.remove("oculto");
+      renderEquipmentList();
+      updateSelectedSummary();
     } catch (error) {
       loadingEquipos.classList.add("oculto");
       equiposError.textContent =
@@ -222,37 +211,27 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   }
 
-  function seleccionarEquipo(equipo: Equipo): void {
+  function toggleEquipo(equipoId: string): void {
+    if (!equipoId) {
+      return;
+    }
+
     try {
-      equipoSeleccionado = equipo;
       loadingEquipo.classList.remove("oculto");
       equipoError.classList.add("oculto");
-      equipoSuccess.classList.add("oculto");
-      equipoDetalles.classList.add("oculto");
+
+      if (equiposSeleccionados.has(equipoId)) {
+        equiposSeleccionados.delete(equipoId);
+      } else {
+        equiposSeleccionados.add(equipoId);
+      }
+
+      renderEquipmentList();
 
       setTimeout(() => {
-        const equipoSerialEl = document.getElementById("equipoSerial") as HTMLElement;
-        const equipoTipoEl = document.getElementById("equipoTipo") as HTMLElement;
-        const equipoDescripcionEl = document.getElementById(
-          "equipoDescripcion"
-        ) as HTMLElement;
-
-        equipoSerialEl.textContent = equipo.serial;
-        equipoTipoEl.textContent = equipo.tipo;
-        equipoDescripcionEl.textContent = equipo.descripcion;
-
         loadingEquipo.classList.add("oculto");
-        equipoSuccess.classList.remove("oculto");
-        equipoDetalles.classList.remove("oculto");
-        btnRegistrar.disabled = false;
-
-        const radioInput = document.getElementById(
-          `equipo-${equipo.id}`
-        ) as HTMLInputElement;
-        if (radioInput) {
-          radioInput.checked = true;
-        }
-      }, 500);
+        updateSelectedSummary();
+      }, 150);
     } catch (error) {
       loadingEquipo.classList.add("oculto");
       equipoError.textContent =
@@ -270,17 +249,28 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   });
 
+  listaEquipos?.addEventListener("change", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
+      return;
+    }
+
+    toggleEquipo(target.value);
+  });
+
   btnCancelar.addEventListener("click", () => {
     usuarioActual = null;
-    equipoSeleccionado = null;
+    equiposDisponibles = [];
+    equiposSeleccionados.clear();
     barcodeInput.value = "";
     userBox.classList.add("oculto");
     userSuccess.classList.add("oculto");
     userError.classList.add("oculto");
     loadingUser.classList.add("oculto");
     listaEquipos.classList.add("oculto");
-      textoInicial.classList.remove("oculto");
-      equiposError.classList.add("oculto");
+    textoInicial.classList.remove("oculto");
+    equiposError.classList.add("oculto");
     equipoSuccess.classList.add("oculto");
     equipoError.classList.add("oculto");
     loadingEquipo.classList.add("oculto");
@@ -292,9 +282,11 @@ import CajaInformacion from "./CajaInformacion.astro";
   });
 
   btnRegistrar.addEventListener("click", async () => {
-    if (!usuarioActual || !equipoSeleccionado) {
+    const selected = getSelectedEquipments();
+
+    if (!usuarioActual || !selected.length) {
       messageFooter.textContent =
-        "Por favor selecciona un usuario y un equipo antes de registrar.";
+        "Por favor selecciona un usuario y al menos un equipo antes de registrar.";
       messageFooter.style.color = "#dc2626";
       return;
     }
@@ -306,28 +298,27 @@ import CajaInformacion from "./CajaInformacion.astro";
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      appendMovement({
-        tipo: "Ingreso",
-        usuarioId: usuarioActual.id,
-        usuarioNombre: usuarioActual.nombre,
-        usuarioDocumento: usuarioActual.documento,
-        usuarioRol: usuarioActual.rol,
-        equipoId: equipoSeleccionado.id,
-        equipoSerial: equipoSeleccionado.serial,
-        equipoTipo: equipoSeleccionado.tipo,
-        equipoDescripcion: equipoSeleccionado.descripcion,
+      const nowTimestamp = new Date().toISOString();
+      selected.forEach((equipo) => {
+        appendMovement({
+          tipo: "Ingreso",
+          usuarioId: usuarioActual.id,
+          usuarioNombre: usuarioActual.nombre,
+          usuarioDocumento: usuarioActual.documento,
+          usuarioRol: usuarioActual.rol,
+          equipoId: equipo.id,
+          equipoSerial: equipo.serial,
+          equipoTipo: equipo.tipo,
+          equipoDescripcion: equipo.descripcion,
+          timestamp: nowTimestamp,
+        });
       });
 
-      const ingresoData = {
-        success: true,
-        message: "Ingreso registrado correctamente",
-        ingresoId: `ingreso-${Math.random().toString(36).slice(2, 8)}`,
-        usuarioNombre: usuarioActual.nombre,
-        equipoDescripcion: equipoSeleccionado.descripcion,
-        horaRegistro: new Date().toLocaleTimeString("es-CO"),
-      };
-
-      messageFooter.textContent = `${ingresoData.message} - ${ingresoData.horaRegistro}`;
+      const horaRegistro = new Date(nowTimestamp).toLocaleTimeString("es-CO");
+      messageFooter.textContent =
+        selected.length === 1
+          ? `Ingreso registrado correctamente - ${horaRegistro}`
+          : `${selected.length} ingresos registrados correctamente - ${horaRegistro}`;
       messageFooter.style.color = "#16a34a";
 
       setTimeout(() => {

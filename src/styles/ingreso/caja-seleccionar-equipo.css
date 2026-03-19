@@ -60,9 +60,10 @@
   font-weight: 500;
 }
 
-input[type="radio"] {
+input[type="checkbox"] {
   cursor: pointer;
   margin-right: 0.2rem;
+  margin-top: 0.2rem;
 }
 
 label {
@@ -71,12 +72,13 @@ label {
   display: block;
 }
 
-.equipo-item input[type="radio"]:checked ~ label {
+.equipo-item input[type="checkbox"]:checked ~ label {
   font-weight: 700;
-  color: #2563eb;
+  color: #ea580c;
 }
 
-.equipo-item:has(input[type="radio"]:checked) {
+.equipo-item:has(input[type="checkbox"]:checked),
+.equipo-item.is-selected {
   border: 2px solid #ea580c;
   background: #fff5e8;
 }

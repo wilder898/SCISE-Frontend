@@ -2,6 +2,27 @@
   margin-bottom: 0.5rem;
 }
 
+.register-user-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.register-user-button:hover {
+  background: #2563eb;
+}
+
+.register-user-button svg {
+  stroke: currentColor;
+}
+
 .scan-input {
   width: 100%;
   padding: 1rem;

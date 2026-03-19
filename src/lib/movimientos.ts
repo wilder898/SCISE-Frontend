@@ -1,5 +1,26 @@
 export type MovementType = "Ingreso" | "Salida";
 
+export interface MovementReportRow {
+  id: string;
+  tipo: MovementType;
+  nombre: string;
+  documento: string;
+  equipo: string;
+  equipoId: string;
+  serial: string;
+  fechaHora: string;
+  estado: string;
+}
+
+export interface MovementStats {
+  totalEquipos: number;
+  enInstalacion: number;
+  fueraInstalacion: number;
+  movimientosHoy: number;
+  insidePct: number;
+  outsidePct: number;
+}
+
 export interface MovementRecord {
   id: string;
   tipo: MovementType;
@@ -28,7 +49,7 @@ export interface ActiveEquipmentRecord {
   tiempoEnCtma: string;
 }
 
-const STORAGE_KEY = "scise-movimientos";
+export const MOVEMENTS_STORAGE_KEY = "scise-movimientos";
 
 function isMovementRecord(value: unknown): value is MovementRecord {
   if (!value || typeof value !== "object") {
@@ -57,7 +78,7 @@ export function listMovements(): MovementRecord[] {
   }
 
   try {
-    const rawValue = localStorage.getItem(STORAGE_KEY);
+    const rawValue = localStorage.getItem(MOVEMENTS_STORAGE_KEY);
     const parsed = rawValue ? JSON.parse(rawValue) : [];
     return Array.isArray(parsed) ? parsed.filter(isMovementRecord) : [];
   } catch {
@@ -70,7 +91,7 @@ function saveMovements(movements: MovementRecord[]) {
     return;
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(movements));
+  localStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(movements));
 }
 
 export function appendMovement(
@@ -85,6 +106,15 @@ export function appendMovement(
 
   movements.push(record);
   saveMovements(movements);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("scise:movimientos-updated", {
+        detail: record,
+      })
+    );
+  }
+
   return record;
 }
 
@@ -147,4 +177,73 @@ export function getActiveEquipmentsForUser(userId: string): ActiveEquipmentRecor
 
 export function getActiveEquipmentIdsForUser(userId: string) {
   return new Set(getActiveEquipmentsForUser(userId).map((equipment) => equipment.id));
+}
+
+export function mapMovementToReportRow(
+  movement: MovementRecord
+): MovementReportRow {
+  return {
+    id: movement.id,
+    tipo: movement.tipo,
+    nombre: movement.usuarioNombre,
+    documento: movement.usuarioDocumento,
+    equipo: movement.equipoDescripcion,
+    equipoId: movement.equipoId,
+    serial: movement.equipoSerial,
+    fechaHora: movement.timestamp,
+    estado: "Completado",
+  };
+}
+
+export function listReportMovements() {
+  return listMovements()
+    .sort(
+      (left, right) =>
+        new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+    )
+    .map((movement) => mapMovementToReportRow(movement));
+}
+
+export function getCurrentEquipmentState(
+  movements: MovementReportRow[] = listReportMovements()
+) {
+  const latestByEquipment = new Map<string, MovementReportRow>();
+
+  movements.forEach((movement) => {
+    const current = latestByEquipment.get(movement.equipoId);
+
+    if (!current || new Date(movement.fechaHora) > new Date(current.fechaHora)) {
+      latestByEquipment.set(movement.equipoId, movement);
+    }
+  });
+
+  return Array.from(latestByEquipment.values());
+}
+
+export function getMovementStats(
+  movements: MovementReportRow[] = listReportMovements()
+): MovementStats {
+  const latestMovements = getCurrentEquipmentState(movements);
+  const totalEquipos = latestMovements.length;
+  const enInstalacion = latestMovements.filter(
+    (movement) => movement.tipo === "Ingreso"
+  ).length;
+  const fueraInstalacion = latestMovements.filter(
+    (movement) => movement.tipo === "Salida"
+  ).length;
+  const today = new Date().toISOString().slice(0, 10);
+  const movimientosHoy = movements.filter(
+    (movement) => movement.fechaHora.slice(0, 10) === today
+  ).length;
+
+  return {
+    totalEquipos,
+    enInstalacion,
+    fueraInstalacion,
+    movimientosHoy,
+    insidePct: totalEquipos ? Math.round((enInstalacion / totalEquipos) * 100) : 0,
+    outsidePct: totalEquipos
+      ? Math.round((fueraInstalacion / totalEquipos) * 100)
+      : 0,
+  };
 }
