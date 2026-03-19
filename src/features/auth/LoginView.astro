@@ -1,52 +1,28 @@
-﻿<section>
-  <section class="login-page">
-    <main class="login-container">
-      <header class="login-header">
-        <img
-          class="logo"
-          src="https://i.pinimg.com/474x/e8/62/92/e86292f703a81130c3e8aa86955aeabc.jpg"
-          alt="Logo SENA"
-        />
+<section class="login-view">
+  <header class="login-header">
+    <img class="logo" src="/favicon.svg" alt="Logo SCISE" />
+    <h1>Sistema SCISE</h1>
+    <p class="subtitle">Sistema de Control de Ingreso y Salida de Equipos</p>
+  </header>
 
-        <h1>Sistema SCISE</h1>
+  <section class="login-form-section">
+    <form id="loginForm" class="login-form">
+      <label class="form-field">
+        <span class="form-label">Usuario</span>
+        <input class="form-input" type="text" id="username" placeholder="Usuario" required />
+      </label>
 
-        <p class="subtitle">
-          Sistema de Control de Ingreso y Salida de Equipos
-        </p>
-      </header>
+      <label class="form-field">
+        <span class="form-label">Contrasena</span>
+        <input class="form-input" type="password" id="password" placeholder="Contrasena" required />
+      </label>
 
-      <section class="login-form-section">
-        <form id="loginForm" class="login-form">
-          <label class="form-field">
-            <input
-              class="form-input"
-              type="text"
-              id="username"
-              placeholder="Usuario"
-              required
-            />
-          </label>
+      <button class="login-button" type="submit">Iniciar sesion</button>
+    </form>
 
-          <label class="form-field">
-            <input
-              class="form-input"
-              type="password"
-              id="password"
-              placeholder="Contraseña"
-              required
-            />
-          </label>
-
-          <button class="login-button" type="submit"> Iniciar Sesión </button>
-        </form>
-
-        <p class="loading-message" id="loading"></p>
-        <p class="error-message" id="error"></p>
-      </section>
-
-      <footer class="login-footer">
-        © 2026 SCISE - Todos los derechos reservados
-      </footer>
-    </main>
+    <p class="loading-message" id="loading"></p>
+    <p class="error-message" id="error"></p>
   </section>
+
+  <footer class="login-footer">SCISE 2026 - Todos los derechos reservados</footer>
 </section>

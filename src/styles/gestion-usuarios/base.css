@@ -11,9 +11,9 @@
 .users-table-card,
 .user-modal,
 .users-note-card {
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--surface-shadow);
 }
 
 .users-copy,
@@ -78,7 +78,7 @@
 .user-field input:focus,
 .user-field select:focus {
   outline: none;
-  border-color: #17863a;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 4px rgba(23, 134, 58, 0.12);
 }
 
@@ -123,20 +123,20 @@
 }
 
 .user-button--primary {
-  background: #17863a;
+  background: var(--color-primary);
   color: #ffffff;
   box-shadow: 0 12px 22px rgba(23, 134, 58, 0.2);
 }
 
 .user-button--secondary {
-  background: #f97316;
+  background: var(--color-accent);
   color: #ffffff;
   box-shadow: 0 12px 22px rgba(249, 115, 22, 0.2);
 }
 
 .user-button--ghost {
   background: #eff6ff;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .user-button--fit {
@@ -144,7 +144,7 @@
 }
 
 .new-user-button--create {
-  background: linear-gradient(135deg, #17863a 0%, #2dae53 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #2dae53 100%);
   color: #ffffff;
   box-shadow: 0 12px 24px rgba(23, 134, 58, 0.24);
 }

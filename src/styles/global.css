@@ -1,4 +1,20 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
+
+:root {
+  --color-bg: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-primary: #17863a;
+  --color-primary-hover: #146c30;
+  --color-accent: #f97316;
+  --color-accent-hover: #ea580c;
+  --color-border-soft: rgba(148, 163, 184, 0.15);
+  --surface-shadow: 0 18px 42px rgba(15, 23, 42, 0.09);
+  --focus-ring: 0 0 0 3px rgba(23, 134, 58, 0.24);
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.4rem;
+}
 
 * {
   box-sizing: border-box;
@@ -9,12 +25,20 @@ body {
   margin: 0;
   min-height: 100%;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #0f172a;
+  color: var(--color-text);
+  background: var(--color-bg);
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
 
 .app-shell {
-
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   border-radius: 0.5rem;
@@ -28,7 +52,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  background: #17863a;
+  background: var(--color-primary);
   color: #ffffff;
   min-height: 100vh;
 }
@@ -47,7 +71,7 @@ body {
   height: 2.6rem;
   border-radius: 999px;
   background: #ffffff;
-  color: #17863a;
+  color: var(--color-primary);
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -126,13 +150,13 @@ body {
 
 .app-nav-link:hover {
   background: #ffffff;
-  color: #17863a;
+  color: var(--color-primary);
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.15);
 }
 
-.app-nav-link.is-pill {
+.app-nav-link.is-active {
   background: #ffffff;
-  color: #17863a;
+  color: var(--color-primary);
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
 }
 
@@ -164,7 +188,7 @@ body {
 
 .app-logout {
   margin-top: auto;
-  background: #f97316;
+  background: var(--color-accent);
   color: #ffffff;
   text-align: center;
   font-weight: 600;
@@ -172,13 +196,13 @@ body {
 }
 
 .app-logout:hover {
-  background: #ea580c;
+  background: var(--color-accent-hover);
   color: #ffffff;
   box-shadow: 0 12px 20px rgba(234, 88, 12, 0.35);
 }
 
 .app-content {
-  background: #ffffff;
+  background: var(--color-bg);
   min-width: 0;
   width: 100%;
 }
@@ -186,7 +210,7 @@ body {
 .page-card {
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
-  background: #ffffff;
+  background: var(--color-bg);
   padding: 1rem;
 }
 
@@ -200,8 +224,8 @@ body {
 .auth-card {
   width: min(420px, 100%);
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  background: #ffffff;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
   padding: 1.25rem;
 }
 

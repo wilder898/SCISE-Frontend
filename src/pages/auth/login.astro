@@ -37,11 +37,11 @@ import "../../styles/login.css";
 
       if (!match) {
         loading.textContent = "";
-        error.textContent = "Usuario o contraseña incorrectos.";
+        error.textContent = "Usuario o contrasena incorrectos.";
         return;
       }
 
-      // Guardar sesión mínima para uso posterior (si se requiere).
+      // Guardar sesion minima para uso posterior.
       localStorage.setItem(
         "scise-session",
         JSON.stringify({

@@ -4,8 +4,9 @@ import CajaEstadisticas from "./CajaEstadisticas.astro";
 import CajaFiltros from "./CajaFiltros.astro";
 import CajaHistorialMovimientos from "./CajaHistorialMovimientos.astro";
 import CajaInformacion from "./CajaInformacion.astro";
+import { listMovements, mapMovementToReportRow } from "../../lib/movimientos";
 
-const initialMovements = [];
+const initialMovements = listMovements().map(mapMovementToReportRow);
 ---
 
 <section class="reportes-page">
@@ -17,6 +18,8 @@ const initialMovements = [];
 </section>
 
 <script define:vars={{ initialMovements }}>
+  import { listMovements, mapMovementToReportRow } from "../../lib/movimientos";
+
   const state = {
     movements: [...initialMovements],
     currentPage: 1,
@@ -87,6 +90,12 @@ const initialMovements = [];
     outsideEquiposMeta.textContent = `${outsidePct}% del inventario actual`;
     todayMovementsValue.textContent = String(movimientosHoy);
     todayMovementsMeta.textContent = `${movimientosHoy} movimientos registrados hoy`;
+  }
+
+  function reloadMovements() {
+    state.movements = listMovements().map(mapMovementToReportRow);
+    updateStats();
+    renderTable();
   }
 
   function getFilteredMovements() {
@@ -224,6 +233,11 @@ const initialMovements = [];
     if (target.classList.contains("movement-more")) {
       alert("Menu de acciones listo para la siguiente iteracion.");
     }
+  });
+
+  // Listen for movement updates
+  window.addEventListener("scise:movimientos-updated", () => {
+    reloadMovements();
   });
 
   updateStats();

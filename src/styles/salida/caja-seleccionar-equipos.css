@@ -64,13 +64,13 @@
   font-weight: 500;
 }
 
-input[type="checkbox"] {
+.equipo-item input[type="checkbox"] {
   cursor: pointer;
   margin-right: 0.2rem;
   margin-top: 0.2rem;
 }
 
-label {
+.equipo-item label {
   margin: 0;
   padding: 0;
   display: block;

@@ -1,10 +1,11 @@
-﻿---
+---
+const currentPath = Astro.url.pathname;
 const links = [
-  { href: "/reportes", label: "Panel de Administracion", variant: "pill", icon: "bar" },
-  { href: "/ingreso", label: "Registrar Ingreso", variant: "ghost", icon: "enter" },
-  { href: "/salida", label: "Registrar Salida", variant: "ghost", icon: "exit" },
-  { href: "/usuarios", label: "Gestionar Usuarios", variant: "pill", icon: "users" },
-  { href: "/configuracion", label: "Configuracion", variant: "pill", icon: "settings", adminOnly: true },
+  { href: "/reportes", label: "Panel de Administracion", icon: "bar" },
+  { href: "/ingreso", label: "Registrar Ingreso", icon: "enter" },
+  { href: "/salida", label: "Registrar Salida", icon: "exit" },
+  { href: "/usuarios", label: "Gestionar Usuarios", icon: "users" },
+  { href: "/configuracion", label: "Configuracion", icon: "settings", adminOnly: true },
 ];
 ---
 
@@ -26,82 +27,89 @@ const links = [
 
   <div class="app-sidebar-middle">
     <nav class="app-nav" aria-label="Navegacion principal">
-      {links.map((link) => (
-        <a
-          href={link.href}
-          class:list={["app-nav-link", `is-${link.variant}`]}
-          hidden={link.adminOnly}
-          data-admin-only={link.adminOnly ? "true" : undefined}
-        >
-          <span class:list={["nav-icon", `is-${link.icon}`]} aria-hidden="true">
-            {link.icon === "bar" && (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M5 20V4M12 20V10M19 20V7"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-            )}
-            {link.icon === "enter" && (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M10 5l7 7-7 7M4 12h13"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            )}
-            {link.icon === "exit" && (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M14 5l-7 7 7 7M20 12H7"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            )}
-            {link.icon === "users" && (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M16 11a4 4 0 1 0-8 0M4 20a6 6 0 0 1 16 0"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-            )}
-            {link.icon === "settings" && (
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <path
-                  d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6Z"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            )}
-          </span>
-          <span>{link.label}</span>
-        </a>
-      ))}
+      {
+        links.map((link) => {
+          const isActive = currentPath === link.href || currentPath.startsWith(`${link.href}/`);
+
+          return (
+            <a
+              href={link.href}
+              class:list={["app-nav-link", isActive ? "is-active" : "is-ghost"]}
+              aria-current={isActive ? "page" : undefined}
+              hidden={link.adminOnly}
+              data-admin-only={link.adminOnly ? "true" : undefined}
+            >
+              <span class:list={["nav-icon", `is-${link.icon}`]} aria-hidden="true">
+                {link.icon === "bar" && (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M5 20V4M12 20V10M19 20V7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                )}
+                {link.icon === "enter" && (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M10 5l7 7-7 7M4 12h13"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                )}
+                {link.icon === "exit" && (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M14 5l-7 7 7 7M20 12H7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                )}
+                {link.icon === "users" && (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M16 11a4 4 0 1 0-8 0M4 20a6 6 0 0 1 16 0"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                )}
+                {link.icon === "settings" && (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6Z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                )}
+              </span>
+              <span>{link.label}</span>
+            </a>
+          );
+        })
+      }
     </nav>
   </div>
 

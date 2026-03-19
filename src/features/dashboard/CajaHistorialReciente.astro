@@ -1,0 +1,65 @@
+<article class="dashboard-card">
+  <header class="dashboard-card__header">
+    <span class="dashboard-icon is-blue" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="currentColor" stroke-width="2"></path>
+      </svg>
+    </span>
+    <h2>Historial Reciente</h2>
+  </header>
+
+  <div id="recentMovementsList" class="recent-movements">
+    <!-- Los movimientos recientes se cargarán aquí -->
+  </div>
+
+  <p id="noRecentMovements" class="no-recent">No hay movimientos recientes.</p>
+</article>
+
+<script>
+  import { listMovements, formatMovementTime } from "../../lib/movimientos";
+
+  const recentMovementsList = document.getElementById("recentMovementsList");
+  const noRecentMovements = document.getElementById("noRecentMovements");
+
+  function renderRecentMovements() {
+    const movements = listMovements()
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5); // Show last 5 movements
+
+    if (!recentMovementsList) return;
+
+    if (!movements.length) {
+      recentMovementsList.innerHTML = "";
+      if (noRecentMovements) noRecentMovements.style.display = "block";
+      return;
+    }
+
+    if (noRecentMovements) noRecentMovements.style.display = "none";
+
+    recentMovementsList.innerHTML = movements
+      .map((movement) => `
+        <div class="recent-movement ${movement.tipo === "Ingreso" ? "is-ingreso" : "is-salida"}">
+          <div class="recent-movement__header">
+            <span class="recent-movement__type">${movement.tipo}</span>
+            <span class="recent-movement__time">${formatMovementTime(movement.timestamp)}</span>
+          </div>
+          <div class="recent-movement__details">
+            <strong>${movement.equipoDescripcion}</strong>
+            <small>${movement.equipoSerial}</small>
+          </div>
+          <div class="recent-movement__user">
+            <small>${movement.usuarioNombre} (${movement.usuarioDocumento})</small>
+          </div>
+        </div>
+      `)
+      .join("");
+  }
+
+  // Initial render
+  renderRecentMovements();
+
+  // Listen for movement updates
+  window.addEventListener("scise:movimientos-updated", () => {
+    renderRecentMovements();
+  });
+</script>
