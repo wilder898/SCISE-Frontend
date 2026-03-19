@@ -1,0 +1,30 @@
+<article class="salida-card">
+  <header class="salida-card__header">
+    <span class="salida-icon is-blue" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 4h10v16H7zM9 8h6M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </span>
+    <h2>Escanear Carnet</h2>
+  </header>
+
+  <section class="scan-area">
+    <input
+      type="text"
+      id="barcodeUser"
+      class="scan-input"
+      placeholder="Escanear codigo de barras del carnet..."
+      autocomplete="off"
+    />
+  </section>
+
+  <p id="userSuccess" class="success oculto">Usuario detectado correctamente.</p>
+  <p id="userError" class="error oculto"></p>
+  <p id="loadingUser" class="loading oculto">Cargando usuario...</p>
+
+  <section id="userBox" class="user-box oculto">
+    <p><strong>Nombre</strong><br /><span id="nombre"></span></p>
+    <p><strong>Documento</strong><br /><span id="documento"></span></p>
+    <p><strong>Rol</strong><br /><span id="rol"></span></p>
+  </section>
+</article>

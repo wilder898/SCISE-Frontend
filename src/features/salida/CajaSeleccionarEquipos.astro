@@ -1,0 +1,33 @@
+<article class="salida-card">
+  <header class="salida-card__header">
+    <span class="salida-icon is-orange" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="6" width="16" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+        <path d="M8 20h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </span>
+    <h2>Seleccionar Equipos</h2>
+  </header>
+
+  <p id="textoInicial" class="descripcion">
+    Escanea primero el carnet del usuario para ver solo los equipos con ingreso
+    activo en la instalacion.
+  </p>
+
+  <p id="loadingEquipos" class="loading oculto">Cargando equipos activos...</p>
+  <p id="equiposError" class="error oculto"></p>
+
+  <section id="listaEquipos" class="equipos oculto">
+    <!-- Los equipos se cargaran dinamicamente aqui -->
+  </section>
+
+  <p id="equipoSuccess" class="success oculto">Seleccion multiple actualizada.</p>
+  <p id="equipoError" class="error oculto"></p>
+  <p id="loadingEquipo" class="loading oculto">Actualizando seleccion...</p>
+
+  <section id="equipoDetalles" class="equipo-box oculto">
+    <p><strong>Equipos seleccionados</strong><br /><span id="equiposSeleccionadosCantidad"></span></p>
+    <p><strong>Seriales</strong><br /><span id="equiposSeleccionadosSeriales"></span></p>
+    <p><strong>Tiempo en CTMA</strong><br /><span id="equipoTiempoCtma"></span></p>
+  </section>
+</article>

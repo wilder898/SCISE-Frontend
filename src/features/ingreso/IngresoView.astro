@@ -21,6 +21,11 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
+  import {
+    appendMovement,
+    getActiveEquipmentIdsForUser,
+  } from "../../lib/movimientos";
+
   interface Usuario {
     id: string;
     nombre: string;
@@ -171,17 +176,25 @@ import CajaInformacion from "./CajaInformacion.astro";
 
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const equipos = equiposMock[usuarioId] || [];
+      const activeEquipmentIds = getActiveEquipmentIdsForUser(usuarioId);
+      const equipos = (equiposMock[usuarioId] || []).filter(
+        (equipo) => !activeEquipmentIds.has(equipo.id)
+      );
 
       if (!equipos.length) {
         equiposError.textContent =
-          "El usuario no tiene equipos registrados actualmente.";
+          "No hay equipos disponibles para ingreso. Los asociados ya se encuentran registrados dentro de la instalacion.";
         equiposError.classList.remove("oculto");
         loadingEquipos.classList.add("oculto");
         return;
       }
 
       listaEquipos.innerHTML = "";
+      equipoSeleccionado = null;
+      equipoDetalles.classList.add("oculto");
+      equipoSuccess.classList.add("oculto");
+      equipoError.classList.add("oculto");
+      btnRegistrar.disabled = true;
 
       equipos.forEach((equipo) => {
         const equipoItem = document.createElement("div");
@@ -266,8 +279,8 @@ import CajaInformacion from "./CajaInformacion.astro";
     userError.classList.add("oculto");
     loadingUser.classList.add("oculto");
     listaEquipos.classList.add("oculto");
-    textoInicial.classList.remove("oculto");
-    equiposError.classList.add("oculto");
+      textoInicial.classList.remove("oculto");
+      equiposError.classList.add("oculto");
     equipoSuccess.classList.add("oculto");
     equipoError.classList.add("oculto");
     loadingEquipo.classList.add("oculto");
@@ -292,6 +305,18 @@ import CajaInformacion from "./CajaInformacion.astro";
       btnRegistrar.disabled = true;
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      appendMovement({
+        tipo: "Ingreso",
+        usuarioId: usuarioActual.id,
+        usuarioNombre: usuarioActual.nombre,
+        usuarioDocumento: usuarioActual.documento,
+        usuarioRol: usuarioActual.rol,
+        equipoId: equipoSeleccionado.id,
+        equipoSerial: equipoSeleccionado.serial,
+        equipoTipo: equipoSeleccionado.tipo,
+        equipoDescripcion: equipoSeleccionado.descripcion,
+      });
 
       const ingresoData = {
         success: true,
