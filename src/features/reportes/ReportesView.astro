@@ -15,33 +15,37 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import { listReportMovements, getMovementStats } from "../../lib/movimientos";
+  import {
+    listReportMovements,
+    getMovementStats,
+    type MovementReportRow,
+  } from "../../lib/movimientos";
 
-  const state = {
+  const state: { movements: MovementReportRow[]; currentPage: number; pageSize: number } = {
     movements: [],
     currentPage: 1,
     pageSize: 5,
   };
 
-  const tableBody = document.getElementById("reportesTableBody");
-  const emptyState = document.getElementById("reportesEmptyState");
-  const typeFilter = document.getElementById("movementTypeFilter");
-  const dateFilter = document.getElementById("movementDateFilter");
-  const csvButton = document.getElementById("reportesCsvButton");
-  const pdfButton = document.getElementById("reportesPdfButton");
-  const allButton = document.getElementById("reportesAllButton");
-  const prevButton = document.getElementById("reportesPrevButton");
-  const nextButton = document.getElementById("reportesNextButton");
-  const pageInfo = document.getElementById("reportesPageInfo");
+  const tableBody = document.getElementById("reportesTableBody") as HTMLElement | null;
+  const emptyState = document.getElementById("reportesEmptyState") as HTMLElement | null;
+  const typeFilter = document.getElementById("movementTypeFilter") as HTMLSelectElement | null;
+  const dateFilter = document.getElementById("movementDateFilter") as HTMLInputElement | null;
+  const csvButton = document.getElementById("reportesCsvButton") as HTMLButtonElement | null;
+  const pdfButton = document.getElementById("reportesPdfButton") as HTMLButtonElement | null;
+  const allButton = document.getElementById("reportesAllButton") as HTMLButtonElement | null;
+  const prevButton = document.getElementById("reportesPrevButton") as HTMLButtonElement | null;
+  const nextButton = document.getElementById("reportesNextButton") as HTMLButtonElement | null;
+  const pageInfo = document.getElementById("reportesPageInfo") as HTMLElement | null;
 
-  const insideEquiposValue = document.getElementById("insideEquiposValue");
-  const insideEquiposMeta = document.getElementById("insideEquiposMeta");
-  const outsideEquiposValue = document.getElementById("outsideEquiposValue");
-  const outsideEquiposMeta = document.getElementById("outsideEquiposMeta");
-  const todayMovementsValue = document.getElementById("todayMovementsValue");
-  const todayMovementsMeta = document.getElementById("todayMovementsMeta");
+  const insideEquiposValue = document.getElementById("insideEquiposValue") as HTMLElement | null;
+  const insideEquiposMeta = document.getElementById("insideEquiposMeta") as HTMLElement | null;
+  const outsideEquiposValue = document.getElementById("outsideEquiposValue") as HTMLElement | null;
+  const outsideEquiposMeta = document.getElementById("outsideEquiposMeta") as HTMLElement | null;
+  const todayMovementsValue = document.getElementById("todayMovementsValue") as HTMLElement | null;
+  const todayMovementsMeta = document.getElementById("todayMovementsMeta") as HTMLElement | null;
 
-  function formatDateTime(value) {
+  function formatDateTime(value: string): string {
     const date = new Date(value);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -51,7 +55,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
-  function updateStats() {
+  function updateStats(): void {
     const stats = getMovementStats(state.movements);
 
     if (insideEquiposValue) insideEquiposValue.textContent = String(stats.enInstalacion);
@@ -70,25 +74,25 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   }
 
-  function reloadMovements() {
+  function reloadMovements(): void {
     state.movements = listReportMovements();
     state.currentPage = 1;
     updateStats();
     renderTable();
   }
 
-  function getFilteredMovements() {
+  function getFilteredMovements(): MovementReportRow[] {
     const selectedType = String(typeFilter?.value || "");
     const selectedDate = String(dateFilter?.value || "");
 
-    return state.movements.filter((movement) => {
+    return state.movements.filter((movement: MovementReportRow) => {
       const matchesType = !selectedType || movement.tipo === selectedType;
       const matchesDate = !selectedDate || movement.fechaHora.slice(0, 10) === selectedDate;
       return matchesType && matchesDate;
     });
   }
 
-  function renderTable() {
+  function renderTable(): void {
     if (!tableBody || !emptyState || !pageInfo || !prevButton || !nextButton) {
       return;
     }
@@ -116,7 +120,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     emptyState.hidden = true;
     tableBody.innerHTML = pageRows
       .map(
-        (movement) => `
+        (movement: MovementReportRow) => `
           <tr>
             <td>
               <span class="movement-pill ${movement.tipo === "Ingreso" ? "is-ingreso" : "is-salida"}">
@@ -144,9 +148,9 @@ import CajaInformacion from "./CajaInformacion.astro";
       .join("");
   }
 
-  function exportRows(filename, rows) {
+  function exportRows(filename: string, rows: MovementReportRow[]): void {
     const header = ["Tipo", "Usuario", "Documento", "Equipo", "Serial", "FechaHora", "Estado"];
-    const csvRows = rows.map((movement) => [
+    const csvRows = rows.map((movement: MovementReportRow) => [
       movement.tipo,
       movement.nombre,
       movement.documento,
@@ -157,7 +161,9 @@ import CajaInformacion from "./CajaInformacion.astro";
     ]);
 
     const csvContent = [header, ...csvRows]
-      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+      .map((row: string[]) =>
+        row.map((value: string) => `"${String(value).replaceAll('"', '""')}"`).join(",")
+      )
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

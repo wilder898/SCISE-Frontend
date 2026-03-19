@@ -1,5 +1,15 @@
-﻿---
-const { permissions = [] } = Astro.props;
+---
+interface PermissionItem {
+  id: string;
+  label: string;
+  description: string;
+}
+
+interface Props {
+  permissions?: PermissionItem[];
+}
+
+const { permissions = [] }: Props = Astro.props;
 ---
 
 <section class="config-card">

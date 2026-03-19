@@ -135,13 +135,17 @@ function dispatchOperationalUsersUpdated() {
   window.dispatchEvent(new CustomEvent("scise:operacion-usuarios-updated"));
 }
 
-function readSeededCollection<T extends Record<string, unknown>>(
+function cloneSeededItem<T extends object>(item: T): T {
+  return { ...item };
+}
+
+function readSeededCollection<T extends object>(
   storageKey: string,
   initialValue: T[],
   guard: (value: unknown) => value is T
 ) {
   if (typeof localStorage === "undefined") {
-    return initialValue.map((item) => ({ ...item }));
+    return initialValue.map((item) => cloneSeededItem(item));
   }
 
   try {
@@ -149,26 +153,26 @@ function readSeededCollection<T extends Record<string, unknown>>(
 
     if (!rawValue) {
       localStorage.setItem(storageKey, JSON.stringify(initialValue));
-      return initialValue.map((item) => ({ ...item }));
+      return initialValue.map((item) => cloneSeededItem(item));
     }
 
     const parsed = JSON.parse(rawValue);
 
     if (!Array.isArray(parsed)) {
       localStorage.setItem(storageKey, JSON.stringify(initialValue));
-      return initialValue.map((item) => ({ ...item }));
+      return initialValue.map((item) => cloneSeededItem(item));
     }
 
     const filtered = parsed.filter(guard);
 
     if (!filtered.length) {
       localStorage.setItem(storageKey, JSON.stringify(initialValue));
-      return initialValue.map((item) => ({ ...item }));
+      return initialValue.map((item) => cloneSeededItem(item));
     }
 
-    return filtered.map((item) => ({ ...item }));
+    return filtered.map((item) => cloneSeededItem(item));
   } catch {
-    return initialValue.map((item) => ({ ...item }));
+    return initialValue.map((item) => cloneSeededItem(item));
   }
 }
 

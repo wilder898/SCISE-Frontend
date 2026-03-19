@@ -16,11 +16,11 @@ import "../../styles/login.css";
     { username: "user", password: "user123", role: "user" },
   ];
 
-  const form = document.getElementById("loginForm");
-  const usernameInput = document.getElementById("username");
-  const passwordInput = document.getElementById("password");
-  const loading = document.getElementById("loading");
-  const error = document.getElementById("error");
+  const form = document.getElementById("loginForm") as HTMLFormElement | null;
+  const usernameInput = document.getElementById("username") as HTMLInputElement | null;
+  const passwordInput = document.getElementById("password") as HTMLInputElement | null;
+  const loading = document.getElementById("loading") as HTMLElement | null;
+  const error = document.getElementById("error") as HTMLElement | null;
 
   if (form && usernameInput && passwordInput && loading && error) {
     form.addEventListener("submit", (event) => {

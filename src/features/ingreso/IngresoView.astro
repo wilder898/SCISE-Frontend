@@ -283,8 +283,9 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   btnRegistrar.addEventListener("click", async () => {
     const selected = getSelectedEquipments();
+    const currentUser = usuarioActual;
 
-    if (!usuarioActual || !selected.length) {
+    if (!currentUser || !selected.length) {
       messageFooter.textContent =
         "Por favor selecciona un usuario y al menos un equipo antes de registrar.";
       messageFooter.style.color = "#dc2626";
@@ -302,10 +303,10 @@ import CajaInformacion from "./CajaInformacion.astro";
       selected.forEach((equipo) => {
         appendMovement({
           tipo: "Ingreso",
-          usuarioId: usuarioActual.id,
-          usuarioNombre: usuarioActual.nombre,
-          usuarioDocumento: usuarioActual.documento,
-          usuarioRol: usuarioActual.rol,
+          usuarioId: currentUser.id,
+          usuarioNombre: currentUser.nombre,
+          usuarioDocumento: currentUser.documento,
+          usuarioRol: currentUser.rol,
           equipoId: equipo.id,
           equipoSerial: equipo.serial,
           equipoTipo: equipo.tipo,
