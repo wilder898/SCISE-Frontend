@@ -4,9 +4,6 @@ import CajaEstadisticas from "./CajaEstadisticas.astro";
 import CajaFiltros from "./CajaFiltros.astro";
 import CajaHistorialMovimientos from "./CajaHistorialMovimientos.astro";
 import CajaInformacion from "./CajaInformacion.astro";
-import { listMovements, mapMovementToReportRow } from "../../lib/movimientos";
-
-const initialMovements = listMovements().map(mapMovementToReportRow);
 ---
 
 <section class="reportes-page">
@@ -17,11 +14,11 @@ const initialMovements = listMovements().map(mapMovementToReportRow);
   <CajaInformacion />
 </section>
 
-<script define:vars={{ initialMovements }}>
-  import { listMovements, mapMovementToReportRow } from "../../lib/movimientos";
+<script>
+  import { listReportMovements, getMovementStats } from "../../lib/movimientos";
 
   const state = {
-    movements: [...initialMovements],
+    movements: [],
     currentPage: 1,
     pageSize: 5,
   };
@@ -54,46 +51,28 @@ const initialMovements = listMovements().map(mapMovementToReportRow);
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
-  function getTodayIsoDate() {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  function getCurrentEquipmentState() {
-    const latestBySerial = new Map();
-
-    state.movements.forEach((movement) => {
-      const current = latestBySerial.get(movement.serial);
-
-      if (!current || new Date(movement.fechaHora) > new Date(current.fechaHora)) {
-        latestBySerial.set(movement.serial, movement);
-      }
-    });
-
-    return Array.from(latestBySerial.values());
-  }
-
   function updateStats() {
-    const latestMovements = getCurrentEquipmentState();
-    const totalEquipos = latestMovements.length;
-    const enInstalacion = latestMovements.filter((movement) => movement.tipo === "Ingreso").length;
-    const fueraInstalacion = latestMovements.filter((movement) => movement.tipo === "Salida").length;
-    const movimientosHoy = state.movements.filter(
-      (movement) => movement.fechaHora.slice(0, 10) === getTodayIsoDate()
-    ).length;
+    const stats = getMovementStats(state.movements);
 
-    const insidePct = totalEquipos ? Math.round((enInstalacion / totalEquipos) * 100) : 0;
-    const outsidePct = totalEquipos ? Math.round((fueraInstalacion / totalEquipos) * 100) : 0;
-
-    insideEquiposValue.textContent = String(enInstalacion);
-    insideEquiposMeta.textContent = `${insidePct}% del inventario actual`;
-    outsideEquiposValue.textContent = String(fueraInstalacion);
-    outsideEquiposMeta.textContent = `${outsidePct}% del inventario actual`;
-    todayMovementsValue.textContent = String(movimientosHoy);
-    todayMovementsMeta.textContent = `${movimientosHoy} movimientos registrados hoy`;
+    if (insideEquiposValue) insideEquiposValue.textContent = String(stats.enInstalacion);
+    if (insideEquiposMeta) {
+      insideEquiposMeta.textContent = `${stats.insidePct}% del inventario actual`;
+    }
+    if (outsideEquiposValue) outsideEquiposValue.textContent = String(stats.fueraInstalacion);
+    if (outsideEquiposMeta) {
+      outsideEquiposMeta.textContent = `${stats.outsidePct}% del inventario actual`;
+    }
+    if (todayMovementsValue) {
+      todayMovementsValue.textContent = String(stats.movimientosHoy);
+    }
+    if (todayMovementsMeta) {
+      todayMovementsMeta.textContent = `${stats.movimientosHoy} movimientos registrados hoy`;
+    }
   }
 
   function reloadMovements() {
-    state.movements = listMovements().map(mapMovementToReportRow);
+    state.movements = listReportMovements();
+    state.currentPage = 1;
     updateStats();
     renderTable();
   }
@@ -110,6 +89,10 @@ const initialMovements = listMovements().map(mapMovementToReportRow);
   }
 
   function renderTable() {
+    if (!tableBody || !emptyState || !pageInfo || !prevButton || !nextButton) {
+      return;
+    }
+
     const filteredMovements = getFilteredMovements();
     const totalPages = Math.max(1, Math.ceil(filteredMovements.length / state.pageSize));
 
@@ -142,7 +125,7 @@ const initialMovements = listMovements().map(mapMovementToReportRow);
             </td>
             <td>
               <div class="movement-user">
-                <strong>${movement.nombre} ${movement.apellido}</strong>
+                <strong>${movement.nombre}</strong>
                 <span>${movement.documento}</span>
               </div>
             </td>
@@ -165,7 +148,7 @@ const initialMovements = listMovements().map(mapMovementToReportRow);
     const header = ["Tipo", "Usuario", "Documento", "Equipo", "Serial", "FechaHora", "Estado"];
     const csvRows = rows.map((movement) => [
       movement.tipo,
-      `${movement.nombre} ${movement.apellido}`,
+      movement.nombre,
       movement.documento,
       movement.equipo,
       movement.serial,
@@ -235,11 +218,9 @@ const initialMovements = listMovements().map(mapMovementToReportRow);
     }
   });
 
-  // Listen for movement updates
   window.addEventListener("scise:movimientos-updated", () => {
     reloadMovements();
   });
 
-  updateStats();
-  renderTable();
+  reloadMovements();
 </script>

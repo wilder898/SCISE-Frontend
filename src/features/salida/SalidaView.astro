@@ -311,5 +311,11 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   });
 
+  window.addEventListener("scise:movimientos-updated", () => {
+    if (usuarioActual) {
+      cargarEquiposUsuario(usuarioActual.id);
+    }
+  });
+
   barcodeInput.focus();
 </script>
