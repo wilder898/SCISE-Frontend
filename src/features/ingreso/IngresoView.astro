@@ -1,0 +1,337 @@
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaEscanearCarnet from "./CajaEscanearCarnet.astro";
+import CajaSeleccionarEquipo from "./CajaSeleccionarEquipo.astro";
+import CajaAcciones from "./CajaAcciones.astro";
+import CajaInformacion from "./CajaInformacion.astro";
+---
+
+<section class="ingreso-page">
+  <CajaPanelInicial />
+
+  <section class="ingreso-cards">
+    <CajaEscanearCarnet />
+    <CajaSeleccionarEquipo />
+  </section>
+
+  <CajaAcciones />
+  <CajaInformacion />
+
+  <footer id="message" class="ingreso-message"></footer>
+</section>
+
+<script>
+  import {
+    appendMovement,
+    getActiveEquipmentIdsForUser,
+  } from "../../lib/movimientos";
+  import {
+    findOperationalUserByDocument,
+    listEquipmentsForUser,
+    type EquipmentCatalogItem,
+    type OperationalUser,
+  } from "../../lib/operacion";
+
+  let usuarioActual: OperationalUser | null = null;
+  let equiposDisponibles: EquipmentCatalogItem[] = [];
+  const equiposSeleccionados = new Set<string>();
+
+  const barcodeInput = document.getElementById("barcodeUser") as HTMLInputElement;
+  const userSuccess = document.getElementById("userSuccess") as HTMLElement;
+  const userError = document.getElementById("userError") as HTMLElement;
+  const loadingUser = document.getElementById("loadingUser") as HTMLElement;
+  const userBox = document.getElementById("userBox") as HTMLElement;
+  const nombreSpan = document.getElementById("nombre") as HTMLElement;
+  const documentoSpan = document.getElementById("documento") as HTMLElement;
+  const rolSpan = document.getElementById("rol") as HTMLElement;
+
+  const loadingEquipos = document.getElementById("loadingEquipos") as HTMLElement;
+  const textoInicial = document.getElementById("textoInicial") as HTMLElement;
+  const equiposError = document.getElementById("equiposError") as HTMLElement;
+
+  const registerUserButton = document.getElementById("registerUserButton") as HTMLButtonElement;
+
+  registerUserButton?.addEventListener("click", () => {
+    window.location.href = "/usuarios?new=true";
+  });
+  const listaEquipos = document.getElementById("listaEquipos") as HTMLElement;
+  const equipoSuccess = document.getElementById("equipoSuccess") as HTMLElement;
+  const equipoError = document.getElementById("equipoError") as HTMLElement;
+  const loadingEquipo = document.getElementById("loadingEquipo") as HTMLElement;
+  const equipoDetalles = document.getElementById("equipoDetalles") as HTMLElement;
+  const equiposSeleccionadosCantidad = document.getElementById(
+    "equiposSeleccionadosCantidad"
+  ) as HTMLElement;
+  const equiposSeleccionadosSeriales = document.getElementById(
+    "equiposSeleccionadosSeriales"
+  ) as HTMLElement;
+  const equiposSeleccionadosDescripcion = document.getElementById(
+    "equiposSeleccionadosDescripcion"
+  ) as HTMLElement;
+  const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
+  const btnRegistrar = document.getElementById("btnRegistrar") as HTMLButtonElement;
+  const messageFooter = document.getElementById("message") as HTMLElement;
+
+  function getSelectedEquipments() {
+    return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
+  }
+
+  function renderEquipmentList() {
+    if (!listaEquipos) {
+      return;
+    }
+
+    if (!equiposDisponibles.length) {
+      listaEquipos.innerHTML = "";
+      listaEquipos.classList.add("oculto");
+      equiposError.textContent =
+        "No hay equipos disponibles para ingreso. Los asociados ya se encuentran registrados dentro de la instalacion.";
+      equiposError.classList.remove("oculto");
+      return;
+    }
+
+    equiposError.classList.add("oculto");
+    listaEquipos.innerHTML = equiposDisponibles
+      .map(
+        (equipo) => `
+          <div class="equipo-item ${equiposSeleccionados.has(equipo.id) ? "is-selected" : ""}">
+            <input
+              type="checkbox"
+              name="equipo"
+              value="${equipo.id}"
+              id="equipo-${equipo.id}"
+              ${equiposSeleccionados.has(equipo.id) ? "checked" : ""}
+            >
+            <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
+              <strong>${equipo.descripcion}</strong><br>
+              <small>${equipo.serial}</small><br>
+              <small>${equipo.tipo}</small>
+            </label>
+          </div>
+        `
+      )
+      .join("");
+    listaEquipos.classList.remove("oculto");
+  }
+
+  function updateSelectedSummary() {
+    const selected = getSelectedEquipments();
+
+    if (!selected.length) {
+      equipoSuccess.classList.add("oculto");
+      equipoDetalles.classList.add("oculto");
+      loadingEquipo.classList.add("oculto");
+      equipoError.classList.add("oculto");
+      btnRegistrar.disabled = true;
+      return;
+    }
+
+    equiposSeleccionadosCantidad.textContent = `${selected.length} equipo(s) listos para ingreso`;
+    equiposSeleccionadosSeriales.textContent = selected
+      .map((equipo) => equipo.serial)
+      .join(", ");
+    equiposSeleccionadosDescripcion.textContent = selected
+      .map((equipo) => equipo.descripcion)
+      .join(" | ");
+
+    equipoSuccess.textContent =
+      selected.length === 1
+        ? "1 equipo seleccionado para ingreso."
+        : `${selected.length} equipos seleccionados para ingreso.`;
+    equipoSuccess.classList.remove("oculto");
+    equipoDetalles.classList.remove("oculto");
+    btnRegistrar.disabled = false;
+  }
+
+  async function obtenerUsuario(documento: string): Promise<void> {
+    try {
+      loadingUser.classList.remove("oculto");
+      userError.classList.add("oculto");
+      userSuccess.classList.add("oculto");
+      userBox.classList.add("oculto");
+
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const usuario = findOperationalUserByDocument(documento);
+
+      if (!usuario) {
+        throw new Error(
+          "Usuario no encontrado. Intenta con: 1234567890, 9876543210 o 5555555555."
+        );
+      }
+
+      usuarioActual = usuario;
+      nombreSpan.textContent = usuario.nombre;
+      documentoSpan.textContent = usuario.documento;
+      rolSpan.textContent = usuario.rol;
+
+      loadingUser.classList.add("oculto");
+      userSuccess.classList.remove("oculto");
+      userBox.classList.remove("oculto");
+      barcodeInput.value = "";
+
+      await cargarEquiposUsuario(usuario.id);
+    } catch (error) {
+      loadingUser.classList.add("oculto");
+      userError.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      userError.classList.remove("oculto");
+      barcodeInput.value = "";
+    }
+  }
+
+  async function cargarEquiposUsuario(usuarioId: string): Promise<void> {
+    try {
+      loadingEquipos.classList.remove("oculto");
+      textoInicial.classList.add("oculto");
+      equiposError.classList.add("oculto");
+      listaEquipos.classList.add("oculto");
+
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const activeEquipmentIds = getActiveEquipmentIdsForUser(usuarioId);
+      equiposDisponibles = listEquipmentsForUser(usuarioId).filter(
+        (equipo) => !activeEquipmentIds.has(equipo.id)
+      );
+
+      equiposSeleccionados.clear();
+      equipoDetalles.classList.add("oculto");
+      equipoSuccess.classList.add("oculto");
+      equipoError.classList.add("oculto");
+      btnRegistrar.disabled = true;
+
+      loadingEquipos.classList.add("oculto");
+      renderEquipmentList();
+      updateSelectedSummary();
+    } catch (error) {
+      loadingEquipos.classList.add("oculto");
+      equiposError.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      equiposError.classList.remove("oculto");
+    }
+  }
+
+  function toggleEquipo(equipoId: string): void {
+    if (!equipoId) {
+      return;
+    }
+
+    try {
+      loadingEquipo.classList.remove("oculto");
+      equipoError.classList.add("oculto");
+
+      if (equiposSeleccionados.has(equipoId)) {
+        equiposSeleccionados.delete(equipoId);
+      } else {
+        equiposSeleccionados.add(equipoId);
+      }
+
+      renderEquipmentList();
+
+      setTimeout(() => {
+        loadingEquipo.classList.add("oculto");
+        updateSelectedSummary();
+      }, 150);
+    } catch (error) {
+      loadingEquipo.classList.add("oculto");
+      equipoError.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      equipoError.classList.remove("oculto");
+    }
+  }
+
+  barcodeInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      const documento = barcodeInput.value.trim();
+      if (documento) {
+        obtenerUsuario(documento);
+      }
+    }
+  });
+
+  listaEquipos?.addEventListener("change", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
+      return;
+    }
+
+    toggleEquipo(target.value);
+  });
+
+  btnCancelar.addEventListener("click", () => {
+    usuarioActual = null;
+    equiposDisponibles = [];
+    equiposSeleccionados.clear();
+    barcodeInput.value = "";
+    userBox.classList.add("oculto");
+    userSuccess.classList.add("oculto");
+    userError.classList.add("oculto");
+    loadingUser.classList.add("oculto");
+    listaEquipos.classList.add("oculto");
+    textoInicial.classList.remove("oculto");
+    equiposError.classList.add("oculto");
+    equipoSuccess.classList.add("oculto");
+    equipoError.classList.add("oculto");
+    loadingEquipo.classList.add("oculto");
+    loadingEquipos.classList.add("oculto");
+    equipoDetalles.classList.add("oculto");
+    btnRegistrar.disabled = true;
+    messageFooter.textContent = "";
+    barcodeInput.focus();
+  });
+
+  btnRegistrar.addEventListener("click", async () => {
+    const selected = getSelectedEquipments();
+    const currentUser = usuarioActual;
+
+    if (!currentUser || !selected.length) {
+      messageFooter.textContent =
+        "Por favor selecciona un usuario y al menos un equipo antes de registrar.";
+      messageFooter.style.color = "#dc2626";
+      return;
+    }
+
+    try {
+      messageFooter.textContent = "Registrando ingreso...";
+      messageFooter.style.color = "#64748b";
+      btnRegistrar.disabled = true;
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const nowTimestamp = new Date().toISOString();
+      selected.forEach((equipo) => {
+        appendMovement({
+          tipo: "Ingreso",
+          usuarioId: currentUser.id,
+          usuarioNombre: currentUser.nombre,
+          usuarioDocumento: currentUser.documento,
+          usuarioRol: currentUser.rol,
+          equipoId: equipo.id,
+          equipoSerial: equipo.serial,
+          equipoTipo: equipo.tipo,
+          equipoDescripcion: equipo.descripcion,
+          timestamp: nowTimestamp,
+        });
+      });
+
+      const horaRegistro = new Date(nowTimestamp).toLocaleTimeString("es-CO");
+      messageFooter.textContent =
+        selected.length === 1
+          ? `Ingreso registrado correctamente - ${horaRegistro}`
+          : `${selected.length} ingresos registrados correctamente - ${horaRegistro}`;
+      messageFooter.style.color = "#16a34a";
+
+      setTimeout(() => {
+        btnCancelar.click();
+      }, 2000);
+    } catch (error) {
+      messageFooter.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      messageFooter.style.color = "#dc2626";
+      btnRegistrar.disabled = false;
+    }
+  });
+
+  barcodeInput.focus();
+</script>

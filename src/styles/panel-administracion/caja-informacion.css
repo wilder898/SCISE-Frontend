@@ -1,0 +1,31 @@
+.reportes-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.reportes-info-card {
+  border-radius: 1.35rem;
+  padding: 1.25rem 1.35rem;
+}
+
+.reportes-info-card strong {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #166534;
+}
+
+.reportes-info-card p {
+  margin: 0;
+  color: #475569;
+}
+
+.reportes-info-card--accent {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+}
+
+@media (max-width: 1000px) {
+  .reportes-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,25 @@
+﻿.config-denied-card {
+  border-radius: 1.5rem;
+  padding: 1.6rem;
+  margin-top: 1.25rem;
+}
+
+.config-denied-card__eyebrow {
+  margin: 0 0 0.45rem;
+  color: #b91c1c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.config-denied-card h2 {
+  margin: 0 0 0.8rem;
+  color: #0f172a;
+}
+
+.config-denied-card p {
+  margin: 0 0 1.2rem;
+  color: #475569;
+  max-width: 44rem;
+}

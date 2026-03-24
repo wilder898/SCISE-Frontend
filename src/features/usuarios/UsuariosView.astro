@@ -1,0 +1,663 @@
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaFiltros from "./CajaFiltros.astro";
+import CajaTablaUsuarios from "./CajaTablaUsuarios.astro";
+import CajaInformacion from "./CajaInformacion.astro";
+import UserEditModal from "./UserEditModal.astro";
+import NewUserModal from "./NewUserModal.astro";
+
+const initialUsers = [
+  {
+    id: 1,
+    nombre: "Juan",
+    apellido: "Perez",
+    cedula: "123456789",
+    carnet: "SENA-001",
+    email: "juan.perez@sena.edu.co",
+    telefono: "3001234567",
+    rol: "Aprendiz",
+    estado: "Activo",
+    fechaRegistro: "2026-01-12",
+    equipos: [],
+  },
+];
+---
+
+<section class="users-page">
+  <CajaPanelInicial />
+  <CajaFiltros />
+  <CajaTablaUsuarios />
+  <CajaInformacion />
+
+  <UserEditModal />
+  <NewUserModal />
+</section>
+
+<script define:vars={{ initialUsers }}>
+  const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
+  const sessionRole = sessionData.role === "admin" ? "admin" : "user";
+
+  const state = {
+    users: initialUsers.map((user) => ({
+      ...user,
+      equipos: [...user.equipos],
+    })),
+    selectedUserId: null,
+  };
+
+  const tableBody = document.getElementById("usersTableBody");
+  const emptyState = document.getElementById("usersEmptyState");
+  const sessionRoleBadge = document.getElementById("sessionRoleBadge");
+  const searchInput = document.getElementById("searchInput");
+  const roleFilter = document.getElementById("roleFilter");
+  const statusFilter = document.getElementById("statusFilter");
+  const dateFilter = document.getElementById("dateFilter");
+  const clearFiltersButton = document.getElementById("clearFiltersButton");
+  const exportCsvButton = document.getElementById("exportCsvButton");
+  const exportPdfButton = document.getElementById("exportPdfButton");
+
+  const modalBackdrop = document.getElementById("userModalBackdrop");
+  const closeUserModal = document.getElementById("closeUserModal");
+  const cancelUserModal = document.getElementById("cancelUserModal");
+  const saveUserButton = document.getElementById("saveUserButton");
+  const equipmentForm = document.getElementById("equipmentForm");
+  const equipmentList = document.getElementById("equipmentList");
+  const permissionMessage = document.getElementById("userPermissionMessage");
+
+  const openNewUserModal = document.getElementById("openNewUserModal");
+  const newUserModalBackdrop = document.getElementById("newUserModalBackdrop");
+  const closeNewUserModal = document.getElementById("closeNewUserModal");
+  const cancelNewUserModal = document.getElementById("cancelNewUserModal");
+  const createUserButton = document.getElementById("createUserButton");
+  const scanCarnetButton = document.getElementById("scanCarnetButton");
+  const scanStatusMessage = document.getElementById("scanStatusMessage");
+
+  const modalFields = {
+    nombre: document.getElementById("modalNombre"),
+    apellido: document.getElementById("modalApellido"),
+    email: document.getElementById("modalEmail"),
+    telefono: document.getElementById("modalTelefono"),
+    rol: document.getElementById("modalRol"),
+    estado: document.getElementById("modalEstado"),
+    cedula: document.getElementById("modalCedula"),
+    carnet: document.getElementById("modalCarnet"),
+    fechaRegistro: document.getElementById("modalFechaRegistro"),
+    equipmentSerial: document.getElementById("equipmentSerial"),
+    equipmentDescripcion: document.getElementById("equipmentDescripcion"),
+    equipmentTipo: document.getElementById("equipmentTipo"),
+  };
+
+  const newUserFields = {
+    carnet: document.getElementById("newUserCarnet"),
+    nombre: document.getElementById("newUserNombre"),
+    apellido: document.getElementById("newUserApellido"),
+    cedula: document.getElementById("newUserCedula"),
+    email: document.getElementById("newUserEmail"),
+    telefono: document.getElementById("newUserTelefono"),
+    rol: document.getElementById("newUserRol"),
+  };
+
+  const newUserErrors = {
+    nombre: document.getElementById("newUserNombreError"),
+    apellido: document.getElementById("newUserApellidoError"),
+    cedula: document.getElementById("newUserCedulaError"),
+    email: document.getElementById("newUserEmailError"),
+    telefono: document.getElementById("newUserTelefonoError"),
+  };
+
+  const editableKeys = ["nombre", "apellido", "email", "telefono", "rol", "estado"];
+
+  function getFullName(user) {
+    return `${user.nombre} ${user.apellido}`.trim();
+  }
+
+  function formatDate(value) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+
+  function getTodayDate() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function getFilteredUsers() {
+    const search = String(searchInput?.value || "").trim().toLowerCase();
+    const role = String(roleFilter?.value || "");
+    const status = String(statusFilter?.value || "");
+    const date = String(dateFilter?.value || "");
+
+    return state.users.filter((user) => {
+      const matchesSearch =
+        !search ||
+        [user.nombre, user.apellido, getFullName(user), user.cedula, user.carnet, user.email].some((value) =>
+          String(value).toLowerCase().includes(search)
+        );
+
+      const matchesRole = !role || user.rol === role;
+      const matchesStatus = !status || user.estado === status;
+      const matchesDate = !date || user.fechaRegistro === date;
+
+      return matchesSearch && matchesRole && matchesStatus && matchesDate;
+    });
+  }
+
+  function renderTable() {
+    const filteredUsers = getFilteredUsers();
+
+    if (!tableBody || !emptyState) {
+      return;
+    }
+
+    if (!filteredUsers.length) {
+      tableBody.innerHTML = "";
+      emptyState.hidden = false;
+      return;
+    }
+
+    emptyState.hidden = true;
+    tableBody.innerHTML = filteredUsers
+      .map(
+        (user) => `
+          <tr>
+            <td>
+              <div class="users-table__identity">
+                <strong>${getFullName(user)}</strong>
+                <span>${user.telefono}</span>
+              </div>
+            </td>
+            <td>${user.cedula}</td>
+            <td>${user.carnet}</td>
+            <td><span class="table-pill">${user.rol}</span></td>
+            <td>${formatDate(user.fechaRegistro)}</td>
+            <td>${user.email}</td>
+            <td>
+              <div class="users-table__actions">
+                <button
+                  class="status-toggle ${user.estado === "Activo" ? "is-active" : "is-inactive"}"
+                  type="button"
+                  data-action="toggle-status"
+                  data-user-id="${user.id}"
+                  aria-label="Cambiar estado"
+                >
+                  <span class="status-toggle__track">
+                    <span class="status-toggle__thumb"></span>
+                  </span>
+                </button>
+                <button class="table-action" type="button" data-action="edit" data-user-id="${user.id}">
+                  Editar
+                </button>
+                <button class="table-action table-action--icon" type="button" data-action="more" data-user-id="${user.id}" aria-label="Mas opciones">
+                  ...
+                </button>
+              </div>
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+
+  function getSelectedUser() {
+    return state.users.find((user) => user.id === state.selectedUserId) || null;
+  }
+
+  function setModalEditable(isEditable) {
+    editableKeys.forEach((key) => {
+      if (modalFields[key]) {
+        modalFields[key].disabled = !isEditable;
+      }
+    });
+
+    if (equipmentForm instanceof HTMLFormElement) {
+      Array.from(equipmentForm.elements).forEach((element) => {
+        element.disabled = !isEditable;
+      });
+    }
+
+    if (saveUserButton) {
+      saveUserButton.disabled = !isEditable;
+    }
+
+    if (permissionMessage) {
+      permissionMessage.textContent = isEditable
+        ? "Modo administrador: puedes editar datos y gestionar equipos."
+        : "Modo lectura: esta sesion solo puede consultar la informacion.";
+      permissionMessage.className = isEditable
+        ? "user-modal__permissions is-admin"
+        : "user-modal__permissions is-readonly";
+    }
+  }
+
+  function renderEquipmentList() {
+    const selectedUser = getSelectedUser();
+
+    if (!equipmentList || !selectedUser) {
+      return;
+    }
+
+    if (!selectedUser.equipos.length) {
+      equipmentList.innerHTML = `<p class="equipment-empty">No hay equipos asociados.</p>`;
+      return;
+    }
+
+    equipmentList.innerHTML = selectedUser.equipos
+      .map(
+        (equipo, index) => `
+          <article class="equipment-item">
+            <div>
+              <strong>${equipo.serial}</strong>
+              <p>${equipo.descripcion}</p>
+              <span>${equipo.tipo}</span>
+            </div>
+            ${
+              sessionRole === "admin"
+                ? `<button class="table-action" type="button" data-action="remove-equipment" data-equipment-index="${index}">
+                    Eliminar
+                  </button>`
+                : ""
+            }
+          </article>
+        `
+      )
+      .join("");
+  }
+
+  function openModal(userId) {
+    state.selectedUserId = userId;
+    const user = getSelectedUser();
+
+    if (!user || !modalBackdrop) {
+      return;
+    }
+
+    modalFields.nombre.value = user.nombre;
+    modalFields.apellido.value = user.apellido;
+    modalFields.email.value = user.email;
+    modalFields.telefono.value = user.telefono;
+    modalFields.rol.value = user.rol;
+    modalFields.estado.value = user.estado;
+    modalFields.cedula.value = user.cedula;
+    modalFields.carnet.value = user.carnet;
+    modalFields.fechaRegistro.value = formatDate(user.fechaRegistro);
+    modalFields.equipmentSerial.value = "";
+    modalFields.equipmentDescripcion.value = "";
+    modalFields.equipmentTipo.value = "";
+
+    setModalEditable(sessionRole === "admin");
+    renderEquipmentList();
+
+    modalBackdrop.hidden = false;
+    document.body.classList.add("user-modal-open");
+  }
+
+  function closeModal() {
+    if (!modalBackdrop) {
+      return;
+    }
+
+    modalBackdrop.hidden = true;
+    state.selectedUserId = null;
+    document.body.classList.remove("user-modal-open");
+  }
+
+  function saveModalChanges() {
+    if (sessionRole !== "admin") {
+      return;
+    }
+
+    const user = getSelectedUser();
+
+    if (!user) {
+      return;
+    }
+
+    user.nombre = modalFields.nombre.value.trim();
+    user.apellido = modalFields.apellido.value.trim();
+    user.email = modalFields.email.value.trim();
+    user.telefono = modalFields.telefono.value.trim();
+    user.rol = modalFields.rol.value;
+    user.estado = modalFields.estado.value;
+
+    renderTable();
+    closeModal();
+  }
+
+  function addEquipment() {
+    if (sessionRole !== "admin") {
+      return;
+    }
+
+    const user = getSelectedUser();
+    const serial = modalFields.equipmentSerial.value.trim();
+    const descripcion = modalFields.equipmentDescripcion.value.trim();
+    const tipo = modalFields.equipmentTipo.value.trim();
+
+    if (!user || !serial || !descripcion || !tipo) {
+      return;
+    }
+
+    user.equipos.push({ serial, descripcion, tipo });
+
+    modalFields.equipmentSerial.value = "";
+    modalFields.equipmentDescripcion.value = "";
+    modalFields.equipmentTipo.value = "";
+
+    renderEquipmentList();
+  }
+
+  function removeEquipment(index) {
+    if (sessionRole !== "admin") {
+      return;
+    }
+
+    const user = getSelectedUser();
+
+    if (!user) {
+      return;
+    }
+
+    user.equipos.splice(index, 1);
+    renderEquipmentList();
+  }
+
+  function toggleStatus(userId) {
+    const user = state.users.find((item) => item.id === userId);
+
+    if (!user) {
+      return;
+    }
+
+    user.estado = user.estado === "Activo" ? "Inactivo" : "Activo";
+    renderTable();
+  }
+
+  function exportCsv() {
+    const filteredUsers = getFilteredUsers();
+    const header = ["Nombre", "Apellido", "Cedula", "Carnet", "Email", "Telefono", "Rol", "Estado", "FechaRegistro"];
+    const rows = filteredUsers.map((user) => [
+      user.nombre,
+      user.apellido,
+      user.cedula,
+      user.carnet,
+      user.email,
+      user.telefono,
+      user.rol,
+      user.estado,
+      user.fechaRegistro,
+    ]);
+
+    const csvContent = [header, ...rows]
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "usuarios-filtrados.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function resetNewUserForm() {
+    newUserFields.carnet.value = "";
+    newUserFields.nombre.value = "";
+    newUserFields.apellido.value = "";
+    newUserFields.cedula.value = "";
+    newUserFields.email.value = "";
+    newUserFields.telefono.value = "";
+    newUserFields.rol.value = "Aprendiz";
+
+    Object.values(newUserErrors).forEach((node) => {
+      if (node) {
+        node.textContent = "";
+      }
+    });
+
+    if (scanStatusMessage) {
+      scanStatusMessage.textContent = "Listo para escanear el carnet.";
+      scanStatusMessage.className = "new-user-scan-card__status";
+    }
+  }
+
+  function openCreateModal() {
+    if (!newUserModalBackdrop) {
+      return;
+    }
+
+    resetNewUserForm();
+    newUserModalBackdrop.hidden = false;
+    document.body.classList.add("user-modal-open");
+  }
+
+  function closeCreateModal() {
+    if (!newUserModalBackdrop) {
+      return;
+    }
+
+    newUserModalBackdrop.hidden = true;
+    document.body.classList.remove("user-modal-open");
+  }
+
+  function validateEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  function setFieldError(key, message) {
+    const node = newUserErrors[key];
+
+    if (node) {
+      node.textContent = message;
+    }
+  }
+
+  function validateNewUserForm() {
+    let isValid = true;
+    const values = {
+      carnet: newUserFields.carnet.value.trim(),
+      nombre: newUserFields.nombre.value.trim(),
+      apellido: newUserFields.apellido.value.trim(),
+      cedula: newUserFields.cedula.value.trim(),
+      email: newUserFields.email.value.trim(),
+      telefono: newUserFields.telefono.value.trim(),
+    };
+
+    setFieldError("nombre", values.nombre ? "" : "El nombre es obligatorio.");
+    setFieldError("apellido", values.apellido ? "" : "El apellido es obligatorio.");
+    setFieldError("cedula", values.cedula ? "" : "La cedula es obligatoria.");
+    setFieldError("telefono", values.telefono ? "" : "El telefono es obligatorio.");
+
+    if (!values.email) {
+      setFieldError("email", "El email es obligatorio.");
+      isValid = false;
+    } else if (!validateEmail(values.email)) {
+      setFieldError("email", "Ingresa un email valido.");
+      isValid = false;
+    } else {
+      setFieldError("email", "");
+    }
+
+    if (!values.nombre) isValid = false;
+    if (!values.apellido) isValid = false;
+    if (!values.cedula) isValid = false;
+    if (!values.telefono) isValid = false;
+
+    if (!values.carnet) {
+      if (scanStatusMessage) {
+        scanStatusMessage.textContent = "Debes escanear o ingresar un carnet antes de crear.";
+        scanStatusMessage.className = "new-user-scan-card__status is-error";
+      }
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  function createUser() {
+    if (!validateNewUserForm()) {
+      return;
+    }
+
+    state.users.unshift({
+      id: Date.now(),
+      nombre: newUserFields.nombre.value.trim(),
+      apellido: newUserFields.apellido.value.trim(),
+      cedula: newUserFields.cedula.value.trim(),
+      carnet: newUserFields.carnet.value.trim(),
+      email: newUserFields.email.value.trim(),
+      telefono: newUserFields.telefono.value.trim(),
+      rol: newUserFields.rol.value,
+      estado: "Activo",
+      fechaRegistro: getTodayDate(),
+      equipos: [],
+    });
+
+    renderTable();
+    closeCreateModal();
+  }
+
+  function simulateCarnetScan() {
+    if (!scanStatusMessage || !newUserFields.carnet) {
+      return;
+    }
+
+    scanStatusMessage.textContent = "Escaneando carnet...";
+    scanStatusMessage.className = "new-user-scan-card__status is-scanning";
+
+    window.setTimeout(() => {
+      newUserFields.carnet.value = `SENA-${Math.floor(23050 + Math.random() * 200)}`;
+      scanStatusMessage.textContent = "Carnet escaneado exitosamente.";
+      scanStatusMessage.className = "new-user-scan-card__status is-success";
+    }, 900);
+  }
+
+  if (sessionRoleBadge) {
+    const badgeValue = sessionRoleBadge.querySelector("strong");
+
+    if (badgeValue) {
+      badgeValue.textContent =
+        sessionRole === "admin" ? "Administrador" : "Solo lectura";
+    }
+  }
+
+  searchInput?.addEventListener("input", renderTable);
+  roleFilter?.addEventListener("change", renderTable);
+  statusFilter?.addEventListener("change", renderTable);
+  dateFilter?.addEventListener("change", renderTable);
+
+  clearFiltersButton?.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    if (roleFilter) roleFilter.value = "";
+    if (statusFilter) statusFilter.value = "";
+    if (dateFilter) dateFilter.value = "";
+    renderTable();
+  });
+
+  exportCsvButton?.addEventListener("click", exportCsv);
+  exportPdfButton?.addEventListener("click", () => {
+    alert("La exportacion PDF queda lista para implementar.");
+  });
+
+  tableBody?.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const userId = Number(target.dataset.userId || 0);
+    const action = target.dataset.action;
+
+    if (action === "edit") {
+      openModal(userId);
+    }
+
+    if (action === "toggle-status") {
+      toggleStatus(userId);
+    }
+
+    if (action === "more") {
+      alert("Mas opciones listas para la siguiente iteracion.");
+    }
+  });
+
+  equipmentForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    addEquipment();
+  });
+
+  equipmentList?.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const index = Number(target.dataset.equipmentIndex || -1);
+
+    if (target.dataset.action === "remove-equipment" && index >= 0) {
+      removeEquipment(index);
+    }
+  });
+
+  closeUserModal?.addEventListener("click", closeModal);
+  cancelUserModal?.addEventListener("click", closeModal);
+  saveUserButton?.addEventListener("click", saveModalChanges);
+
+  modalBackdrop?.addEventListener("click", (event) => {
+    if (event.target === modalBackdrop) {
+      closeModal();
+    }
+  });
+
+  openNewUserModal?.addEventListener("click", openCreateModal);
+  closeNewUserModal?.addEventListener("click", closeCreateModal);
+  cancelNewUserModal?.addEventListener("click", closeCreateModal);
+  createUserButton?.addEventListener("click", createUser);
+  scanCarnetButton?.addEventListener("click", simulateCarnetScan);
+
+  Object.entries(newUserFields).forEach(([key, node]) => {
+    if (!(node instanceof HTMLInputElement) && !(node instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    node.addEventListener("input", () => {
+      if (key in newUserErrors) {
+        validateNewUserForm();
+      }
+
+      if (key === "carnet" && scanStatusMessage) {
+        scanStatusMessage.textContent = node.value.trim()
+          ? "Carnet escaneado exitosamente."
+          : "Listo para escanear el carnet.";
+        scanStatusMessage.className = node.value.trim()
+          ? "new-user-scan-card__status is-success"
+          : "new-user-scan-card__status";
+      }
+    });
+  });
+
+  newUserModalBackdrop?.addEventListener("click", (event) => {
+    if (event.target === newUserModalBackdrop) {
+      closeCreateModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (modalBackdrop && !modalBackdrop.hidden) {
+        closeModal();
+      }
+
+      if (newUserModalBackdrop && !newUserModalBackdrop.hidden) {
+        closeCreateModal();
+      }
+    }
+  });
+
+  renderTable();
+
+  // Check if navigated from ingreso to create new user
+  if (window.location.search.includes('new=true')) {
+    openCreateModal();
+  }
+</script>

@@ -1,0 +1,11 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "SCISE" } = Astro.props;
+---
+
+<header class="app-header">
+  <h1>{title}</h1>
+</header>

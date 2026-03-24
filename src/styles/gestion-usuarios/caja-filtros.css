@@ -1,0 +1,71 @@
+.users-filters-card {
+  border-radius: 1.5rem;
+  padding: 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.users-stats {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+
+.users-stats--top {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.users-stat-pill {
+  min-width: 11rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  background: #effbf2;
+  border: 1px solid #c7edd1;
+}
+
+.users-stat-pill span {
+  display: block;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.users-stat-pill strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.15rem;
+  color: #0f172a;
+}
+
+.new-user-launch {
+  background: linear-gradient(135deg, #17863a 0%, #28a44c 100%);
+  color: #ffffff;
+  box-shadow: 0 14px 24px rgba(23, 134, 58, 0.24);
+}
+
+.users-filters {
+  display: grid;
+  grid-template-columns: minmax(15rem, 2fr) repeat(3, minmax(10rem, 1fr)) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+@media (max-width: 1200px) {
+  .users-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .users-stats--top {
+    align-items: stretch;
+  }
+
+  .new-user-launch {
+    flex: 1;
+  }
+
+  .users-filters {
+    grid-template-columns: 1fr;
+  }
+}

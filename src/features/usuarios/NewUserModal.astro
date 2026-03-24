@@ -1,0 +1,105 @@
+<div class="user-modal-backdrop" id="newUserModalBackdrop" hidden>
+  <section
+    class="user-modal new-user-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="newUserModalTitle"
+  >
+    <header class="user-modal__header">
+      <div>
+        <p class="user-modal__eyebrow">Registro de usuario</p>
+        <h2 id="newUserModalTitle">Nuevo Usuario</h2>
+      </div>
+      <button class="user-modal__close" id="closeNewUserModal" type="button" aria-label="Cerrar modal">
+        x
+      </button>
+    </header>
+
+    <section class="new-user-scan-card">
+      <div class="new-user-scan-card__header">
+        <div class="new-user-scan-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="2"></path>
+            <path d="M4 21a8 8 0 0 1 16 0M5 7V4h3M19 7V4h-3M5 17v3h3M19 17v3h-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+        </div>
+        <div>
+          <h3>Escaneo de carnet</h3>
+          <p>Escanea el carnet para registrar al usuario.</p>
+        </div>
+      </div>
+
+      <div class="new-user-scan-card__actions">
+        <label class="user-field">
+          <span>Carnet</span>
+          <input id="newUserCarnet" type="text" placeholder="Ej. SENA-23055" />
+        </label>
+        <button class="user-button user-button--primary" id="scanCarnetButton" type="button">
+          Escanear
+        </button>
+      </div>
+
+      <div class="new-user-scan-card__status" id="scanStatusMessage">
+        Listo para escanear el carnet.
+      </div>
+
+      <ul class="new-user-tips">
+        <li>Puedes ingresar los datos manualmente si el lector no responde.</li>
+      </ul>
+    </section>
+
+    <section class="user-modal__panel">
+      <h3>Informacion personal</h3>
+
+      <div class="new-user-form-grid">
+        <label class="user-field">
+          <span>Nombre</span>
+          <input id="newUserNombre" type="text" />
+          <small class="field-error" id="newUserNombreError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Apellido</span>
+          <input id="newUserApellido" type="text" />
+          <small class="field-error" id="newUserApellidoError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Cedula</span>
+          <input id="newUserCedula" type="text" />
+          <small class="field-error" id="newUserCedulaError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Correo electronico</span>
+          <input id="newUserEmail" type="email" />
+          <small class="field-error" id="newUserEmailError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Telefono</span>
+          <input id="newUserTelefono" type="text" />
+          <small class="field-error" id="newUserTelefonoError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Rol</span>
+          <select id="newUserRol">
+            <option value="Aprendiz">Aprendiz</option>
+            <option value="Instructor">Instructor</option>
+            <option value="Coordinador">Coordinador</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <footer class="user-modal__footer">
+      <button class="user-button new-user-button--cancel" id="cancelNewUserModal" type="button">
+        Cancelar
+      </button>
+      <button class="user-button new-user-button--create" id="createUserButton" type="button">
+        Crear Usuario
+      </button>
+    </footer>
+  </section>
+</div>

@@ -1,0 +1,36 @@
+﻿<section class="config-card">
+  <div class="config-users-card__top">
+    <div>
+      <h2>Usuarios con acceso al sistema</h2>
+      <p>Administra las cuentas que operan SCISE. Este modulo controla accesos internos, no historial operativo.</p>
+    </div>
+    <button class="config-button config-button--primary" id="openCreateUserModal" type="button">
+      Nuevo Usuario
+    </button>
+  </div>
+
+  <div class="config-table-wrap">
+    <table class="config-table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Perfil</th>
+          <th>Departamento</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="configUsersTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="config-empty-state" id="configUsersEmpty" hidden>
+    No hay usuarios registrados en este momento.
+  </div>
+
+  <div class="config-users-card__footer">
+    <span>Total de usuarios: <strong id="configTotalUsers">0</strong></span>
+    <span>Activos: <strong id="configActiveUsers">0</strong></span>
+  </div>
+</section>

@@ -1,0 +1,33 @@
+.ingreso-note-card {
+  border-radius: 1.35rem;
+  padding: 1.25rem 1.35rem;
+  background: linear-gradient(180deg, #eff8ff 0%, #f8fbff 100%);
+}
+
+.ingreso-note-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  color: #1d4ed8;
+}
+
+.ingreso-note-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.16);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ingreso-note-card__list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #1e3a8a;
+  display: grid;
+  gap: 0.55rem;
+}

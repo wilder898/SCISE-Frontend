@@ -1,0 +1,69 @@
+.config-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.config-summary-card {
+  border-radius: 1.5rem;
+  padding: 1.35rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.config-summary-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  bottom: 1rem;
+  width: 0.35rem;
+  border-radius: 999px;
+}
+
+.config-summary-card p {
+  margin: 0 0 0.65rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.config-summary-card strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.config-summary-card span {
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.config-summary-card--green::before {
+  background: #17863a;
+}
+
+.config-summary-card--blue::before {
+  background: #2563eb;
+}
+
+.config-summary-card--orange::before {
+  background: #f97316;
+}
+
+.config-summary-card--violet::before {
+  background: #9333ea;
+}
+
+@media (max-width: 1300px) {
+  .config-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .config-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

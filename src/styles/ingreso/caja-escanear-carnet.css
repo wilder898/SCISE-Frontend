@@ -1,0 +1,68 @@
+.scan-area {
+  margin-bottom: 0.5rem;
+}
+
+.register-user-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.register-user-button:hover {
+  background: #2563eb;
+}
+
+.register-user-button svg {
+  stroke: currentColor;
+}
+
+.scan-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px dashed #3b82f6;
+  border-radius: 1rem;
+  text-align: center;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.scan-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.user-box {
+  background: #e2e8f0;
+  padding: 1rem;
+  border-radius: 1rem;
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.user-box p {
+  margin: 0;
+  color: #334155;
+}
+
+.user-box strong {
+  color: #475569;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.user-box span {
+  display: inline-block;
+  margin-top: 0.2rem;
+  color: #0f172a;
+  font-weight: 600;
+}

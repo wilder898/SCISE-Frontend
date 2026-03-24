@@ -1,0 +1,74 @@
+.recent-movements {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recent-movement {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: #ffffff;
+}
+
+.recent-movement.is-ingreso {
+  border-left: 4px solid #16a34a;
+}
+
+.recent-movement.is-salida {
+  border-left: 4px solid #dc2626;
+}
+
+.recent-movement__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.recent-movement__type {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.recent-movement.is-ingreso .recent-movement__type {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.recent-movement.is-salida .recent-movement__type {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.recent-movement__time {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.recent-movement__details strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.875rem;
+}
+
+.recent-movement__details small {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.recent-movement__user small {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.no-recent {
+  text-align: center;
+  color: #64748b;
+  font-style: italic;
+  margin: 1rem 0;
+}

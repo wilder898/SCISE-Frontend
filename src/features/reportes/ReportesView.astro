@@ -1,0 +1,232 @@
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaEstadisticas from "./CajaEstadisticas.astro";
+import CajaFiltros from "./CajaFiltros.astro";
+import CajaHistorialMovimientos from "./CajaHistorialMovimientos.astro";
+import CajaInformacion from "./CajaInformacion.astro";
+---
+
+<section class="reportes-page">
+  <CajaPanelInicial />
+  <CajaEstadisticas />
+  <CajaFiltros />
+  <CajaHistorialMovimientos />
+  <CajaInformacion />
+</section>
+
+<script>
+  import {
+    listReportMovements,
+    getMovementStats,
+    type MovementReportRow,
+  } from "../../lib/movimientos";
+
+  const state: { movements: MovementReportRow[]; currentPage: number; pageSize: number } = {
+    movements: [],
+    currentPage: 1,
+    pageSize: 5,
+  };
+
+  const tableBody = document.getElementById("reportesTableBody") as HTMLElement | null;
+  const emptyState = document.getElementById("reportesEmptyState") as HTMLElement | null;
+  const typeFilter = document.getElementById("movementTypeFilter") as HTMLSelectElement | null;
+  const dateFilter = document.getElementById("movementDateFilter") as HTMLInputElement | null;
+  const csvButton = document.getElementById("reportesCsvButton") as HTMLButtonElement | null;
+  const pdfButton = document.getElementById("reportesPdfButton") as HTMLButtonElement | null;
+  const allButton = document.getElementById("reportesAllButton") as HTMLButtonElement | null;
+  const prevButton = document.getElementById("reportesPrevButton") as HTMLButtonElement | null;
+  const nextButton = document.getElementById("reportesNextButton") as HTMLButtonElement | null;
+  const pageInfo = document.getElementById("reportesPageInfo") as HTMLElement | null;
+
+  const insideEquiposValue = document.getElementById("insideEquiposValue") as HTMLElement | null;
+  const insideEquiposMeta = document.getElementById("insideEquiposMeta") as HTMLElement | null;
+  const outsideEquiposValue = document.getElementById("outsideEquiposValue") as HTMLElement | null;
+  const outsideEquiposMeta = document.getElementById("outsideEquiposMeta") as HTMLElement | null;
+  const todayMovementsValue = document.getElementById("todayMovementsValue") as HTMLElement | null;
+  const todayMovementsMeta = document.getElementById("todayMovementsMeta") as HTMLElement | null;
+
+  function formatDateTime(value: string): string {
+    const date = new Date(value);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  function updateStats(): void {
+    const stats = getMovementStats(state.movements);
+
+    if (insideEquiposValue) insideEquiposValue.textContent = String(stats.enInstalacion);
+    if (insideEquiposMeta) {
+      insideEquiposMeta.textContent = `${stats.insidePct}% del inventario actual`;
+    }
+    if (outsideEquiposValue) outsideEquiposValue.textContent = String(stats.fueraInstalacion);
+    if (outsideEquiposMeta) {
+      outsideEquiposMeta.textContent = `${stats.outsidePct}% del inventario actual`;
+    }
+    if (todayMovementsValue) {
+      todayMovementsValue.textContent = String(stats.movimientosHoy);
+    }
+    if (todayMovementsMeta) {
+      todayMovementsMeta.textContent = `${stats.movimientosHoy} movimientos registrados hoy`;
+    }
+  }
+
+  function reloadMovements(): void {
+    state.movements = listReportMovements();
+    state.currentPage = 1;
+    updateStats();
+    renderTable();
+  }
+
+  function getFilteredMovements(): MovementReportRow[] {
+    const selectedType = String(typeFilter?.value || "");
+    const selectedDate = String(dateFilter?.value || "");
+
+    return state.movements.filter((movement: MovementReportRow) => {
+      const matchesType = !selectedType || movement.tipo === selectedType;
+      const matchesDate = !selectedDate || movement.fechaHora.slice(0, 10) === selectedDate;
+      return matchesType && matchesDate;
+    });
+  }
+
+  function renderTable(): void {
+    if (!tableBody || !emptyState || !pageInfo || !prevButton || !nextButton) {
+      return;
+    }
+
+    const filteredMovements = getFilteredMovements();
+    const totalPages = Math.max(1, Math.ceil(filteredMovements.length / state.pageSize));
+
+    if (state.currentPage > totalPages) {
+      state.currentPage = totalPages;
+    }
+
+    const start = (state.currentPage - 1) * state.pageSize;
+    const pageRows = filteredMovements.slice(start, start + state.pageSize);
+
+    pageInfo.textContent = `Pagina ${state.currentPage} de ${totalPages}`;
+    prevButton.disabled = state.currentPage === 1;
+    nextButton.disabled = state.currentPage === totalPages;
+
+    if (!pageRows.length) {
+      tableBody.innerHTML = "";
+      emptyState.hidden = false;
+      return;
+    }
+
+    emptyState.hidden = true;
+    tableBody.innerHTML = pageRows
+      .map(
+        (movement: MovementReportRow) => `
+          <tr>
+            <td>
+              <span class="movement-pill ${movement.tipo === "Ingreso" ? "is-ingreso" : "is-salida"}">
+                ${movement.tipo}
+              </span>
+            </td>
+            <td>
+              <div class="movement-user">
+                <strong>${movement.nombre}</strong>
+                <span>${movement.documento}</span>
+              </div>
+            </td>
+            <td>${movement.equipo}</td>
+            <td>${movement.serial}</td>
+            <td>${formatDateTime(movement.fechaHora)}</td>
+            <td><span class="movement-status">${movement.estado}</span></td>
+            <td>
+              <button class="movement-more" type="button" data-movement-id="${movement.id}" aria-label="Mas opciones">
+                ...
+              </button>
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+
+  function exportRows(filename: string, rows: MovementReportRow[]): void {
+    const header = ["Tipo", "Usuario", "Documento", "Equipo", "Serial", "FechaHora", "Estado"];
+    const csvRows = rows.map((movement: MovementReportRow) => [
+      movement.tipo,
+      movement.nombre,
+      movement.documento,
+      movement.equipo,
+      movement.serial,
+      movement.fechaHora,
+      movement.estado,
+    ]);
+
+    const csvContent = [header, ...csvRows]
+      .map((row: string[]) =>
+        row.map((value: string) => `"${String(value).replaceAll('"', '""')}"`).join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  typeFilter?.addEventListener("change", () => {
+    state.currentPage = 1;
+    renderTable();
+  });
+
+  dateFilter?.addEventListener("change", () => {
+    state.currentPage = 1;
+    renderTable();
+  });
+
+  csvButton?.addEventListener("click", () => {
+    exportRows("movimientos-filtrados.csv", getFilteredMovements());
+  });
+
+  allButton?.addEventListener("click", () => {
+    exportRows("movimientos-completos.csv", state.movements);
+  });
+
+  pdfButton?.addEventListener("click", () => {
+    alert("La descarga en PDF queda lista para implementar.");
+  });
+
+  prevButton?.addEventListener("click", () => {
+    if (state.currentPage > 1) {
+      state.currentPage -= 1;
+      renderTable();
+    }
+  });
+
+  nextButton?.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(getFilteredMovements().length / state.pageSize));
+
+    if (state.currentPage < totalPages) {
+      state.currentPage += 1;
+      renderTable();
+    }
+  });
+
+  tableBody?.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    if (target.classList.contains("movement-more")) {
+      alert("Menu de acciones listo para la siguiente iteracion.");
+    }
+  });
+
+  window.addEventListener("scise:movimientos-updated", () => {
+    reloadMovements();
+  });
+
+  reloadMovements();
+</script>

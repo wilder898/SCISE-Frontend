@@ -1,0 +1,41 @@
+.dashboard-card {
+  border-radius: 1.6rem;
+  padding: 2.2rem 2.4rem;
+}
+
+.dashboard-card h2 {
+  margin: 0 0 1.4rem;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: #0f2347;
+}
+
+.dashboard-card p {
+  margin: 0 0 1.4rem;
+  font-size: 1.05rem;
+  color: #475569;
+}
+
+.dashboard-card ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  color: #475569;
+  font-size: 1rem;
+}
+
+.dashboard-card li {
+  padding-left: 0.3rem;
+}
+
+.dashboard-card__footer {
+  margin-top: 2.2rem;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .dashboard-card h2 {
+    font-size: 1.65rem;
+  }
+}

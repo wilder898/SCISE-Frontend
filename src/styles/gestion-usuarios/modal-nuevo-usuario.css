@@ -1,0 +1,96 @@
+.new-user-modal {
+  width: min(48rem, 100%);
+}
+
+.new-user-scan-card {
+  margin-bottom: 1rem;
+  padding: 1.2rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.new-user-scan-card__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.new-user-scan-card__icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.75);
+  color: #1d4ed8;
+}
+
+.new-user-scan-card h3 {
+  margin: 0;
+}
+
+.new-user-scan-card__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.new-user-scan-card__status {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.68);
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.new-user-scan-card__status.is-success {
+  background: rgba(220, 252, 231, 0.9);
+  color: #166534;
+}
+
+.new-user-scan-card__status.is-error {
+  background: rgba(254, 226, 226, 0.95);
+  color: #b91c1c;
+}
+
+.new-user-scan-card__status.is-scanning {
+  animation: pulseScan 0.9s ease-in-out infinite;
+}
+
+.new-user-tips {
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  color: #1e40af;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.new-user-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@keyframes pulseScan {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.18);
+  }
+
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .new-user-form-grid,
+  .new-user-scan-card__actions {
+    grid-template-columns: 1fr;
+  }
+}

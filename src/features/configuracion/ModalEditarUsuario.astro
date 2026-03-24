@@ -1,0 +1,70 @@
+﻿<div class="config-modal" id="configEditUserModal" hidden>
+  <div class="config-modal__overlay" data-close-modal="configEditUserModal"></div>
+
+  <section
+    class="config-modal__dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="configEditUserModalTitle"
+  >
+    <div class="config-modal__header">
+      <div>
+        <h2 id="configEditUserModalTitle">Editar informacion del usuario</h2>
+        <p>Actualiza los datos personales y administrativos del acceso seleccionado.</p>
+      </div>
+
+      <button
+        class="config-modal__close"
+        type="button"
+        aria-label="Cerrar modal de editar usuario"
+        data-close-modal="configEditUserModal"
+      >
+        x
+      </button>
+    </div>
+
+    <form class="config-form" id="editUserForm">
+      <input id="editUserId" type="hidden" />
+
+      <div class="config-form-grid">
+        <label class="config-field">
+          <span>Nombre completo</span>
+          <input id="editUserNombre" type="text" placeholder="Nombre completo" required />
+        </label>
+
+        <label class="config-field">
+          <span>Email</span>
+          <input id="editUserEmail" type="email" placeholder="correo@sena.edu.co" required />
+        </label>
+
+        <label class="config-field">
+          <span>Documento de identidad</span>
+          <input id="editUserDocumento" type="text" placeholder="Numero de documento" required />
+        </label>
+
+        <label class="config-field">
+          <span>Rol</span>
+          <select id="editUserRol" required>
+            <option value="Usuario">Usuario</option>
+            <option value="Administrador">Administrador</option>
+          </select>
+        </label>
+
+        <label class="config-field config-field--full">
+          <span>Departamento</span>
+          <input id="editUserDepartamento" type="text" placeholder="Area o departamento" required />
+        </label>
+      </div>
+
+      <div class="config-actions-row">
+        <p class="config-form-note">Los cambios se aplican inmediatamente sobre la tabla.</p>
+        <div class="config-modal__actions">
+          <button class="config-button config-button--ghost" type="button" data-close-modal="configEditUserModal">
+            Cancelar
+          </button>
+          <button class="config-button config-button--primary" type="submit">Guardar cambios</button>
+        </div>
+      </div>
+    </form>
+  </section>
+</div>
