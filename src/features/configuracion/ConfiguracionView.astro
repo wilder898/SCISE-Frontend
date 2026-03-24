@@ -1,6 +1,5 @@
-﻿---
+---
 import CajaPanelInicial from "./CajaPanelInicial.astro";
-import CajaGestionAccesos from "./CajaGestionAccesos.astro";
 import CajaTablaAccesos from "./CajaTablaAccesos.astro";
 import CajaInformacion from "./CajaInformacion.astro";
 import CajaAccesoDenegado from "./CajaAccesoDenegado.astro";
@@ -8,18 +7,19 @@ import CajaCambioContrasena from "./CajaCambioContrasena.astro";
 import CajaAuditoriaAccesos from "./CajaAuditoriaAccesos.astro";
 import ModalNuevoUsuario from "./ModalNuevoUsuario.astro";
 import ModalEditarUsuario from "./ModalEditarUsuario.astro";
-import ModalPermisosUsuario from "./ModalPermisosUsuario.astro";
 
-const roleCatalog = ["Administrador", "Seguridad", "Operador", "Consulta"];
+const roleCatalog = ["Administrador", "Usuario"];
 
-const permissionCatalog = [
-  { id: "ver_equipos", label: "Ver Equipos", description: "Visualizar listado de equipos y detalle operativo." },
-  { id: "registrar_ingreso", label: "Registrar Ingreso", description: "Registrar entrada de equipos al sistema." },
-  { id: "registrar_salida", label: "Registrar Salida", description: "Registrar salida de equipos y controlar tiempos." },
-  { id: "ver_reportes", label: "Ver Reportes", description: "Acceder a reportes, historial y analitica." },
-  { id: "gestionar_usuarios", label: "Gestionar Usuarios", description: "Crear, editar y administrar usuarios con acceso." },
-  { id: "gestionar_permisos", label: "Gestionar Permisos", description: "Modificar permisos, estados y seguridad del sistema." },
+const adminPermissions = [
+  "ver_equipos",
+  "registrar_ingreso",
+  "registrar_salida",
+  "ver_reportes",
+  "gestionar_usuarios",
+  "gestionar_permisos",
 ];
+
+const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"];
 
 const initialAccessUsers = [
   {
@@ -30,37 +30,37 @@ const initialAccessUsers = [
     rol: "Administrador",
     departamento: "Administracion del Sistema",
     estado: "Activo",
-    permisos: permissionCatalog.map((permission) => permission.id),
+    permisos: adminPermissions,
   },
   {
     id: 2,
     nombre: "Control Principal",
     documento: "1000000002",
-    email: "seguridad.scise@sena.edu.co",
-    rol: "Seguridad",
+    email: "control.scise@sena.edu.co",
+    rol: "Usuario",
     departamento: "Seguridad",
     estado: "Activo",
-    permisos: ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"],
+    permisos: userPermissions,
   },
   {
     id: 3,
-    nombre: "Operador TIC",
+    nombre: "Operador Turno",
     documento: "1000000003",
     email: "operacion.scise@sena.edu.co",
-    rol: "Operador",
+    rol: "Usuario",
     departamento: "Soporte Tecnico",
     estado: "Activo",
-    permisos: ["ver_equipos", "registrar_ingreso", "registrar_salida"],
+    permisos: userPermissions,
   },
   {
     id: 4,
-    nombre: "Consulta Coordinacion",
+    nombre: "Usuario Consulta",
     documento: "1000000004",
     email: "consulta.scise@sena.edu.co",
-    rol: "Consulta",
+    rol: "Usuario",
     departamento: "Coordinacion",
     estado: "Inactivo",
-    permisos: ["ver_equipos", "ver_reportes"],
+    permisos: userPermissions,
   },
 ];
 
@@ -75,16 +75,16 @@ const initialAuditLog = [
   },
   {
     id: 2,
-    tipo: "permisos",
-    usuario: "Operador TIC",
+    tipo: "editar",
+    usuario: "Operador Turno",
     actor: "Admin SENA",
-    detalle: "Permisos ajustados para operacion diaria del sistema.",
+    detalle: "Perfil actualizado para operacion diaria del sistema.",
     fecha: "2026-03-18 08:32",
   },
   {
     id: 3,
     tipo: "desactivar",
-    usuario: "Consulta Coordinacion",
+    usuario: "Usuario Consulta",
     actor: "Admin SENA",
     detalle: "Cuenta pausada temporalmente por inactividad.",
     fecha: "2026-03-18 09:05",
@@ -98,12 +98,10 @@ const initialAuditLog = [
   <div id="configAdminContent" hidden>
     <CajaTablaAccesos />
     <CajaAuditoriaAccesos />
-    <CajaGestionAccesos permissions={permissionCatalog} />
     <CajaInformacion />
     <ModalNuevoUsuario />
     <ModalEditarUsuario />
     <CajaCambioContrasena />
-    <ModalPermisosUsuario permissions={permissionCatalog} />
   </div>
 
   <div id="configDeniedContent" hidden>
@@ -111,7 +109,7 @@ const initialAuditLog = [
   </div>
 </section>
 
-<script define:vars={{ initialAccessUsers, initialAuditLog, permissionCatalog, roleCatalog }}>
+<script define:vars={{ initialAccessUsers, initialAuditLog, roleCatalog, adminPermissions, userPermissions }}>
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
   const usersStorageKey = "scise-config-users";
@@ -128,23 +126,11 @@ const initialAuditLog = [
 
   if (isAdmin) {
     function getDefaultPermissions(role) {
-      if (role === "Administrador") {
-        return permissionCatalog.map((permission) => permission.id);
-      }
-
-      if (role === "Seguridad") {
-        return ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"];
-      }
-
-      if (role === "Consulta") {
-        return ["ver_equipos", "ver_reportes"];
-      }
-
-      return ["ver_equipos", "registrar_ingreso", "registrar_salida"];
+      return role === "Administrador" ? [...adminPermissions] : [...userPermissions];
     }
 
     function normalizeUser(user) {
-      const normalizedRole = roleCatalog.includes(user?.rol) ? user.rol : "Operador";
+      const normalizedRole = roleCatalog.includes(user?.rol) ? user.rol : "Usuario";
       const normalizedState = user?.estado === "Inactivo" ? "Inactivo" : "Activo";
 
       return {
@@ -155,9 +141,7 @@ const initialAuditLog = [
         rol: normalizedRole,
         departamento: String(user?.departamento || "Sin departamento"),
         estado: normalizedState,
-        permisos: Array.isArray(user?.permisos) && user.permisos.length
-          ? [...user.permisos]
-          : getDefaultPermissions(normalizedRole),
+        permisos: getDefaultPermissions(normalizedRole),
       };
     }
 
@@ -196,9 +180,7 @@ const initialAuditLog = [
     const state = {
       accesses: loadUsers(),
       auditLog: loadAuditLog(),
-      editingId: null,
       passwordTargetId: null,
-      permissionsTargetId: null,
     };
 
     const tableBody = document.getElementById("configUsersTableBody");
@@ -225,12 +207,6 @@ const initialAuditLog = [
     const editUserDocumento = document.getElementById("editUserDocumento");
     const editUserRol = document.getElementById("editUserRol");
     const editUserDepartamento = document.getElementById("editUserDepartamento");
-
-    const permissionsModal = document.getElementById("configPermissionsModal");
-    const permissionsForm = document.getElementById("permissionsForm");
-    const permissionInputs = Array.from(document.querySelectorAll('input[name="permissionAssignment"]'));
-    const permissionsTargetName = document.getElementById("permissionsTargetName");
-    const permissionsTargetMeta = document.getElementById("permissionsTargetMeta");
 
     const passwordModal = document.getElementById("configPasswordModal");
     const passwordTargetName = document.getElementById("passwordTargetName");
@@ -263,7 +239,6 @@ const initialAuditLog = [
       const map = {
         crear: "Creacion",
         editar: "Edicion",
-        permisos: "Permisos",
         activar: "Activacion",
         desactivar: "Desactivacion",
         contrasena: "Contrasena",
@@ -277,7 +252,6 @@ const initialAuditLog = [
       const toneMap = {
         crear: "is-success",
         editar: "is-info",
-        permisos: "is-blue",
         activar: "is-success",
         desactivar: "is-warning",
         contrasena: "is-orange",
@@ -363,12 +337,6 @@ const initialAuditLog = [
         return;
       }
 
-      const lockIcon = `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 10V8a4 4 0 1 1 8 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <rect x="6" y="10" width="12" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-        </svg>
-      `;
       const keyIcon = `
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M14 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 0h6m-2 0v3m-2-3v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -417,7 +385,6 @@ const initialAuditLog = [
               <td><span class="config-state-pill ${statusClass}">${escapeHtml(access.estado)}</span></td>
               <td>
                 <div class="config-table-actions" aria-label="Acciones de usuario">
-                  <button class="config-icon-button is-lock" type="button" title="Gestionar permisos" data-action="permissions" data-access-id="${access.id}">${lockIcon}</button>
                   <button class="config-icon-button is-password" type="button" title="Cambiar contrasena" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
                   <button class="config-icon-button ${access.estado === "Activo" ? "is-danger" : "is-success"}" type="button" title="${toggleLabel}" data-action="toggle" data-access-id="${access.id}">${toggleIcon}</button>
                   <button class="config-icon-button is-edit" type="button" title="Editar usuario" data-action="edit" data-access-id="${access.id}">${editIcon}</button>
@@ -460,7 +427,7 @@ const initialAuditLog = [
       }
 
       if (newUserRol instanceof HTMLSelectElement) {
-        newUserRol.value = "Operador";
+        newUserRol.value = "Usuario";
       }
     }
 
@@ -517,13 +484,11 @@ const initialAuditLog = [
         return;
       }
 
-      state.editingId = access.id;
-
       if (editUserId instanceof HTMLInputElement) editUserId.value = String(access.id);
       if (editUserNombre instanceof HTMLInputElement) editUserNombre.value = access.nombre;
       if (editUserEmail instanceof HTMLInputElement) editUserEmail.value = access.email;
       if (editUserDocumento instanceof HTMLInputElement) editUserDocumento.value = access.documento;
-      if (editUserRol instanceof HTMLSelectElement) editUserRol.value = roleCatalog.includes(access.rol) ? access.rol : "Operador";
+      if (editUserRol instanceof HTMLSelectElement) editUserRol.value = roleCatalog.includes(access.rol) ? access.rol : "Usuario";
       if (editUserDepartamento instanceof HTMLInputElement) editUserDepartamento.value = access.departamento;
 
       openModal(editUserModal);
@@ -554,9 +519,7 @@ const initialAuditLog = [
       access.documento = editUserDocumento.value.trim();
       access.rol = editUserRol.value;
       access.departamento = editUserDepartamento.value.trim();
-      if (!Array.isArray(access.permisos) || !access.permisos.length) {
-        access.permisos = getDefaultPermissions(access.rol);
-      }
+      access.permisos = getDefaultPermissions(access.rol);
 
       renderTable();
       addAuditEntry("editar", access.nombre, `Se actualizo la informacion del perfil ${access.rol}.`);
@@ -601,64 +564,9 @@ const initialAuditLog = [
         state.passwordTargetId = null;
       }
 
-      if (state.permissionsTargetId === accessIdValue) {
-        state.permissionsTargetId = null;
-      }
-
       renderTable();
       updatePasswordTarget();
-      updatePermissionsTarget();
       addAuditEntry("eliminar", userName, "La cuenta fue eliminada del catalogo de accesos del sistema.");
-    }
-
-    function updatePermissionsTarget() {
-      const access = state.permissionsTargetId ? findAccessById(state.permissionsTargetId) : null;
-
-      if (permissionsTargetName instanceof HTMLElement) {
-        permissionsTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningun usuario seleccionado";
-      }
-
-      if (permissionsTargetMeta instanceof HTMLElement) {
-        permissionsTargetMeta.textContent = access
-          ? `Documento ${access.documento}. Departamento ${access.departamento}.`
-          : "Selecciona un usuario desde la tabla para administrar sus permisos.";
-      }
-
-      permissionInputs.forEach((input) => {
-        if (input instanceof HTMLInputElement) {
-          input.checked = !!access && access.permisos.includes(input.value);
-        }
-      });
-    }
-
-    function openPermissions(accessIdValue) {
-      const access = findAccessById(accessIdValue);
-
-      if (!access) {
-        return;
-      }
-
-      state.permissionsTargetId = access.id;
-      updatePermissionsTarget();
-      openModal(permissionsModal);
-    }
-
-    function savePermissions(event) {
-      event.preventDefault();
-
-      const access = state.permissionsTargetId ? findAccessById(state.permissionsTargetId) : null;
-
-      if (!access) {
-        return;
-      }
-
-      access.permisos = permissionInputs
-        .filter((input) => input instanceof HTMLInputElement && input.checked)
-        .map((input) => input.value);
-
-      renderTable();
-      addAuditEntry("permisos", access.nombre, `Se actualizaron permisos del perfil ${access.rol}.`);
-      closeModal(permissionsModal);
     }
 
     function updatePasswordTarget() {
@@ -750,7 +658,6 @@ const initialAuditLog = [
       const accessIdValue = Number(target.dataset.accessId || 0);
       const action = target.dataset.action;
 
-      if (action === "permissions") openPermissions(accessIdValue);
       if (action === "password") openPassword(accessIdValue);
       if (action === "toggle") toggleAccess(accessIdValue);
       if (action === "edit") openEdit(accessIdValue);
@@ -776,7 +683,6 @@ const initialAuditLog = [
     openCreateUserModalButton?.addEventListener("click", openCreateUser);
     newUserForm?.addEventListener("submit", createUser);
     editUserForm?.addEventListener("submit", saveEdit);
-    permissionsForm?.addEventListener("submit", savePermissions);
     passwordResetForm?.addEventListener("submit", applyPasswordReset);
     tableBody?.addEventListener("click", handleTableAction);
     document.addEventListener("click", handleModalClose);
@@ -791,7 +697,6 @@ const initialAuditLog = [
       if (passwordConfirmacion instanceof HTMLInputElement) passwordConfirmacion.type = inputType;
     });
 
-    updatePermissionsTarget();
     updatePasswordTarget();
     resetNewUserForm();
     renderTable();
