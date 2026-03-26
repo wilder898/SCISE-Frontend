@@ -53,6 +53,21 @@ import CajaInformacion from "./CajaInformacion.astro";
     descripcion: string;
   }
 
+  interface MovimientoIngresoItemResponse {
+    movimiento_id: number;
+    equipo_id: number;
+    serial: string;
+    fecha_registro: string;
+    tipo_movimiento: string;
+  }
+
+  interface MovimientoIngresoBatchResponse {
+    estudiante_id: number;
+    total_registrados: number;
+    movimientos: MovimientoIngresoItemResponse[];
+    detail: string;
+  }
+
   const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 
   let usuarioActual: IngresoUser | null = null;
@@ -234,6 +249,39 @@ import CajaInformacion from "./CajaInformacion.astro";
     }));
   }
 
+  async function registrarIngresosBatch(
+    estudianteId: string,
+    equiposIds: string[],
+  ): Promise<MovimientoIngresoBatchResponse> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/movimientos/ingresos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        estudiante_id: Number(estudianteId),
+        equipos: equiposIds.map((equipoId) => Number(equipoId)),
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible registrar los ingresos.";
+      throw new Error(detail);
+    }
+
+    return (await response.json()) as MovimientoIngresoBatchResponse;
+  }
+
   async function obtenerUsuario(documento: string): Promise<void> {
     try {
       loadingUser.classList.remove("oculto");
@@ -374,10 +422,19 @@ import CajaInformacion from "./CajaInformacion.astro";
       messageFooter.style.color = "#64748b";
       btnRegistrar.disabled = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const payload = await registrarIngresosBatch(
+        currentUser.id,
+        selected.map((equipo) => equipo.id),
+      );
 
-      const nowTimestamp = new Date().toISOString();
+      const movimientosByEquipoId = new Map<string, MovimientoIngresoItemResponse>(
+        (Array.isArray(payload.movimientos) ? payload.movimientos : []).map((movimiento) => [
+          String(movimiento.equipo_id),
+          movimiento,
+        ])
+      );
       selected.forEach((equipo) => {
+        const movimiento = movimientosByEquipoId.get(equipo.id);
         appendMovement({
           tipo: "Ingreso",
           usuarioId: currentUser.id,
@@ -388,15 +445,16 @@ import CajaInformacion from "./CajaInformacion.astro";
           equipoSerial: equipo.serial,
           equipoTipo: equipo.tipo,
           equipoDescripcion: equipo.descripcion,
-          timestamp: nowTimestamp,
+          timestamp: movimiento?.fecha_registro || new Date().toISOString(),
         });
       });
 
-      const horaRegistro = new Date(nowTimestamp).toLocaleTimeString("es-CO");
-      messageFooter.textContent =
-        selected.length === 1
-          ? `Ingreso registrado correctamente - ${horaRegistro}`
-          : `${selected.length} ingresos registrados correctamente - ${horaRegistro}`;
+      const horaRegistro = new Date().toLocaleTimeString("es-CO");
+      const mensajeApi =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "Ingresos registrados correctamente";
+      messageFooter.textContent = `${mensajeApi} - ${horaRegistro}`;
       messageFooter.style.color = "#16a34a";
 
       setTimeout(() => {
