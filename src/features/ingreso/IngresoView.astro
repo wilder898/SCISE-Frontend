@@ -21,19 +21,42 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import {
-    appendMovement,
-    getActiveEquipmentIdsForUser,
-  } from "../../lib/movimientos";
-  import {
-    findOperationalUserByDocument,
-    listEquipmentsForUser,
-    type EquipmentCatalogItem,
-    type OperationalUser,
-  } from "../../lib/operacion";
+  import { appendMovement } from "../../lib/movimientos";
 
-  let usuarioActual: OperationalUser | null = null;
-  let equiposDisponibles: EquipmentCatalogItem[] = [];
+  interface IngresoUser {
+    id: string;
+    nombre: string;
+    documento: string;
+    rol: string;
+  }
+
+  interface EstudianteLookupResponse {
+    id: number;
+    nombre: string;
+    documento: string;
+    estado: string;
+  }
+
+  interface EquipoAsociadoResponse {
+    id: number;
+    nombre: string;
+    serial: string;
+    tipo: string | null;
+    descripcion: string | null;
+    estado: string;
+  }
+
+  interface IngresoEquipment {
+    id: string;
+    serial: string;
+    tipo: string;
+    descripcion: string;
+  }
+
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+  let usuarioActual: IngresoUser | null = null;
+  let equiposDisponibles: IngresoEquipment[] = [];
   const equiposSeleccionados = new Set<string>();
 
   const barcodeInput = document.getElementById("barcodeUser") as HTMLInputElement;
@@ -143,6 +166,74 @@ import CajaInformacion from "./CajaInformacion.astro";
     btnRegistrar.disabled = false;
   }
 
+  async function buscarEstudiantePorDocumento(documento: string): Promise<IngresoUser> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(documento)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible consultar el estudiante.";
+      throw new Error(detail);
+    }
+
+    const estudiante = (await response.json()) as EstudianteLookupResponse;
+    return {
+      id: String(estudiante.id),
+      nombre: String(estudiante.nombre || ""),
+      documento: String(estudiante.documento || documento),
+      rol: "Aprendiz",
+    };
+  }
+
+  async function listarEquiposAsociados(estudianteId: string): Promise<IngresoEquipment[]> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/estudiantes/${encodeURIComponent(estudianteId)}/equipos?solo_disponibles_ingreso=true`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible consultar equipos asociados.";
+      throw new Error(detail);
+    }
+
+    const equipos = (await response.json()) as EquipoAsociadoResponse[];
+    return (Array.isArray(equipos) ? equipos : []).map((equipo) => ({
+      id: String(equipo.id),
+      serial: String(equipo.serial || ""),
+      tipo: String(equipo.tipo || "Sin tipo"),
+      descripcion: String(equipo.descripcion || equipo.nombre || "Equipo sin descripcion"),
+    }));
+  }
+
   async function obtenerUsuario(documento: string): Promise<void> {
     try {
       loadingUser.classList.remove("oculto");
@@ -150,15 +241,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       userSuccess.classList.add("oculto");
       userBox.classList.add("oculto");
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const usuario = findOperationalUserByDocument(documento);
-
-      if (!usuario) {
-        throw new Error(
-          "Usuario no encontrado. Intenta con: 1234567890, 9876543210 o 5555555555."
-        );
-      }
+      const usuario = await buscarEstudiantePorDocumento(documento);
 
       usuarioActual = usuario;
       nombreSpan.textContent = usuario.nombre;
@@ -186,13 +269,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       textoInicial.classList.add("oculto");
       equiposError.classList.add("oculto");
       listaEquipos.classList.add("oculto");
-
-      await new Promise((resolve) => setTimeout(resolve, 600));
-
-      const activeEquipmentIds = getActiveEquipmentIdsForUser(usuarioId);
-      equiposDisponibles = listEquipmentsForUser(usuarioId).filter(
-        (equipo) => !activeEquipmentIds.has(equipo.id)
-      );
+      equiposDisponibles = await listarEquiposAsociados(usuarioId);
 
       equiposSeleccionados.clear();
       equipoDetalles.classList.add("oculto");
