@@ -114,16 +114,18 @@ const links = [
   </div>
 
   <div class="app-sidebar-bottom">
-    <a class="app-logout" href="/auth/login">Cerrar sesion</a>
+    <a class="app-logout" href="/auth/login" id="logoutButton">Cerrar sesion</a>
   </div>
 </aside>
 
 <script>
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
   const sidebarName = document.querySelector("[data-sidebar-name]");
   const sidebarRole = document.querySelector("[data-sidebar-role]");
   const adminOnlyLinks = document.querySelectorAll('[data-admin-only="true"]');
+  const logoutButton = document.getElementById("logoutButton");
 
   adminOnlyLinks.forEach((link) => {
     if (link instanceof HTMLElement) {
@@ -138,4 +140,30 @@ const links = [
   if (sidebarRole instanceof HTMLElement) {
     sidebarRole.textContent = isAdmin ? "Administrador" : "Usuario";
   }
+
+  async function logout() {
+    const token = localStorage.getItem("scise-auth-token");
+
+    if (token) {
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch {
+        // Logout local continues even if backend call fails.
+      }
+    }
+
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    window.location.href = "/auth/login";
+  }
+
+  logoutButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    logout();
+  });
 </script>

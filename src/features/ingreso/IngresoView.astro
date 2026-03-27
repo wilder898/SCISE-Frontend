@@ -21,19 +21,57 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import {
-    appendMovement,
-    getActiveEquipmentIdsForUser,
-  } from "../../lib/movimientos";
-  import {
-    findOperationalUserByDocument,
-    listEquipmentsForUser,
-    type EquipmentCatalogItem,
-    type OperationalUser,
-  } from "../../lib/operacion";
+  import { appendMovement } from "../../lib/movimientos";
 
-  let usuarioActual: OperationalUser | null = null;
-  let equiposDisponibles: EquipmentCatalogItem[] = [];
+  interface IngresoUser {
+    id: string;
+    nombre: string;
+    documento: string;
+    rol: string;
+  }
+
+  interface EstudianteLookupResponse {
+    id: number;
+    nombre: string;
+    documento: string;
+    estado: string;
+  }
+
+  interface EquipoAsociadoResponse {
+    id: number;
+    nombre: string;
+    serial: string;
+    tipo: string | null;
+    descripcion: string | null;
+    estado: string;
+  }
+
+  interface IngresoEquipment {
+    id: string;
+    serial: string;
+    tipo: string;
+    descripcion: string;
+  }
+
+  interface MovimientoIngresoItemResponse {
+    movimiento_id: number;
+    equipo_id: number;
+    serial: string;
+    fecha_registro: string;
+    tipo_movimiento: string;
+  }
+
+  interface MovimientoIngresoBatchResponse {
+    estudiante_id: number;
+    total_registrados: number;
+    movimientos: MovimientoIngresoItemResponse[];
+    detail: string;
+  }
+
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+  let usuarioActual: IngresoUser | null = null;
+  let equiposDisponibles: IngresoEquipment[] = [];
   const equiposSeleccionados = new Set<string>();
 
   const barcodeInput = document.getElementById("barcodeUser") as HTMLInputElement;
@@ -143,6 +181,107 @@ import CajaInformacion from "./CajaInformacion.astro";
     btnRegistrar.disabled = false;
   }
 
+  async function buscarEstudiantePorDocumento(documento: string): Promise<IngresoUser> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(documento)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible consultar el estudiante.";
+      throw new Error(detail);
+    }
+
+    const estudiante = (await response.json()) as EstudianteLookupResponse;
+    return {
+      id: String(estudiante.id),
+      nombre: String(estudiante.nombre || ""),
+      documento: String(estudiante.documento || documento),
+      rol: "Aprendiz",
+    };
+  }
+
+  async function listarEquiposAsociados(estudianteId: string): Promise<IngresoEquipment[]> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/estudiantes/${encodeURIComponent(estudianteId)}/equipos?solo_disponibles_ingreso=true`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible consultar equipos asociados.";
+      throw new Error(detail);
+    }
+
+    const equipos = (await response.json()) as EquipoAsociadoResponse[];
+    return (Array.isArray(equipos) ? equipos : []).map((equipo) => ({
+      id: String(equipo.id),
+      serial: String(equipo.serial || ""),
+      tipo: String(equipo.tipo || "Sin tipo"),
+      descripcion: String(equipo.descripcion || equipo.nombre || "Equipo sin descripcion"),
+    }));
+  }
+
+  async function registrarIngresosBatch(
+    estudianteId: string,
+    equiposIds: string[],
+  ): Promise<MovimientoIngresoBatchResponse> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/movimientos/ingresos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        estudiante_id: Number(estudianteId),
+        equipos: equiposIds.map((equipoId) => Number(equipoId)),
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible registrar los ingresos.";
+      throw new Error(detail);
+    }
+
+    return (await response.json()) as MovimientoIngresoBatchResponse;
+  }
+
   async function obtenerUsuario(documento: string): Promise<void> {
     try {
       loadingUser.classList.remove("oculto");
@@ -150,15 +289,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       userSuccess.classList.add("oculto");
       userBox.classList.add("oculto");
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const usuario = findOperationalUserByDocument(documento);
-
-      if (!usuario) {
-        throw new Error(
-          "Usuario no encontrado. Intenta con: 1234567890, 9876543210 o 5555555555."
-        );
-      }
+      const usuario = await buscarEstudiantePorDocumento(documento);
 
       usuarioActual = usuario;
       nombreSpan.textContent = usuario.nombre;
@@ -186,13 +317,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       textoInicial.classList.add("oculto");
       equiposError.classList.add("oculto");
       listaEquipos.classList.add("oculto");
-
-      await new Promise((resolve) => setTimeout(resolve, 600));
-
-      const activeEquipmentIds = getActiveEquipmentIdsForUser(usuarioId);
-      equiposDisponibles = listEquipmentsForUser(usuarioId).filter(
-        (equipo) => !activeEquipmentIds.has(equipo.id)
-      );
+      equiposDisponibles = await listarEquiposAsociados(usuarioId);
 
       equiposSeleccionados.clear();
       equipoDetalles.classList.add("oculto");
@@ -297,10 +422,19 @@ import CajaInformacion from "./CajaInformacion.astro";
       messageFooter.style.color = "#64748b";
       btnRegistrar.disabled = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const payload = await registrarIngresosBatch(
+        currentUser.id,
+        selected.map((equipo) => equipo.id),
+      );
 
-      const nowTimestamp = new Date().toISOString();
+      const movimientosByEquipoId = new Map<string, MovimientoIngresoItemResponse>(
+        (Array.isArray(payload.movimientos) ? payload.movimientos : []).map((movimiento) => [
+          String(movimiento.equipo_id),
+          movimiento,
+        ])
+      );
       selected.forEach((equipo) => {
+        const movimiento = movimientosByEquipoId.get(equipo.id);
         appendMovement({
           tipo: "Ingreso",
           usuarioId: currentUser.id,
@@ -311,15 +445,16 @@ import CajaInformacion from "./CajaInformacion.astro";
           equipoSerial: equipo.serial,
           equipoTipo: equipo.tipo,
           equipoDescripcion: equipo.descripcion,
-          timestamp: nowTimestamp,
+          timestamp: movimiento?.fecha_registro || new Date().toISOString(),
         });
       });
 
-      const horaRegistro = new Date(nowTimestamp).toLocaleTimeString("es-CO");
-      messageFooter.textContent =
-        selected.length === 1
-          ? `Ingreso registrado correctamente - ${horaRegistro}`
-          : `${selected.length} ingresos registrados correctamente - ${horaRegistro}`;
+      const horaRegistro = new Date().toLocaleTimeString("es-CO");
+      const mensajeApi =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "Ingresos registrados correctamente";
+      messageFooter.textContent = `${mensajeApi} - ${horaRegistro}`;
       messageFooter.style.color = "#16a34a";
 
       setTimeout(() => {
