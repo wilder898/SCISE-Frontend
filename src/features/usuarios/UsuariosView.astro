@@ -2,9 +2,13 @@
 import CajaPanelInicial from "./CajaPanelInicial.astro";
 import CajaFiltros from "./CajaFiltros.astro";
 import CajaTablaUsuarios from "./CajaTablaUsuarios.astro";
+import CajaTablaEquipos from "./CajaTablaEquipos.astro";
 import CajaInformacion from "./CajaInformacion.astro";
 import UserEditModal from "./UserEditModal.astro";
 import NewUserModal from "./NewUserModal.astro";
+import ModalNuevoEquipo from "./ModalNuevoEquipo.astro";
+
+const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 
 const initialUsers = [
   {
@@ -18,7 +22,18 @@ const initialUsers = [
     rol: "Aprendiz",
     estado: "Activo",
     fechaRegistro: "2026-01-12",
-    equipos: [],
+    equipos: [
+      {
+        id: 101,
+        serial: "LAP-2024-0012345",
+        nombre: "Lenovo ThinkPad E15",
+        tipo: "Portátil",
+        marca: "Lenovo",
+        modelo: "ThinkPad E15",
+        descripcion: "Equipo institucional asignado para pruebas.",
+        estado: "En Bodega",
+      },
+    ],
   },
 ];
 ---
@@ -27,15 +42,43 @@ const initialUsers = [
   <CajaPanelInicial />
   <CajaFiltros />
   <CajaTablaUsuarios />
+  <CajaTablaEquipos />
   <CajaInformacion />
 
   <UserEditModal />
   <NewUserModal />
+  <ModalNuevoEquipo />
 </section>
 
-<script define:vars={{ initialUsers }}>
-  const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
-  const sessionRole = sessionData.role === "admin" ? "admin" : "user";
+<script define:vars={{ initialUsers, apiBaseUrl }}>
+  const API_BASE_URL = apiBaseUrl;
+  function readSession() {
+    try {
+      const raw = localStorage.getItem("scise-session");
+      if (!raw) {
+        return {};
+      }
+
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function resolveSessionRole(session) {
+    const roleValue = String(session?.role || session?.rol || "").toLowerCase();
+    const backendRole = String(session?.roleBackend || "").toUpperCase();
+
+    if (roleValue === "admin" || roleValue === "administrador" || backendRole === "ADMINISTRADOR") {
+      return "admin";
+    }
+
+    return "user";
+  }
+
+  const sessionData = readSession();
+  const sessionRole = resolveSessionRole(sessionData);
 
   const state = {
     users: initialUsers.map((user) => ({
@@ -43,6 +86,8 @@ const initialUsers = [
       equipos: [...user.equipos],
     })),
     selectedUserId: null,
+    equipmentModalUserId: null,
+    equipmentModalUserLookup: null,
   };
 
   const tableBody = document.getElementById("usersTableBody");
@@ -72,6 +117,20 @@ const initialUsers = [
   const createUserButton = document.getElementById("createUserButton");
   const scanCarnetButton = document.getElementById("scanCarnetButton");
   const scanStatusMessage = document.getElementById("scanStatusMessage");
+  const newEquipmentModalBackdrop = document.getElementById("newEquipmentModalBackdrop");
+  const closeNewEquipmentModal = document.getElementById("closeNewEquipmentModal");
+  const cancelNewEquipmentModal = document.getElementById("cancelNewEquipmentModal");
+  const resetEquipmentUserButton = document.getElementById("resetEquipmentUserButton");
+  const createEquipmentButton = document.getElementById("createEquipmentButton");
+  const equipmentUserLookup = document.getElementById("equipmentUserLookup");
+  const equipmentLookupError = document.getElementById("equipmentLookupError");
+  const equipmentDetectedUser = document.getElementById("equipmentDetectedUser");
+  const equipmentDetectedUserName = document.getElementById("equipmentDetectedUserName");
+  const equipmentDetectedUserMeta = document.getElementById("equipmentDetectedUserMeta");
+  const equipmentFormPanel = document.getElementById("equipmentFormPanel");
+  const equipmentTableBody = document.getElementById("equipmentTableBody");
+  const equipmentTableCount = document.getElementById("equipmentTableCount");
+  const equipmentEmptyState = document.getElementById("equipmentEmptyState");
 
   const modalFields = {
     nombre: document.getElementById("modalNombre"),
@@ -106,6 +165,21 @@ const initialUsers = [
     telefono: document.getElementById("newUserTelefonoError"),
   };
 
+  const newEquipmentFields = {
+    serial: document.getElementById("newEquipmentSerial"),
+    nombre: document.getElementById("newEquipmentNombre"),
+    tipo: document.getElementById("newEquipmentTipo"),
+    estado: document.getElementById("newEquipmentEstado"),
+    marca: document.getElementById("newEquipmentMarca"),
+    modelo: document.getElementById("newEquipmentModelo"),
+    descripcion: document.getElementById("newEquipmentDescripcion"),
+  };
+
+  const newEquipmentErrors = {
+    serial: document.getElementById("newEquipmentSerialError"),
+    nombre: document.getElementById("newEquipmentNombreError"),
+  };
+
   const editableKeys = ["nombre", "apellido", "email", "telefono", "rol", "estado"];
 
   function getFullName(user) {
@@ -119,6 +193,17 @@ const initialUsers = [
 
   function getTodayDate() {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  function getAuthToken() {
+    return localStorage.getItem("scise-auth-token") || "";
+  }
+
+  function handleUnauthorized(detail = "Sesion no valida. Inicia sesion nuevamente.") {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    alert(detail);
+    window.location.href = "/auth/login";
   }
 
   function getFilteredUsers() {
@@ -192,6 +277,59 @@ const initialUsers = [
                 </button>
               </div>
             </td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+
+  function getAllEquipments() {
+    return state.users.flatMap((user) =>
+      user.equipos.map((equipo) => ({
+        ...equipo,
+        usuarioId: user.id,
+        usuarioNombre: getFullName(user),
+        usuarioDocumento: user.cedula,
+        usuarioCarnet: user.carnet,
+      }))
+    );
+  }
+
+  function renderEquipmentTable() {
+    const equipmentItems = getAllEquipments();
+
+    if (!equipmentTableBody || !equipmentTableCount || !equipmentEmptyState) {
+      return;
+    }
+
+    equipmentTableCount.textContent = String(equipmentItems.length);
+
+    if (!equipmentItems.length) {
+      equipmentTableBody.innerHTML = "";
+      equipmentEmptyState.hidden = false;
+      return;
+    }
+
+    equipmentEmptyState.hidden = true;
+    equipmentTableBody.innerHTML = equipmentItems
+      .map(
+        (equipo) => `
+          <tr>
+            <td><strong>${equipo.serial}</strong></td>
+            <td>
+              <div class="users-table__identity">
+                <strong>${equipo.nombre}</strong>
+                <span>${[equipo.marca, equipo.modelo].filter(Boolean).join(" / ") || "Sin marca/modelo"}</span>
+              </div>
+            </td>
+            <td><span class="table-pill table-pill--neutral">${equipo.tipo}</span></td>
+            <td>
+              <div class="users-table__identity">
+                <strong>${equipo.usuarioNombre}</strong>
+                <span>${equipo.usuarioDocumento}</span>
+              </div>
+            </td>
+            <td><span class="table-pill table-pill--status">${equipo.estado}</span></td>
           </tr>
         `
       )
@@ -439,6 +577,183 @@ const initialUsers = [
     document.body.classList.remove("user-modal-open");
   }
 
+  function resetEquipmentForm() {
+    state.equipmentModalUserId = null;
+    state.equipmentModalUserLookup = null;
+    if (equipmentUserLookup instanceof HTMLInputElement) {
+      equipmentUserLookup.value = "";
+    }
+
+    Object.values(newEquipmentFields).forEach((node) => {
+      if (node instanceof HTMLInputElement || node instanceof HTMLSelectElement || node instanceof HTMLTextAreaElement) {
+        node.value = node.id === "newEquipmentTipo" ? "Portátil" : node.id === "newEquipmentEstado" ? "En Bodega" : "";
+      }
+    });
+
+    Object.values(newEquipmentErrors).forEach((node) => {
+      if (node) {
+        node.textContent = "";
+      }
+    });
+
+    if (equipmentLookupError) {
+      equipmentLookupError.textContent = "";
+    }
+
+    equipmentDetectedUser?.classList.add("oculto");
+    equipmentFormPanel?.classList.add("oculto");
+  }
+
+  function openEquipmentModal() {
+    if (!newEquipmentModalBackdrop) {
+      return;
+    }
+
+    resetEquipmentForm();
+    newEquipmentModalBackdrop.hidden = false;
+    document.body.classList.add("user-modal-open");
+    if (equipmentUserLookup instanceof HTMLInputElement) {
+      equipmentUserLookup.focus();
+    }
+  }
+
+  function closeEquipmentModal() {
+    if (!newEquipmentModalBackdrop) {
+      return;
+    }
+
+    newEquipmentModalBackdrop.hidden = true;
+    document.body.classList.remove("user-modal-open");
+    resetEquipmentForm();
+  }
+
+  function findUserByCarnet(value) {
+    const lookup = String(value || "").trim().toLowerCase();
+    if (!lookup) {
+      return null;
+    }
+
+    return state.users.find(
+      (user) =>
+        user.carnet.toLowerCase() === lookup ||
+        user.cedula.toLowerCase() === lookup
+    ) || null;
+  }
+
+  async function lookupStudentByDocument(documento) {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return null;
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(documento)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.status === 401) {
+      const payload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof payload?.detail === "string" ? payload.detail : undefined);
+      return null;
+    }
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No encontramos un usuario con ese carnet o documento."
+      );
+    }
+
+    return await response.json();
+  }
+
+  async function createEquipmentInApi(payload) {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/equipos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      const unauthorizedPayload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof unauthorizedPayload?.detail === "string" ? unauthorizedPayload.detail : undefined);
+      return null;
+    }
+
+    if (!response.ok) {
+      const payloadError = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payloadError?.detail === "string" && payloadError.detail.trim()
+          ? payloadError.detail
+          : "No fue posible registrar el equipo."
+      );
+    }
+
+    return await response.json();
+  }
+
+  async function detectEquipmentUser() {
+    if (!(equipmentUserLookup instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const lookupValue = equipmentUserLookup.value.trim();
+    if (!lookupValue) {
+      return;
+    }
+
+    try {
+      const estudiante = await lookupStudentByDocument(lookupValue);
+      if (!estudiante) {
+        return;
+      }
+
+      state.equipmentModalUserId = estudiante.id;
+      state.equipmentModalUserLookup = estudiante;
+
+      const localUser = findUserByCarnet(lookupValue) || state.users.find((user) => user.cedula === estudiante.documento);
+      const displayName = localUser ? getFullName(localUser) : estudiante.nombre;
+
+      if (equipmentLookupError) {
+        equipmentLookupError.textContent = "";
+      }
+      if (equipmentDetectedUserName) {
+        equipmentDetectedUserName.textContent = `Usuario detectado: ${displayName}`;
+      }
+      if (equipmentDetectedUserMeta) {
+        equipmentDetectedUserMeta.textContent = `Carnet/Documento: ${lookupValue}`;
+      }
+      equipmentDetectedUser?.classList.remove("oculto");
+      equipmentFormPanel?.classList.remove("oculto");
+    } catch (error) {
+      state.equipmentModalUserId = null;
+      state.equipmentModalUserLookup = null;
+      equipmentDetectedUser?.classList.add("oculto");
+      equipmentFormPanel?.classList.add("oculto");
+      if (equipmentLookupError) {
+        equipmentLookupError.textContent =
+          error instanceof Error ? error.message : "No encontramos un usuario con ese carnet o documento.";
+      }
+    }
+  }
+
   function validateEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
@@ -536,15 +851,118 @@ const initialUsers = [
       alert("Solo administradores pueden registrar equipos asociados.");
       return;
     }
+    openEquipmentModal();
+  }
 
-    const targetUser = getFilteredUsers()[0] || state.users[0];
+  function validateEquipmentForm() {
+    let isValid = true;
+    const serial = newEquipmentFields.serial instanceof HTMLInputElement ? newEquipmentFields.serial.value.trim() : "";
+    const nombre = newEquipmentFields.nombre instanceof HTMLInputElement ? newEquipmentFields.nombre.value.trim() : "";
 
-    if (!targetUser) {
-      alert("No hay usuarios disponibles. Crea un usuario primero.");
+    if (newEquipmentErrors.serial) {
+      newEquipmentErrors.serial.textContent = serial ? "" : "El serial es obligatorio.";
+    }
+
+    if (newEquipmentErrors.nombre) {
+      newEquipmentErrors.nombre.textContent = nombre ? "" : "El nombre del equipo es obligatorio.";
+    }
+
+    if (!state.equipmentModalUserId) {
+      isValid = false;
+      if (equipmentLookupError) {
+        equipmentLookupError.textContent = "Debes validar primero el usuario por carnet.";
+      }
+    }
+
+    if (!serial || !nombre) {
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  function createEquipment() {
+    createEquipmentAsync();
+  }
+
+  async function createEquipmentAsync() {
+    if (!validateEquipmentForm()) {
       return;
     }
 
-    openModal(targetUser.id);
+    const serial = newEquipmentFields.serial instanceof HTMLInputElement ? newEquipmentFields.serial.value.trim() : "";
+    const nombre = newEquipmentFields.nombre instanceof HTMLInputElement ? newEquipmentFields.nombre.value.trim() : "";
+    const tipo = newEquipmentFields.tipo instanceof HTMLSelectElement ? newEquipmentFields.tipo.value : "Otro";
+    const marca = newEquipmentFields.marca instanceof HTMLInputElement ? newEquipmentFields.marca.value.trim() : "";
+    const modelo = newEquipmentFields.modelo instanceof HTMLInputElement ? newEquipmentFields.modelo.value.trim() : "";
+    const descripcion =
+      newEquipmentFields.descripcion instanceof HTMLTextAreaElement
+        ? newEquipmentFields.descripcion.value.trim()
+        : "";
+    const estadoVista = newEquipmentFields.estado instanceof HTMLSelectElement ? newEquipmentFields.estado.value : "En Bodega";
+
+    try {
+      createEquipmentButton?.setAttribute("disabled", "true");
+
+      const equipoCreado = await createEquipmentInApi({
+        serial,
+        nombre,
+        tipo_equipo: tipo,
+        descripcion,
+        codigo_barras_equipo: serial,
+        estudiante_id: state.equipmentModalUserId,
+      });
+
+      if (!equipoCreado) {
+        return;
+      }
+
+      let user = state.users.find((item) => item.id === state.equipmentModalUserId);
+      if (!user && state.equipmentModalUserLookup) {
+        const nombreCompleto = String(state.equipmentModalUserLookup.nombre || "").trim();
+        const partes = nombreCompleto.split(/\s+/);
+        user = {
+          id: state.equipmentModalUserLookup.id,
+          nombre: partes.shift() || nombreCompleto || "Usuario",
+          apellido: partes.join(" "),
+          cedula: state.equipmentModalUserLookup.documento,
+          carnet: equipmentUserLookup instanceof HTMLInputElement ? equipmentUserLookup.value.trim() : state.equipmentModalUserLookup.documento,
+          email: "",
+          telefono: "",
+          rol: "Aprendiz",
+          estado: "Activo",
+          fechaRegistro: getTodayDate(),
+          equipos: [],
+        };
+        state.users.unshift(user);
+        renderTable();
+      }
+
+      if (!user) {
+        throw new Error("No fue posible asociar el equipo al usuario detectado.");
+      }
+
+      user.equipos.unshift({
+        id: equipoCreado.id,
+        serial: equipoCreado.serial,
+        nombre: equipoCreado.nombre,
+        tipo: tipo,
+        estado: estadoVista,
+        marca,
+        modelo,
+        descripcion,
+      });
+
+      renderEquipmentTable();
+      closeEquipmentModal();
+    } catch (error) {
+      if (equipmentLookupError) {
+        equipmentLookupError.textContent =
+          error instanceof Error ? error.message : "No fue posible registrar el equipo.";
+      }
+    } finally {
+      createEquipmentButton?.removeAttribute("disabled");
+    }
   }
 
   if (sessionRoleBadge) {
@@ -632,6 +1050,17 @@ const initialUsers = [
   cancelNewUserModal?.addEventListener("click", closeCreateModal);
   createUserButton?.addEventListener("click", createUser);
   scanCarnetButton?.addEventListener("click", simulateCarnetScan);
+  closeNewEquipmentModal?.addEventListener("click", closeEquipmentModal);
+  cancelNewEquipmentModal?.addEventListener("click", closeEquipmentModal);
+  resetEquipmentUserButton?.addEventListener("click", resetEquipmentForm);
+  createEquipmentButton?.addEventListener("click", createEquipment);
+
+  equipmentUserLookup?.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      detectEquipmentUser();
+    }
+  });
 
   Object.entries(newUserFields).forEach(([key, node]) => {
     if (!(node instanceof HTMLInputElement) && !(node instanceof HTMLSelectElement)) {
@@ -660,6 +1089,12 @@ const initialUsers = [
     }
   });
 
+  newEquipmentModalBackdrop?.addEventListener("click", (event) => {
+    if (event.target === newEquipmentModalBackdrop) {
+      closeEquipmentModal();
+    }
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       if (modalBackdrop && !modalBackdrop.hidden) {
@@ -673,9 +1108,15 @@ const initialUsers = [
   });
 
   renderTable();
+  renderEquipmentTable();
 
-  // Check if navigated from ingreso to create new user
-  if (window.location.search.includes('new=true')) {
+  const routeParams = new URLSearchParams(window.location.search);
+
+  if (routeParams.get("new") === "true") {
     openCreateModal();
+  }
+
+  if (routeParams.get("equipment") === "true") {
+    openRegisterEquipmentFlow();
   }
 </script>

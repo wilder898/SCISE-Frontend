@@ -1,0 +1,112 @@
+<div class="user-modal-backdrop" id="newEquipmentModalBackdrop" hidden>
+  <section
+    class="user-modal equipment-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="newEquipmentModalTitle"
+  >
+    <header class="user-modal__header">
+      <div>
+        <p class="user-modal__eyebrow">Registro de equipos</p>
+        <h2 id="newEquipmentModalTitle">Registrar Nuevo Equipo</h2>
+      </div>
+      <button class="user-modal__close" id="closeNewEquipmentModal" type="button" aria-label="Cerrar modal">
+        x
+      </button>
+    </header>
+
+    <section class="equipment-scan-card">
+      <div class="equipment-scan-card__intro">
+        <span class="equipment-scan-card__emoji" aria-hidden="true">📦</span>
+        <div>
+          <h3>Escanear Carnet</h3>
+          <p>Primero, escanea el carnet del usuario al que se asignará el equipo.</p>
+        </div>
+      </div>
+
+      <label class="user-field">
+        <span>Carnet o documento</span>
+        <input
+          id="equipmentUserLookup"
+          type="text"
+          placeholder="Escanea el carnet aquí"
+          autocomplete="off"
+        />
+      </label>
+
+      <p class="equipment-scan-card__hint">Presiona Enter después de escanear.</p>
+      <p class="field-error equipment-scan-card__error" id="equipmentLookupError"></p>
+
+      <div class="equipment-detected-user oculto" id="equipmentDetectedUser">
+        <strong id="equipmentDetectedUserName"></strong>
+        <span id="equipmentDetectedUserMeta"></span>
+      </div>
+    </section>
+
+    <section class="user-modal__panel equipment-form-panel oculto" id="equipmentFormPanel">
+      <div class="equipment-form-grid">
+        <label class="user-field">
+          <span>Serial *</span>
+          <input id="newEquipmentSerial" type="text" placeholder="LAP-2024-0012345" />
+          <small class="field-error" id="newEquipmentSerialError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Nombre del Equipo *</span>
+          <input id="newEquipmentNombre" type="text" placeholder="Lenovo ThinkPad E15" />
+          <small class="field-error" id="newEquipmentNombreError"></small>
+        </label>
+
+        <label class="user-field">
+          <span>Tipo</span>
+          <select id="newEquipmentTipo">
+            <option value="Portátil">Portátil</option>
+            <option value="Monitor">Monitor</option>
+            <option value="Teclado">Teclado</option>
+            <option value="Mouse">Mouse</option>
+            <option value="Impresora">Impresora</option>
+            <option value="Escáner">Escáner</option>
+            <option value="Proyector">Proyector</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </label>
+
+        <label class="user-field">
+          <span>Estado</span>
+          <select id="newEquipmentEstado">
+            <option value="En Bodega">En Bodega</option>
+            <option value="Disponible">Disponible</option>
+            <option value="Asignado">Asignado</option>
+          </select>
+        </label>
+
+        <label class="user-field">
+          <span>Marca</span>
+          <input id="newEquipmentMarca" type="text" placeholder="Lenovo" />
+        </label>
+
+        <label class="user-field">
+          <span>Modelo</span>
+          <input id="newEquipmentModelo" type="text" placeholder="ThinkPad E15" />
+        </label>
+      </div>
+
+      <label class="user-field">
+        <span>Descripción</span>
+        <textarea id="newEquipmentDescripcion" rows="4" placeholder="Detalles adicionales del equipo"></textarea>
+      </label>
+    </section>
+
+    <footer class="user-modal__footer">
+      <button class="user-button user-button--ghost" id="cancelNewEquipmentModal" type="button">
+        Cancelar
+      </button>
+      <button class="user-button user-button--ghost" id="resetEquipmentUserButton" type="button">
+        Escanear Otro Carnet
+      </button>
+      <button class="user-button user-button--secondary" id="createEquipmentButton" type="button">
+        Registrar Equipo
+      </button>
+    </footer>
+  </section>
+</div>

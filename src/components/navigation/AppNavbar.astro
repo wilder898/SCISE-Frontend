@@ -120,8 +120,28 @@ const links = [
 
 <script>
   const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
-  const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
-  const isAdmin = sessionData.role === "admin";
+  function readSession() {
+    try {
+      const raw = localStorage.getItem("scise-session");
+      if (!raw) {
+        return {};
+      }
+
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function resolveIsAdmin(session) {
+    const roleValue = String(session?.role || session?.rol || "").toLowerCase();
+    const backendRole = String(session?.roleBackend || "").toUpperCase();
+    return roleValue === "admin" || roleValue === "administrador" || backendRole === "ADMINISTRADOR";
+  }
+
+  const sessionData = readSession();
+  const isAdmin = resolveIsAdmin(sessionData);
   const sidebarName = document.querySelector("[data-sidebar-name]");
   const sidebarRole = document.querySelector("[data-sidebar-role]");
   const adminOnlyLinks = document.querySelectorAll('[data-admin-only="true"]');

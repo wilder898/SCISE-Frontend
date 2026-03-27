@@ -4,6 +4,27 @@
   text-align: center;
 }
 
+.register-equipment-button {
+  background: #f97316;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.register-equipment-button:hover {
+  background: #ea580c;
+}
+
+.register-equipment-button svg {
+  stroke: currentColor;
+}
+
 .equipos {
   margin-top: 1rem;
   display: grid;
