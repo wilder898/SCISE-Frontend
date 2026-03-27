@@ -65,6 +65,7 @@ const initialUsers = [
   const permissionMessage = document.getElementById("userPermissionMessage");
 
   const openNewUserModal = document.getElementById("openNewUserModal");
+  const openRegisterEquipmentButton = document.getElementById("openRegisterEquipmentButton");
   const newUserModalBackdrop = document.getElementById("newUserModalBackdrop");
   const closeNewUserModal = document.getElementById("closeNewUserModal");
   const cancelNewUserModal = document.getElementById("cancelNewUserModal");
@@ -530,6 +531,22 @@ const initialUsers = [
     }, 900);
   }
 
+  function openRegisterEquipmentFlow() {
+    if (sessionRole !== "admin") {
+      alert("Solo administradores pueden registrar equipos asociados.");
+      return;
+    }
+
+    const targetUser = getFilteredUsers()[0] || state.users[0];
+
+    if (!targetUser) {
+      alert("No hay usuarios disponibles. Crea un usuario primero.");
+      return;
+    }
+
+    openModal(targetUser.id);
+  }
+
   if (sessionRoleBadge) {
     const badgeValue = sessionRoleBadge.querySelector("strong");
 
@@ -610,6 +627,7 @@ const initialUsers = [
   });
 
   openNewUserModal?.addEventListener("click", openCreateModal);
+  openRegisterEquipmentButton?.addEventListener("click", openRegisterEquipmentFlow);
   closeNewUserModal?.addEventListener("click", closeCreateModal);
   cancelNewUserModal?.addEventListener("click", closeCreateModal);
   createUserButton?.addEventListener("click", createUser);
