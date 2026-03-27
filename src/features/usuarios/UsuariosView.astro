@@ -167,9 +167,7 @@ const initialUsers = [
 
   const newEquipmentFields = {
     serial: document.getElementById("newEquipmentSerial"),
-    nombre: document.getElementById("newEquipmentNombre"),
     tipo: document.getElementById("newEquipmentTipo"),
-    estado: document.getElementById("newEquipmentEstado"),
     marca: document.getElementById("newEquipmentMarca"),
     modelo: document.getElementById("newEquipmentModelo"),
     descripcion: document.getElementById("newEquipmentDescripcion"),
@@ -177,7 +175,6 @@ const initialUsers = [
 
   const newEquipmentErrors = {
     serial: document.getElementById("newEquipmentSerialError"),
-    nombre: document.getElementById("newEquipmentNombreError"),
   };
 
   const editableKeys = ["nombre", "apellido", "email", "telefono", "rol", "estado"];
@@ -586,7 +583,7 @@ const initialUsers = [
 
     Object.values(newEquipmentFields).forEach((node) => {
       if (node instanceof HTMLInputElement || node instanceof HTMLSelectElement || node instanceof HTMLTextAreaElement) {
-        node.value = node.id === "newEquipmentTipo" ? "Portátil" : node.id === "newEquipmentEstado" ? "En Bodega" : "";
+        node.value = node.id === "newEquipmentTipo" ? "Portátil" : "";
       }
     });
 
@@ -857,14 +854,9 @@ const initialUsers = [
   function validateEquipmentForm() {
     let isValid = true;
     const serial = newEquipmentFields.serial instanceof HTMLInputElement ? newEquipmentFields.serial.value.trim() : "";
-    const nombre = newEquipmentFields.nombre instanceof HTMLInputElement ? newEquipmentFields.nombre.value.trim() : "";
 
     if (newEquipmentErrors.serial) {
       newEquipmentErrors.serial.textContent = serial ? "" : "El serial es obligatorio.";
-    }
-
-    if (newEquipmentErrors.nombre) {
-      newEquipmentErrors.nombre.textContent = nombre ? "" : "El nombre del equipo es obligatorio.";
     }
 
     if (!state.equipmentModalUserId) {
@@ -874,7 +866,7 @@ const initialUsers = [
       }
     }
 
-    if (!serial || !nombre) {
+    if (!serial) {
       isValid = false;
     }
 
@@ -891,7 +883,6 @@ const initialUsers = [
     }
 
     const serial = newEquipmentFields.serial instanceof HTMLInputElement ? newEquipmentFields.serial.value.trim() : "";
-    const nombre = newEquipmentFields.nombre instanceof HTMLInputElement ? newEquipmentFields.nombre.value.trim() : "";
     const tipo = newEquipmentFields.tipo instanceof HTMLSelectElement ? newEquipmentFields.tipo.value : "Otro";
     const marca = newEquipmentFields.marca instanceof HTMLInputElement ? newEquipmentFields.marca.value.trim() : "";
     const modelo = newEquipmentFields.modelo instanceof HTMLInputElement ? newEquipmentFields.modelo.value.trim() : "";
@@ -899,14 +890,14 @@ const initialUsers = [
       newEquipmentFields.descripcion instanceof HTMLTextAreaElement
         ? newEquipmentFields.descripcion.value.trim()
         : "";
-    const estadoVista = newEquipmentFields.estado instanceof HTMLSelectElement ? newEquipmentFields.estado.value : "En Bodega";
+    const nombreGenerado = [marca, modelo].filter(Boolean).join(" ").trim() || serial;
 
     try {
       createEquipmentButton?.setAttribute("disabled", "true");
 
       const equipoCreado = await createEquipmentInApi({
         serial,
-        nombre,
+        nombre: nombreGenerado,
         tipo_equipo: tipo,
         descripcion,
         codigo_barras_equipo: serial,
@@ -945,9 +936,9 @@ const initialUsers = [
       user.equipos.unshift({
         id: equipoCreado.id,
         serial: equipoCreado.serial,
-        nombre: equipoCreado.nombre,
+        nombre: equipoCreado.nombre || nombreGenerado,
         tipo: tipo,
-        estado: estadoVista,
+        estado: equipoCreado.estado || "DISPONIBLE",
         marca,
         modelo,
         descripcion,
