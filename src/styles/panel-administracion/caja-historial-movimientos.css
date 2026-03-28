@@ -115,6 +115,79 @@
   margin-top: 1.2rem;
 }
 
+.reportes-detail-modal[hidden] {
+  display: none;
+}
+
+.reportes-detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.reportes-detail-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.reportes-detail-modal__panel {
+  position: relative;
+  max-width: 44rem;
+  margin: 8vh auto;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+}
+
+.reportes-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.reportes-detail-modal__header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #0f172a;
+}
+
+.reportes-detail-modal__content {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.2rem 1.25rem;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.reportes-detail-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+}
+
+.reportes-detail-item strong {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.reportes-detail-item span {
+  color: #0f172a;
+  word-break: break-word;
+}
+
+body.reportes-modal-open {
+  overflow: hidden;
+}
+
 @media (max-width: 900px) {
   .reportes-table-header {
     flex-wrap: wrap;
@@ -127,5 +200,9 @@
   .reportes-pagination {
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+
+  .reportes-detail-modal__panel {
+    margin: 4vh 1rem;
   }
 }

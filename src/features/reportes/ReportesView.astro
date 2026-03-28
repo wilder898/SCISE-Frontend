@@ -131,7 +131,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   const typeFilter = document.getElementById("movementTypeFilter") as HTMLSelectElement | null;
   const dateFromFilter = document.getElementById("movementDateFromFilter") as HTMLInputElement | null;
   const dateToFilter = document.getElementById("movementDateToFilter") as HTMLInputElement | null;
-  const csvButton = document.getElementById("reportesCsvButton") as HTMLButtonElement | null;
+  const excelButton = document.getElementById("reportesExcelButton") as HTMLButtonElement | null;
   const pdfButton = document.getElementById("reportesPdfButton") as HTMLButtonElement | null;
   const allButton = document.getElementById("reportesAllButton") as HTMLButtonElement | null;
   const prevButton = document.getElementById("reportesPrevButton") as HTMLButtonElement | null;
@@ -144,6 +144,9 @@ import CajaInformacion from "./CajaInformacion.astro";
   const outsideEquiposMeta = document.getElementById("outsideEquiposMeta") as HTMLElement | null;
   const todayMovementsValue = document.getElementById("todayMovementsValue") as HTMLElement | null;
   const todayMovementsMeta = document.getElementById("todayMovementsMeta") as HTMLElement | null;
+  const detailModal = document.getElementById("reportesDetailModal") as HTMLElement | null;
+  const detailModalContent = document.getElementById("reportesDetailContent") as HTMLElement | null;
+  const detailModalCloseButton = document.getElementById("reportesDetailCloseButton") as HTMLButtonElement | null;
 
   function getAuthToken(): string {
     return localStorage.getItem("scise-auth-token") || "";
@@ -157,6 +160,37 @@ import CajaInformacion from "./CajaInformacion.astro";
     window.setTimeout(() => {
       window.location.href = "/auth/login";
     }, 900);
+  }
+
+  function getForbiddenMessage(detail?: string): string {
+    if (detail && detail.trim()) {
+      return detail;
+    }
+    return "No tienes permisos para consultar reportes. Accede con rol Administrador.";
+  }
+
+  async function getResponseDetail(response: Response, fallback: string): Promise<string> {
+    const payload = await response.json().catch(() => ({}));
+    if (typeof payload?.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+    return fallback;
+  }
+
+  async function handleAuthStatus(response: Response): Promise<void> {
+    if (response.status === 401) {
+      const detail = await getResponseDetail(response, "Sesion no autorizada.");
+      handleUnauthorized(detail);
+      throw new Error(detail);
+    }
+
+    if (response.status === 403) {
+      const detail = await getResponseDetail(
+        response,
+        "No tienes permisos para consultar reportes. Accede con rol Administrador."
+      );
+      throw new Error(getForbiddenMessage(detail));
+    }
   }
 
   function normalizeMovementType(value: unknown): MovementType {
@@ -273,6 +307,115 @@ import CajaInformacion from "./CajaInformacion.astro";
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
+  function escapeHtml(value: string): string {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function formatDetailLabel(key: string): string {
+    const labels: Record<string, string> = {
+      id: "ID",
+      movimiento_id: "ID Movimiento",
+      tipo_movimiento: "Tipo Movimiento",
+      fecha_registro: "Fecha Registro",
+      fecha_hora: "Fecha Hora",
+      estado: "Estado",
+      equipo_id: "Equipo ID",
+      serial: "Serial",
+      nombre_equipo: "Equipo",
+      equipo_nombre: "Equipo",
+      equipo_descripcion: "Descripcion Equipo",
+      nombre_usuario: "Usuario",
+      usuario_nombre: "Usuario",
+      documento: "Documento",
+      usuario_documento: "Documento",
+      estudiante_nombre: "Estudiante",
+      estudiante_documento: "Documento Estudiante",
+      usuario_id: "Usuario ID",
+      estudiante_id: "Estudiante ID",
+    };
+
+    if (labels[key]) {
+      return labels[key];
+    }
+    return key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  function formatDetailValue(value: unknown): string {
+    if (value === null || value === undefined || value === "") {
+      return "-";
+    }
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function closeDetailModal(): void {
+    if (detailModal) {
+      detailModal.hidden = true;
+    }
+    document.body.classList.remove("reportes-modal-open");
+  }
+
+  function openDetailModal(detalle: Record<string, unknown>): void {
+    if (!detailModal || !detailModalContent) {
+      return;
+    }
+
+    const preferredOrder = [
+      "id",
+      "movimiento_id",
+      "tipo_movimiento",
+      "fecha_registro",
+      "fecha_hora",
+      "estado",
+      "equipo_id",
+      "serial",
+      "nombre_equipo",
+      "equipo_nombre",
+      "equipo_descripcion",
+      "nombre_usuario",
+      "usuario_nombre",
+      "documento",
+      "usuario_documento",
+      "estudiante_nombre",
+      "estudiante_documento",
+      "usuario_id",
+      "estudiante_id",
+    ];
+
+    const entries = Object.entries(detalle || {});
+    const orderedEntries = [
+      ...preferredOrder
+        .filter((key) => entries.some(([entryKey]) => entryKey === key))
+        .map((key) => entries.find(([entryKey]) => entryKey === key) as [string, unknown]),
+      ...entries.filter(([entryKey]) => !preferredOrder.includes(entryKey)),
+    ];
+
+    detailModalContent.innerHTML = orderedEntries
+      .map(
+        ([key, value]) => `
+          <article class="reportes-detail-item">
+            <strong>${escapeHtml(formatDetailLabel(key))}</strong>
+            <span>${escapeHtml(formatDetailValue(value))}</span>
+          </article>
+        `
+      )
+      .join("");
+
+    detailModal.hidden = false;
+    document.body.classList.add("reportes-modal-open");
+  }
+
   function getFilters(): ReportFilters {
     return {
       tipo: String(typeFilter?.value || ""),
@@ -339,11 +482,8 @@ import CajaInformacion from "./CajaInformacion.astro";
     });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail = typeof payload?.detail === "string" ? payload.detail : "No fue posible cargar el resumen.";
-      if (response.status === 401) {
-        handleUnauthorized(detail);
-      }
+      await handleAuthStatus(response);
+      const detail = await getResponseDetail(response, "No fue posible cargar el resumen.");
       throw new Error(detail);
     }
 
@@ -398,11 +538,8 @@ import CajaInformacion from "./CajaInformacion.astro";
     });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail = typeof payload?.detail === "string" ? payload.detail : "No fue posible cargar el historial.";
-      if (response.status === 401) {
-        handleUnauthorized(detail);
-      }
+      await handleAuthStatus(response);
+      const detail = await getResponseDetail(response, "No fue posible cargar el historial.");
       throw new Error(detail);
     }
 
@@ -477,7 +614,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     return fallback;
   }
 
-  async function downloadSpreadsheetWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
+  async function downloadExcelWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
       throw new Error("Sesion no valida. Inicia sesion nuevamente.");
@@ -493,7 +630,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       `${API_BASE_URL}/reportes/movimientos/csv`,
     ];
 
-    let lastError = "No fue posible descargar el reporte.";
+    let lastError = "No fue posible descargar el archivo Excel.";
 
     for (const endpoint of endpoints) {
       const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
@@ -505,15 +642,7 @@ import CajaInformacion from "./CajaInformacion.astro";
         },
       });
 
-      if (response.status === 401) {
-        const payload = await response.json().catch(() => ({}));
-        const detail =
-          typeof payload?.detail === "string" && payload.detail.trim()
-            ? payload.detail
-            : "Sesion no autorizada.";
-        handleUnauthorized(detail);
-        throw new Error(detail);
-      }
+      await handleAuthStatus(response);
 
       if (!response.ok) {
         if (response.status === 404 || response.status === 405) {
@@ -521,17 +650,13 @@ import CajaInformacion from "./CajaInformacion.astro";
           continue;
         }
 
-        const payload = await response.json().catch(() => ({}));
-        const detail =
-          typeof payload?.detail === "string" && payload.detail.trim()
-            ? payload.detail
-            : "No fue posible descargar el reporte.";
+        const detail = await getResponseDetail(response, "No fue posible descargar el archivo Excel.");
         throw new Error(detail);
       }
 
       const blob = await response.blob();
       if (!blob || !blob.size) {
-        lastError = "El archivo de reporte llego vacio.";
+        lastError = "El archivo de Excel llego vacio.";
         continue;
       }
 
@@ -573,15 +698,7 @@ import CajaInformacion from "./CajaInformacion.astro";
         },
       });
 
-      if (response.status === 401) {
-        const payload = await response.json().catch(() => ({}));
-        const detail =
-          typeof payload?.detail === "string" && payload.detail.trim()
-            ? payload.detail
-            : "Sesion no autorizada.";
-        handleUnauthorized(detail);
-        throw new Error(detail);
-      }
+      await handleAuthStatus(response);
 
       if (!response.ok) {
         if (response.status === 404 || response.status === 405) {
@@ -589,11 +706,7 @@ import CajaInformacion from "./CajaInformacion.astro";
           continue;
         }
 
-        const payload = await response.json().catch(() => ({}));
-        const detail =
-          typeof payload?.detail === "string" && payload.detail.trim()
-            ? payload.detail
-            : "No fue posible descargar PDF.";
+        const detail = await getResponseDetail(response, "No fue posible descargar PDF.");
         throw new Error(detail);
       }
 
@@ -635,15 +748,7 @@ import CajaInformacion from "./CajaInformacion.astro";
         },
       });
 
-      if (response.status === 401) {
-        const payload = await response.json().catch(() => ({}));
-        const detail =
-          typeof payload?.detail === "string" && payload.detail.trim()
-            ? payload.detail
-            : "Sesion no autorizada.";
-        handleUnauthorized(detail);
-        throw new Error(detail);
-      }
+      await handleAuthStatus(response);
 
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
@@ -654,11 +759,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       }
 
       if (response.status !== 404 && response.status !== 405) {
-        const payload = await response.json().catch(() => ({}));
-        const detail =
-          typeof payload?.detail === "string" && payload.detail.trim()
-            ? payload.detail
-            : "No fue posible consultar detalle del movimiento.";
+        const detail = await getResponseDetail(response, "No fue posible consultar detalle del movimiento.");
         throw new Error(detail);
       }
     }
@@ -719,7 +820,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     loadReportes(1);
   });
 
-  csvButton?.addEventListener("click", async () => {
+  excelButton?.addEventListener("click", async () => {
     try {
       const filters = getFilters();
       if (!isValidDateRange(filters)) {
@@ -727,7 +828,7 @@ import CajaInformacion from "./CajaInformacion.astro";
         renderTable();
         return;
       }
-      await downloadSpreadsheetWithFilters(filters, "movimientos-filtrados.xlsx");
+      await downloadExcelWithFilters(filters, "movimientos-filtrados.xlsx");
     } catch (error) {
       state.errorMessage =
         error instanceof Error ? error.message : "No fue posible exportar Excel.";
@@ -737,7 +838,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   allButton?.addEventListener("click", async () => {
     try {
-      await downloadSpreadsheetWithFilters({
+      await downloadExcelWithFilters({
         tipo: "",
         fechaDesde: "",
         fechaHasta: "",
@@ -792,13 +893,30 @@ import CajaInformacion from "./CajaInformacion.astro";
 
       fetchMovimientoDetalleById(movementId)
         .then((detalle) => {
-          alert(JSON.stringify(detalle, null, 2));
+          openDetailModal(detalle);
         })
         .catch((error) => {
           state.errorMessage =
             error instanceof Error ? error.message : "No fue posible consultar detalle.";
           renderTable();
         });
+    }
+  });
+
+  detailModalCloseButton?.addEventListener("click", () => {
+    closeDetailModal();
+  });
+
+  detailModal?.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target?.closest("[data-close-reportes-modal]")) {
+      closeDetailModal();
+    }
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && detailModal && !detailModal.hidden) {
+      closeDetailModal();
     }
   });
 

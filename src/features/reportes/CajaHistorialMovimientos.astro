@@ -39,4 +39,83 @@
       Siguiente
     </button>
   </div>
+
+  <div class="reportes-detail-modal" id="reportesDetailModal" hidden>
+    <div class="reportes-detail-modal__backdrop" data-close-reportes-modal></div>
+    <div
+      class="reportes-detail-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reportesDetailTitle"
+    >
+      <header class="reportes-detail-modal__header">
+        <h3 id="reportesDetailTitle">Detalle del Movimiento</h3>
+        <button class="reportes-detail-modal__close" id="reportesDetailCloseButton" type="button" aria-label="Cerrar">
+          x
+        </button>
+      </header>
+      <div class="reportes-detail-modal__content">
+        <section class="reportes-detail-summary">
+          <article class="reportes-detail-summary__block">
+            <span>Tipo de Movimiento</span>
+            <strong class="reportes-detail-chip is-ingreso" id="reportesDetailTipo">Ingreso</strong>
+          </article>
+          <article class="reportes-detail-summary__block">
+            <span>ID de Movimiento</span>
+            <strong id="reportesDetailMovimientoId">#0</strong>
+          </article>
+        </section>
+
+        <section class="reportes-detail-section">
+          <h4 class="reportes-detail-section__title">Informacion del Usuario</h4>
+          <div class="reportes-detail-grid">
+            <article class="reportes-detail-field">
+              <span>Nombre</span>
+              <strong id="reportesDetailUsuarioNombre">-</strong>
+            </article>
+            <article class="reportes-detail-field">
+              <span>Documento</span>
+              <strong id="reportesDetailUsuarioDocumento">-</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="reportes-detail-section">
+          <h4 class="reportes-detail-section__title">Informacion del Equipo</h4>
+          <div class="reportes-detail-grid">
+            <article class="reportes-detail-field">
+              <span>Nombre</span>
+              <strong id="reportesDetailEquipoNombre">-</strong>
+            </article>
+            <article class="reportes-detail-field">
+              <span>Serial</span>
+              <strong id="reportesDetailEquipoSerial">-</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="reportes-detail-section">
+          <h4 class="reportes-detail-section__title">Informacion del Movimiento</h4>
+          <div class="reportes-detail-grid">
+            <article class="reportes-detail-field">
+              <span>Fecha y Hora</span>
+              <strong id="reportesDetailFechaHora">-</strong>
+            </article>
+            <article class="reportes-detail-field">
+              <span>Estado</span>
+              <strong class="reportes-detail-chip is-completado" id="reportesDetailEstado">Completado</strong>
+            </article>
+          </div>
+        </section>
+      </div>
+      <footer class="reportes-detail-modal__footer">
+        <button class="reportes-button reportes-button--outline" id="reportesDetailFooterCloseButton" type="button">
+          Cerrar
+        </button>
+        <button class="reportes-button reportes-button--ghost" id="reportesDetailPrintButton" type="button">
+          Imprimir Comprobante
+        </button>
+      </footer>
+    </div>
+  </div>
 </section>
