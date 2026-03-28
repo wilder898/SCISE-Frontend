@@ -15,22 +15,122 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import {
-    listReportMovements,
-    getMovementStats,
-    type MovementReportRow,
-  } from "../../lib/movimientos";
+  import { type MovementReportRow, type MovementType } from "../../lib/movimientos";
 
-  const state: { movements: MovementReportRow[]; currentPage: number; pageSize: number } = {
+  interface ReportesResumenResponse {
+    total_equipos?: number;
+    equipos_en_instalacion?: number;
+    equipos_fuera_instalacion?: number;
+    movimientos_hoy?: number;
+    inside_pct?: number;
+    outside_pct?: number;
+    totalEquipos?: number;
+    enInstalacion?: number;
+    fueraInstalacion?: number;
+    movimientosHoy?: number;
+    insidePct?: number;
+    outsidePct?: number;
+  }
+
+  interface HistorialApiMovimiento {
+    id?: string | number;
+    movimiento_id?: string | number;
+    tipo?: string;
+    tipo_movimiento?: string;
+    estado?: string;
+    fecha_hora?: string;
+    fecha_registro?: string;
+    timestamp?: string;
+    serial?: string;
+    equipo_id?: string | number;
+    nombre_equipo?: string;
+    equipo_nombre?: string;
+    equipo_descripcion?: string;
+    descripcion?: string;
+    nombre_usuario?: string;
+    usuario_nombre?: string;
+    estudiante_nombre?: string;
+    documento?: string;
+    usuario_documento?: string;
+    estudiante_documento?: string;
+    usuario?: {
+      nombre?: string;
+      documento?: string;
+    };
+    estudiante?: {
+      nombre?: string;
+      documento?: string;
+    };
+    equipo?: {
+      id?: string | number;
+      nombre?: string;
+      descripcion?: string;
+      serial?: string;
+    };
+  }
+
+  interface HistorialApiResponse {
+    data?: HistorialApiMovimiento[];
+    items?: HistorialApiMovimiento[];
+    results?: HistorialApiMovimiento[];
+    movimientos?: HistorialApiMovimiento[];
+    meta?: {
+      total?: number;
+      skip?: number;
+      limit?: number;
+      has_next?: boolean;
+      hasNext?: boolean;
+      page?: number;
+      current_page?: number;
+      total_pages?: number;
+    };
+    total?: number;
+    total_items?: number;
+    total_registros?: number;
+    page?: number;
+    pagina?: number;
+    current_page?: number;
+    total_pages?: number;
+    paginas?: number;
+  }
+
+  interface PaginationState {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  }
+
+  interface ReportFilters {
+    tipo: string;
+    fechaDesde: string;
+    fechaHasta: string;
+  }
+
+  interface ReportesState {
+    movements: MovementReportRow[];
+    pagination: PaginationState;
+    errorMessage: string;
+  }
+
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+  const state: ReportesState = {
     movements: [],
-    currentPage: 1,
-    pageSize: 5,
+    pagination: {
+      page: 1,
+      pageSize: 5,
+      totalItems: 0,
+      totalPages: 1,
+    },
+    errorMessage: "",
   };
 
   const tableBody = document.getElementById("reportesTableBody") as HTMLElement | null;
   const emptyState = document.getElementById("reportesEmptyState") as HTMLElement | null;
   const typeFilter = document.getElementById("movementTypeFilter") as HTMLSelectElement | null;
-  const dateFilter = document.getElementById("movementDateFilter") as HTMLInputElement | null;
+  const dateFromFilter = document.getElementById("movementDateFromFilter") as HTMLInputElement | null;
+  const dateToFilter = document.getElementById("movementDateToFilter") as HTMLInputElement | null;
   const csvButton = document.getElementById("reportesCsvButton") as HTMLButtonElement | null;
   const pdfButton = document.getElementById("reportesPdfButton") as HTMLButtonElement | null;
   const allButton = document.getElementById("reportesAllButton") as HTMLButtonElement | null;
@@ -45,6 +145,124 @@ import CajaInformacion from "./CajaInformacion.astro";
   const todayMovementsValue = document.getElementById("todayMovementsValue") as HTMLElement | null;
   const todayMovementsMeta = document.getElementById("todayMovementsMeta") as HTMLElement | null;
 
+  function getAuthToken(): string {
+    return localStorage.getItem("scise-auth-token") || "";
+  }
+
+  function handleUnauthorized(detail?: string): void {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    state.errorMessage = detail || "Sesion vencida. Inicia sesion nuevamente.";
+    renderTable();
+    window.setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 900);
+  }
+
+  function normalizeMovementType(value: unknown): MovementType {
+    const normalized = String(value || "").toUpperCase();
+    return normalized === "SALIDA" ? "Salida" : "Ingreso";
+  }
+
+  function mapApiMovementToReportRow(item: HistorialApiMovimiento): MovementReportRow {
+    const tipo = normalizeMovementType(item.tipo_movimiento || item.tipo);
+    const equipoInfo = item.equipo || {};
+    const usuarioInfo = item.usuario || item.estudiante || {};
+    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || new Date().toISOString());
+    const equipoId = String(item.equipo_id || equipoInfo.id || "");
+    const serial = String(item.serial || equipoInfo.serial || "");
+    const equipo = String(
+      item.equipo_descripcion ||
+      item.nombre_equipo ||
+      item.equipo_nombre ||
+      item.descripcion ||
+      equipoInfo.descripcion ||
+      equipoInfo.nombre ||
+      "Equipo"
+    );
+    const nombre = String(
+      item.nombre_usuario ||
+      item.usuario_nombre ||
+      item.estudiante_nombre ||
+      usuarioInfo.nombre ||
+      "Usuario"
+    );
+    const documento = String(
+      item.usuario_documento ||
+      item.estudiante_documento ||
+      item.documento ||
+      usuarioInfo.documento ||
+      "-"
+    );
+
+    return {
+      id: String(item.movimiento_id || item.id || `${equipoId}-${fechaHora}`),
+      tipo,
+      nombre,
+      documento,
+      equipo,
+      equipoId,
+      serial,
+      fechaHora,
+      estado: String(item.estado || "Completado"),
+    };
+  }
+
+  function parseHistorialResponse(
+    payload: unknown,
+    pageFallback: number,
+    pageSizeFallback: number
+  ): { rows: MovementReportRow[]; totalItems: number; page: number; totalPages: number } {
+    if (Array.isArray(payload)) {
+      const rows = payload.map((item) => mapApiMovementToReportRow(item as HistorialApiMovimiento));
+      const totalItems = rows.length;
+      return {
+        rows,
+        totalItems,
+        page: pageFallback,
+        totalPages: Math.max(1, Math.ceil(totalItems / pageSizeFallback)),
+      };
+    }
+
+    const body = (payload || {}) as HistorialApiResponse;
+    const meta = body.meta || {};
+    const rawRows = body.data || body.items || body.results || body.movimientos || [];
+    const rows = (Array.isArray(rawRows) ? rawRows : []).map((item) =>
+      mapApiMovementToReportRow(item as HistorialApiMovimiento)
+    );
+
+    const totalItems = Number(body.total ?? body.total_items ?? body.total_registros ?? meta.total ?? rows.length);
+    const limit = Number(meta.limit ?? pageSizeFallback);
+    const skip = Number(meta.skip ?? (pageFallback - 1) * pageSizeFallback);
+    const derivedPageFromSkip =
+      Number.isFinite(limit) && limit > 0 && Number.isFinite(skip) && skip >= 0
+        ? Math.floor(skip / limit) + 1
+        : pageFallback;
+    const page = Number(
+      body.page ??
+      body.pagina ??
+      body.current_page ??
+      meta.page ??
+      meta.current_page ??
+      derivedPageFromSkip
+    );
+    const totalPages = Number(
+      body.total_pages ??
+      body.paginas ??
+      meta.total_pages ??
+      (Number.isFinite(limit) && limit > 0
+        ? Math.max(1, Math.ceil(totalItems / limit))
+        : Math.max(1, Math.ceil(totalItems / pageSizeFallback)))
+    );
+
+    return {
+      rows,
+      totalItems: Number.isFinite(totalItems) ? totalItems : rows.length,
+      page: Number.isFinite(page) && page > 0 ? page : pageFallback,
+      totalPages: Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1,
+    };
+  }
+
   function formatDateTime(value: string): string {
     const date = new Date(value);
     const year = date.getFullYear();
@@ -55,41 +273,141 @@ import CajaInformacion from "./CajaInformacion.astro";
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
-  function updateStats(): void {
-    const stats = getMovementStats(state.movements);
-
-    if (insideEquiposValue) insideEquiposValue.textContent = String(stats.enInstalacion);
-    if (insideEquiposMeta) {
-      insideEquiposMeta.textContent = `${stats.insidePct}% del inventario actual`;
-    }
-    if (outsideEquiposValue) outsideEquiposValue.textContent = String(stats.fueraInstalacion);
-    if (outsideEquiposMeta) {
-      outsideEquiposMeta.textContent = `${stats.outsidePct}% del inventario actual`;
-    }
-    if (todayMovementsValue) {
-      todayMovementsValue.textContent = String(stats.movimientosHoy);
-    }
-    if (todayMovementsMeta) {
-      todayMovementsMeta.textContent = `${stats.movimientosHoy} movimientos registrados hoy`;
-    }
+  function getFilters(): ReportFilters {
+    return {
+      tipo: String(typeFilter?.value || ""),
+      fechaDesde: String(dateFromFilter?.value || ""),
+      fechaHasta: String(dateToFilter?.value || ""),
+    };
   }
 
-  function reloadMovements(): void {
-    state.movements = listReportMovements();
-    state.currentPage = 1;
-    updateStats();
-    renderTable();
+  function normalizeFilterType(value: string): string {
+    const normalized = value.trim().toUpperCase();
+    if (normalized.startsWith("INGRESO")) {
+      return "INGRESO";
+    }
+    if (normalized.startsWith("SALIDA")) {
+      return "SALIDA";
+    }
+    return "";
   }
 
-  function getFilteredMovements(): MovementReportRow[] {
-    const selectedType = String(typeFilter?.value || "");
-    const selectedDate = String(dateFilter?.value || "");
+  function isValidDateRange(filters: ReportFilters): boolean {
+    if (!filters.fechaDesde || !filters.fechaHasta) {
+      return true;
+    }
+    return new Date(filters.fechaDesde).getTime() <= new Date(filters.fechaHasta).getTime();
+  }
 
-    return state.movements.filter((movement: MovementReportRow) => {
-      const matchesType = !selectedType || movement.tipo === selectedType;
-      const matchesDate = !selectedDate || movement.fechaHora.slice(0, 10) === selectedDate;
-      return matchesType && matchesDate;
+  function buildFilterQuery(filters: ReportFilters): URLSearchParams {
+    const query = new URLSearchParams();
+    const tipo = normalizeFilterType(filters.tipo);
+    if (tipo) {
+      query.set("tipo", tipo);
+      query.set("tipo_movimiento", tipo);
+    }
+    if (filters.fechaDesde) {
+      query.set("fecha_inicio", filters.fechaDesde);
+      query.set("fecha_desde", filters.fechaDesde);
+    }
+    if (filters.fechaHasta) {
+      query.set("fecha_fin", filters.fechaHasta);
+      query.set("fecha_hasta", filters.fechaHasta);
+    }
+    if (filters.fechaDesde && filters.fechaHasta && filters.fechaDesde === filters.fechaHasta) {
+      query.set("fecha", filters.fechaDesde);
+    }
+    return query;
+  }
+
+  async function fetchResumenFromApi(filters: ReportFilters): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const query = buildFilterQuery(filters);
+    const url = query.toString()
+      ? `${API_BASE_URL}/reportes/movimientos/resumen?${query.toString()}`
+      : `${API_BASE_URL}/reportes/movimientos/resumen`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail = typeof payload?.detail === "string" ? payload.detail : "No fue posible cargar el resumen.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
+      throw new Error(detail);
+    }
+
+    const payload = (await response.json()) as ReportesResumenResponse;
+    const totalEquipos = Number(payload.total_equipos ?? payload.totalEquipos ?? 0);
+    const enInstalacion = Number(payload.equipos_en_instalacion ?? payload.enInstalacion ?? 0);
+    const fueraInstalacion = Number(payload.equipos_fuera_instalacion ?? payload.fueraInstalacion ?? 0);
+    const movimientosHoy = Number(payload.movimientos_hoy ?? payload.movimientosHoy ?? 0);
+    const insidePct = Number(
+      payload.inside_pct ??
+      payload.insidePct ??
+      (totalEquipos ? Math.round((enInstalacion / totalEquipos) * 100) : 0)
+    );
+    const outsidePct = Number(
+      payload.outside_pct ??
+      payload.outsidePct ??
+      (totalEquipos ? Math.round((fueraInstalacion / totalEquipos) * 100) : 0)
+    );
+
+    if (insideEquiposValue) insideEquiposValue.textContent = String(enInstalacion);
+    if (insideEquiposMeta) insideEquiposMeta.textContent = `${insidePct}% del inventario actual`;
+    if (outsideEquiposValue) outsideEquiposValue.textContent = String(fueraInstalacion);
+    if (outsideEquiposMeta) outsideEquiposMeta.textContent = `${outsidePct}% del inventario actual`;
+    if (todayMovementsValue) todayMovementsValue.textContent = String(movimientosHoy);
+    if (todayMovementsMeta) todayMovementsMeta.textContent = `${movimientosHoy} movimientos registrados`;
+  }
+
+  async function fetchHistorialPageFromApi(
+    page: number,
+    pageSize: number,
+    filters: ReportFilters
+  ): Promise<{ rows: MovementReportRow[]; totalItems: number; page: number; totalPages: number }> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const query = buildFilterQuery(filters);
+    const safePage = Math.max(1, page);
+    const safePageSize = Math.max(1, pageSize);
+    const skip = (safePage - 1) * safePageSize;
+    query.set("skip", String(skip));
+    query.set("limit", String(safePageSize));
+    query.set("page", String(page));
+    query.set("page_size", String(pageSize));
+
+    const response = await fetch(`${API_BASE_URL}/reportes/movimientos/historial?${query.toString()}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail = typeof payload?.detail === "string" ? payload.detail : "No fue posible cargar el historial.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
+      throw new Error(detail);
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    return parseHistorialResponse(payload, page, pageSize);
   }
 
   function renderTable(): void {
@@ -97,28 +415,20 @@ import CajaInformacion from "./CajaInformacion.astro";
       return;
     }
 
-    const filteredMovements = getFilteredMovements();
-    const totalPages = Math.max(1, Math.ceil(filteredMovements.length / state.pageSize));
+    const totalPages = state.pagination.totalPages;
+    pageInfo.textContent = `Pagina ${state.pagination.page} de ${totalPages}`;
+    prevButton.disabled = state.pagination.page <= 1;
+    nextButton.disabled = state.pagination.page >= totalPages;
 
-    if (state.currentPage > totalPages) {
-      state.currentPage = totalPages;
-    }
-
-    const start = (state.currentPage - 1) * state.pageSize;
-    const pageRows = filteredMovements.slice(start, start + state.pageSize);
-
-    pageInfo.textContent = `Pagina ${state.currentPage} de ${totalPages}`;
-    prevButton.disabled = state.currentPage === 1;
-    nextButton.disabled = state.currentPage === totalPages;
-
-    if (!pageRows.length) {
+    if (!state.movements.length) {
       tableBody.innerHTML = "";
       emptyState.hidden = false;
+      emptyState.textContent = state.errorMessage || "No hay movimientos que coincidan con los filtros aplicados.";
       return;
     }
 
     emptyState.hidden = true;
-    tableBody.innerHTML = pageRows
+    tableBody.innerHTML = state.movements
       .map(
         (movement: MovementReportRow) => `
           <tr>
@@ -148,85 +458,350 @@ import CajaInformacion from "./CajaInformacion.astro";
       .join("");
   }
 
-  function exportRows(filename: string, rows: MovementReportRow[]): void {
-    const header = ["Tipo", "Usuario", "Documento", "Equipo", "Serial", "FechaHora", "Estado"];
-    const csvRows = rows.map((movement: MovementReportRow) => [
-      movement.tipo,
-      movement.nombre,
-      movement.documento,
-      movement.equipo,
-      movement.serial,
-      movement.fechaHora,
-      movement.estado,
-    ]);
+  function getDownloadFilename(contentDisposition: string | null, fallback: string): string {
+    if (!contentDisposition) {
+      return fallback;
+    }
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+    const quotedMatch = contentDisposition.match(/filename="([^"]+)"/i);
+    if (quotedMatch?.[1]) {
+      return quotedMatch[1];
+    }
+    const plainMatch = contentDisposition.match(/filename=([^;]+)/i);
+    if (plainMatch?.[1]) {
+      return plainMatch[1].trim();
+    }
+    return fallback;
+  }
 
-    const csvContent = [header, ...csvRows]
-      .map((row: string[]) =>
-        row.map((value: string) => `"${String(value).replaceAll('"', '""')}"`).join(",")
-      )
-      .join("\n");
+  async function downloadCsvWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const query = buildFilterQuery(filters);
+    const endpoints = [
+      `${API_BASE_URL}/reportes/movimientos/export.csv`,
+      `${API_BASE_URL}/reportes/movimientos/export/csv`,
+      `${API_BASE_URL}/reportes/movimientos/csv`,
+    ];
+
+    let lastError = "No fue posible descargar CSV.";
+
+    for (const endpoint of endpoints) {
+      const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "text/csv",
+        },
+      });
+
+      if (response.status === 401) {
+        const payload = await response.json().catch(() => ({}));
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "Sesion no autorizada.";
+        handleUnauthorized(detail);
+        throw new Error(detail);
+      }
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 405) {
+          lastError = `Endpoint no disponible en ${endpoint}`;
+          continue;
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "No fue posible descargar CSV.";
+        throw new Error(detail);
+      }
+
+      const blob = await response.blob();
+      if (!blob || !blob.size) {
+        lastError = "El archivo CSV llego vacio.";
+        continue;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = getDownloadFilename(response.headers.get("content-disposition"), fallbackFilename);
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
+
+    throw new Error(lastError);
+  }
+
+  async function downloadPdfWithFilters(filters: ReportFilters): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const query = buildFilterQuery(filters);
+    const endpoints = [
+      `${API_BASE_URL}/reportes/movimientos/export.pdf`,
+      `${API_BASE_URL}/reportes/movimientos/historial/pdf`,
+      `${API_BASE_URL}/reportes/movimientos/pdf`,
+      `${API_BASE_URL}/reportes/movimientos/export/pdf`,
+    ];
+
+    let lastError = "No fue posible descargar PDF.";
+
+    for (const endpoint of endpoints) {
+      const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/pdf",
+        },
+      });
+
+      if (response.status === 401) {
+        const payload = await response.json().catch(() => ({}));
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "Sesion no autorizada.";
+        handleUnauthorized(detail);
+        throw new Error(detail);
+      }
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 405) {
+          lastError = `Endpoint no disponible en ${endpoint}`;
+          continue;
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "No fue posible descargar PDF.";
+        throw new Error(detail);
+      }
+
+      const blob = await response.blob();
+      if (!blob || !blob.size) {
+        lastError = "El archivo PDF llego vacio.";
+        continue;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "reporte-movimientos.pdf";
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
+
+    throw new Error(lastError);
+  }
+
+  async function fetchMovimientoDetalleById(movimientoId: string): Promise<Record<string, unknown>> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const endpoints = [
+      `${API_BASE_URL}/movimientos/${encodeURIComponent(movimientoId)}`,
+      `${API_BASE_URL}/reportes/movimientos/${encodeURIComponent(movimientoId)}`,
+      `${API_BASE_URL}/reportes/movimientos/historial/${encodeURIComponent(movimientoId)}`,
+    ];
+
+    for (const endpoint of endpoints) {
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        const payload = await response.json().catch(() => ({}));
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "Sesion no autorizada.";
+        handleUnauthorized(detail);
+        throw new Error(detail);
+      }
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        if (payload && typeof payload === "object" && "data" in (payload as Record<string, unknown>)) {
+          return ((payload as { data?: Record<string, unknown> }).data || {}) as Record<string, unknown>;
+        }
+        return (payload || {}) as Record<string, unknown>;
+      }
+
+      if (response.status !== 404 && response.status !== 405) {
+        const payload = await response.json().catch(() => ({}));
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "No fue posible consultar detalle del movimiento.";
+        throw new Error(detail);
+      }
+    }
+
+    throw new Error("No existe endpoint de detalle para este movimiento.");
+  }
+
+  async function loadReportes(page = 1): Promise<void> {
+    const filters = getFilters();
+    state.pagination.page = Math.max(1, page);
+    state.errorMessage = "";
+
+    if (!isValidDateRange(filters)) {
+      state.movements = [];
+      state.pagination.totalItems = 0;
+      state.pagination.totalPages = 1;
+      state.errorMessage = "El rango de fechas no es valido: la fecha inicial no puede ser mayor a la final.";
+      renderTable();
+      return;
+    }
+
+    try {
+      const [_, historial] = await Promise.all([
+        fetchResumenFromApi(filters),
+        fetchHistorialPageFromApi(state.pagination.page, state.pagination.pageSize, filters),
+      ]);
+
+      state.movements = historial.rows;
+      state.pagination.page = historial.page;
+      state.pagination.totalItems = historial.totalItems;
+      state.pagination.totalPages = historial.totalPages;
+    } catch (error) {
+      state.movements = [];
+      state.pagination.totalItems = 0;
+      state.pagination.totalPages = 1;
+      state.errorMessage =
+        error instanceof Error ? error.message : "No fue posible cargar reportes desde API.";
+      if (insideEquiposValue) insideEquiposValue.textContent = "0";
+      if (insideEquiposMeta) insideEquiposMeta.textContent = "Sin datos de API";
+      if (outsideEquiposValue) outsideEquiposValue.textContent = "0";
+      if (outsideEquiposMeta) outsideEquiposMeta.textContent = "Sin datos de API";
+      if (todayMovementsValue) todayMovementsValue.textContent = "0";
+      if (todayMovementsMeta) todayMovementsMeta.textContent = "Sin datos de API";
+    }
+
+    renderTable();
   }
 
   typeFilter?.addEventListener("change", () => {
-    state.currentPage = 1;
-    renderTable();
+    loadReportes(1);
   });
 
-  dateFilter?.addEventListener("change", () => {
-    state.currentPage = 1;
-    renderTable();
+  dateFromFilter?.addEventListener("change", () => {
+    loadReportes(1);
   });
 
-  csvButton?.addEventListener("click", () => {
-    exportRows("movimientos-filtrados.csv", getFilteredMovements());
+  dateToFilter?.addEventListener("change", () => {
+    loadReportes(1);
   });
 
-  allButton?.addEventListener("click", () => {
-    exportRows("movimientos-completos.csv", state.movements);
-  });
-
-  pdfButton?.addEventListener("click", () => {
-    alert("La descarga en PDF queda lista para implementar.");
-  });
-
-  prevButton?.addEventListener("click", () => {
-    if (state.currentPage > 1) {
-      state.currentPage -= 1;
+  csvButton?.addEventListener("click", async () => {
+    try {
+      const filters = getFilters();
+      if (!isValidDateRange(filters)) {
+        state.errorMessage = "El rango de fechas no es valido para exportar.";
+        renderTable();
+        return;
+      }
+      await downloadCsvWithFilters(filters, "movimientos-filtrados.csv");
+    } catch (error) {
+      state.errorMessage =
+        error instanceof Error ? error.message : "No fue posible exportar CSV.";
       renderTable();
     }
   });
 
-  nextButton?.addEventListener("click", () => {
-    const totalPages = Math.max(1, Math.ceil(getFilteredMovements().length / state.pageSize));
-
-    if (state.currentPage < totalPages) {
-      state.currentPage += 1;
+  allButton?.addEventListener("click", async () => {
+    try {
+      await downloadCsvWithFilters({
+        tipo: "",
+        fechaDesde: "",
+        fechaHasta: "",
+      }, "movimientos-completos.csv");
+    } catch (error) {
+      state.errorMessage =
+        error instanceof Error ? error.message : "No fue posible descargar el historial completo.";
       renderTable();
+    }
+  });
+
+  pdfButton?.addEventListener("click", async () => {
+    try {
+      const filters = getFilters();
+      if (!isValidDateRange(filters)) {
+        state.errorMessage = "El rango de fechas no es valido para exportar PDF.";
+        renderTable();
+        return;
+      }
+      await downloadPdfWithFilters(filters);
+    } catch (error) {
+      state.errorMessage =
+        error instanceof Error ? error.message : "No fue posible exportar PDF.";
+      renderTable();
+    }
+  });
+
+  prevButton?.addEventListener("click", () => {
+    if (state.pagination.page > 1) {
+      loadReportes(state.pagination.page - 1);
+    }
+  });
+
+  nextButton?.addEventListener("click", () => {
+    if (state.pagination.page < state.pagination.totalPages) {
+      loadReportes(state.pagination.page + 1);
     }
   });
 
   tableBody?.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
-
     if (!(target instanceof HTMLButtonElement)) {
       return;
     }
-
     if (target.classList.contains("movement-more")) {
-      alert("Menu de acciones listo para la siguiente iteracion.");
+      const movementId = String(target.dataset.movementId || "");
+      if (!movementId) {
+        state.errorMessage = "No se encontro el ID del movimiento.";
+        renderTable();
+        return;
+      }
+
+      fetchMovimientoDetalleById(movementId)
+        .then((detalle) => {
+          alert(JSON.stringify(detalle, null, 2));
+        })
+        .catch((error) => {
+          state.errorMessage =
+            error instanceof Error ? error.message : "No fue posible consultar detalle.";
+          renderTable();
+        });
     }
   });
 
   window.addEventListener("scise:movimientos-updated", () => {
-    reloadMovements();
+    loadReportes(state.pagination.page);
   });
 
-  reloadMovements();
+  loadReportes(1);
 </script>

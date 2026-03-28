@@ -134,7 +134,7 @@ const links = [
     }
   }
 
-  function resolveIsAdmin(session) {
+  function resolveIsAdmin(session: Record<string, unknown>) {
     const roleValue = String(session?.role || session?.rol || "").toLowerCase();
     const backendRole = String(session?.roleBackend || "").toUpperCase();
     return roleValue === "admin" || roleValue === "administrador" || backendRole === "ADMINISTRADOR";
