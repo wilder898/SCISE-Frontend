@@ -477,7 +477,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     return fallback;
   }
 
-  async function downloadCsvWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
+  async function downloadSpreadsheetWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
       throw new Error("Sesion no valida. Inicia sesion nuevamente.");
@@ -485,12 +485,15 @@ import CajaInformacion from "./CajaInformacion.astro";
 
     const query = buildFilterQuery(filters);
     const endpoints = [
+      `${API_BASE_URL}/reportes/movimientos/export.xlsx`,
+      `${API_BASE_URL}/reportes/movimientos/export/xlsx`,
+      `${API_BASE_URL}/reportes/movimientos/xlsx`,
       `${API_BASE_URL}/reportes/movimientos/export.csv`,
       `${API_BASE_URL}/reportes/movimientos/export/csv`,
       `${API_BASE_URL}/reportes/movimientos/csv`,
     ];
 
-    let lastError = "No fue posible descargar CSV.";
+    let lastError = "No fue posible descargar el reporte.";
 
     for (const endpoint of endpoints) {
       const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
@@ -498,7 +501,7 @@ import CajaInformacion from "./CajaInformacion.astro";
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: "text/csv",
+          Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv",
         },
       });
 
@@ -522,13 +525,13 @@ import CajaInformacion from "./CajaInformacion.astro";
         const detail =
           typeof payload?.detail === "string" && payload.detail.trim()
             ? payload.detail
-            : "No fue posible descargar CSV.";
+            : "No fue posible descargar el reporte.";
         throw new Error(detail);
       }
 
       const blob = await response.blob();
       if (!blob || !blob.size) {
-        lastError = "El archivo CSV llego vacio.";
+        lastError = "El archivo de reporte llego vacio.";
         continue;
       }
 
@@ -724,21 +727,21 @@ import CajaInformacion from "./CajaInformacion.astro";
         renderTable();
         return;
       }
-      await downloadCsvWithFilters(filters, "movimientos-filtrados.csv");
+      await downloadSpreadsheetWithFilters(filters, "movimientos-filtrados.xlsx");
     } catch (error) {
       state.errorMessage =
-        error instanceof Error ? error.message : "No fue posible exportar CSV.";
+        error instanceof Error ? error.message : "No fue posible exportar Excel.";
       renderTable();
     }
   });
 
   allButton?.addEventListener("click", async () => {
     try {
-      await downloadCsvWithFilters({
+      await downloadSpreadsheetWithFilters({
         tipo: "",
         fechaDesde: "",
         fechaHasta: "",
-      }, "movimientos-completos.csv");
+      }, "movimientos-completos.xlsx");
     } catch (error) {
       state.errorMessage =
         error instanceof Error ? error.message : "No fue posible descargar el historial completo.";
