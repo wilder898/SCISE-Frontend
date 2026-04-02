@@ -844,10 +844,6 @@ const initialUsers = [
   }
 
   function openRegisterEquipmentFlow() {
-    if (sessionRole !== "admin") {
-      alert("Solo administradores pueden registrar equipos asociados.");
-      return;
-    }
     openEquipmentModal();
   }
 
