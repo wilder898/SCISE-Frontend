@@ -160,15 +160,15 @@ const initialAuditLog = [
     }
 
     function resolveRoleId(roleName, fallbackRoleId = null) {
-      const parsedFallback = Number(fallbackRoleId);
-      if (Number.isInteger(parsedFallback) && parsedFallback > 0) {
-        return parsedFallback;
-      }
-
       const key = normalizeRoleForUi(roleName);
       const mapped = Number(roleIdByName[key]);
       if (Number.isInteger(mapped) && mapped > 0) {
         return mapped;
+      }
+
+      const parsedFallback = Number(fallbackRoleId);
+      if (Number.isInteger(parsedFallback) && parsedFallback > 0) {
+        return parsedFallback;
       }
 
       throw new Error(`No fue posible resolver el rol para ${key}.`);
@@ -473,23 +473,12 @@ const initialAuditLog = [
           <path d="M5 7h14M9 7V5h6v2m-7 3v7m4-7v7m4-7v7M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
-      const activeIcon = `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `;
-      const inactiveIcon = `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      `;
 
       emptyState.hidden = true;
       tableBody.innerHTML = state.accesses
         .map((access) => {
           const statusClass = access.estado === "Activo" ? "is-active" : "is-inactive";
-          const toggleLabel = access.estado === "Activo" ? "Desactivar acceso" : "Activar acceso";
-          const toggleIcon = access.estado === "Activo" ? inactiveIcon : activeIcon;
+          const toggleLabel = access.estado === "Activo" ? "Desactivar usuario" : "Activar usuario";
 
           return `
             <tr>
@@ -505,8 +494,20 @@ const initialAuditLog = [
               <td><span class="config-state-pill ${statusClass}">${escapeHtml(access.estado)}</span></td>
               <td>
                 <div class="config-table-actions" aria-label="Acciones de usuario">
+                  <button
+                    class="config-state-toggle ${statusClass}"
+                    type="button"
+                    title="${toggleLabel}"
+                    aria-label="${toggleLabel}"
+                    aria-pressed="${access.estado === "Activo" ? "true" : "false"}"
+                    data-action="toggle"
+                    data-access-id="${access.id}"
+                  >
+                    <span class="config-state-toggle__track">
+                      <span class="config-state-toggle__thumb"></span>
+                    </span>
+                  </button>
                   <button class="config-icon-button is-password" type="button" title="Cambiar contrasena" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
-                  <button class="config-icon-button ${access.estado === "Activo" ? "is-danger" : "is-success"}" type="button" title="${toggleLabel}" data-action="toggle" data-access-id="${access.id}">${toggleIcon}</button>
                   <button class="config-icon-button is-edit" type="button" title="Editar usuario" data-action="edit" data-access-id="${access.id}">${editIcon}</button>
                   <button class="config-icon-button is-danger" type="button" title="Eliminar usuario" data-action="delete" data-access-id="${access.id}">${deleteIcon}</button>
                 </div>

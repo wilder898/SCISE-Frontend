@@ -87,6 +87,54 @@
   color: #b91c1c;
 }
 
+.config-state-toggle {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.config-state-toggle__track {
+  width: 3rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.config-state-toggle__thumb {
+  width: 1.32rem;
+  height: 1.32rem;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 7px rgba(15, 23, 42, 0.18);
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+}
+
+.config-state-toggle.is-active .config-state-toggle__track {
+  background: #17863a;
+}
+
+.config-state-toggle.is-active .config-state-toggle__thumb {
+  transform: translateX(1.35rem);
+}
+
+.config-state-toggle.is-inactive .config-state-toggle__track {
+  background: #cbd5e1;
+}
+
+.config-state-toggle:focus-visible .config-state-toggle__track {
+  outline: 3px solid rgba(29, 78, 216, 0.22);
+  outline-offset: 2px;
+}
+
 .config-table-actions {
   display: flex;
   gap: 0.5rem;
