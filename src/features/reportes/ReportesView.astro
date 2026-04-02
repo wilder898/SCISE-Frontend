@@ -147,6 +147,8 @@ import CajaInformacion from "./CajaInformacion.astro";
   const detailModal = document.getElementById("reportesDetailModal") as HTMLElement | null;
   const detailModalContent = document.getElementById("reportesDetailContent") as HTMLElement | null;
   const detailModalCloseButton = document.getElementById("reportesDetailCloseButton") as HTMLButtonElement | null;
+  const detailModalFooterCloseButton = document.getElementById("reportesDetailFooterCloseButton") as HTMLButtonElement | null;
+  const detailModalPrintButton = document.getElementById("reportesDetailPrintButton") as HTMLButtonElement | null;
 
   function getAuthToken(): string {
     return localStorage.getItem("scise-auth-token") || "";
@@ -401,16 +403,25 @@ import CajaInformacion from "./CajaInformacion.astro";
       ...entries.filter(([entryKey]) => !preferredOrder.includes(entryKey)),
     ];
 
-    detailModalContent.innerHTML = orderedEntries
-      .map(
-        ([key, value]) => `
-          <article class="reportes-detail-item">
-            <strong>${escapeHtml(formatDetailLabel(key))}</strong>
-            <span>${escapeHtml(formatDetailValue(value))}</span>
-          </article>
-        `
-      )
-      .join("");
+    if (!orderedEntries.length) {
+      detailModalContent.innerHTML = `
+        <article class="reportes-detail-item">
+          <strong>Detalle</strong>
+          <span>No hay informacion disponible para este movimiento.</span>
+        </article>
+      `;
+    } else {
+      detailModalContent.innerHTML = orderedEntries
+        .map(
+          ([key, value]) => `
+            <article class="reportes-detail-item">
+              <strong>${escapeHtml(formatDetailLabel(key))}</strong>
+              <span>${escapeHtml(formatDetailValue(value))}</span>
+            </article>
+          `
+        )
+        .join("");
+    }
 
     detailModal.hidden = false;
     document.body.classList.add("reportes-modal-open");
@@ -905,6 +916,45 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   detailModalCloseButton?.addEventListener("click", () => {
     closeDetailModal();
+  });
+
+  detailModalFooterCloseButton?.addEventListener("click", () => {
+    closeDetailModal();
+  });
+
+  detailModalPrintButton?.addEventListener("click", () => {
+    if (!detailModalContent) {
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      state.errorMessage = "No fue posible abrir la ventana de impresion.";
+      renderTable();
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Detalle de Movimiento</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+            h1 { margin: 0 0 16px; font-size: 20px; }
+            .item { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+            .item strong { display: block; font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
+          </style>
+        </head>
+        <body>
+          <h1>Detalle de Movimiento</h1>
+          ${detailModalContent.innerHTML.replaceAll('class="reportes-detail-item"', 'class="item"')}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   });
 
   detailModal?.addEventListener("click", (event) => {
