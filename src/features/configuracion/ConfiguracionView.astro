@@ -8,6 +8,8 @@ import CajaAuditoriaAccesos from "./CajaAuditoriaAccesos.astro";
 import ModalNuevoUsuario from "./ModalNuevoUsuario.astro";
 import ModalEditarUsuario from "./ModalEditarUsuario.astro";
 
+const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
 const roleCatalog = ["Administrador", "Usuario"];
 
 const adminPermissions = [
@@ -109,8 +111,8 @@ const initialAuditLog = [
   </div>
 </section>
 
-<script define:vars={{ initialAccessUsers, initialAuditLog, roleCatalog, adminPermissions, userPermissions }}>
-  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+<script define:vars={{ initialAccessUsers, initialAuditLog, roleCatalog, adminPermissions, userPermissions, apiBaseUrl }}>
+  const API_BASE_URL = String(apiBaseUrl || "http://localhost:8000/api/v1").replace(/\/$/, "");
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
   const actorName = sessionData.username === "admin" ? "Admin SENA" : sessionData.username || "Administrador";
@@ -183,10 +185,10 @@ const initialAuditLog = [
         id: Number(user?.id) || Date.now(),
         nombre: String(user?.nombre || "Usuario sin nombre"),
         documento: String(user?.documento || "Sin documento"),
-        email: String(user?.correo || ""),
+        email: String(user?.correo || user?.email || ""),
         rol: normalizedRole,
         rolId: Number.isInteger(roleId) && roleId > 0 ? roleId : Number(roleIdByName[normalizedRole] || 0),
-        departamento: String(user?.area || ""),
+        departamento: String(user?.area || user?.departamento || ""),
         estado: normalizeEstadoForUi(user?.estado),
         permisos: getDefaultPermissions(normalizedRole),
       };
