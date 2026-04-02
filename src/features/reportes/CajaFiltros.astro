@@ -4,20 +4,25 @@
       <span>Filtrar por Tipo</span>
       <select id="movementTypeFilter">
         <option value="">Todos los Movimientos</option>
-        <option value="Ingreso">Ingresos</option>
-        <option value="Salida">Salidas</option>
+        <option value="INGRESO">Ingresos</option>
+        <option value="SALIDA">Salidas</option>
       </select>
     </label>
 
     <label class="reportes-field">
-      <span>Fecha</span>
-      <input id="movementDateFilter" type="date" />
+      <span>Fecha desde</span>
+      <input id="movementDateFromFilter" type="date" />
+    </label>
+
+    <label class="reportes-field">
+      <span>Fecha hasta</span>
+      <input id="movementDateToFilter" type="date" />
     </label>
   </div>
 
   <div class="reportes-filter-actions">
-    <button class="reportes-button reportes-button--ghost" id="reportesCsvButton" type="button">
-      Descargar CSV
+    <button class="reportes-button reportes-button--ghost" id="reportesExcelButton" type="button">
+      Descargar Excel
     </button>
     <button class="reportes-button reportes-button--accent" id="reportesPdfButton" type="button">
       Descargar PDF

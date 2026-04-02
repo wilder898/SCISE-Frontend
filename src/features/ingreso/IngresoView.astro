@@ -88,9 +88,15 @@ import CajaInformacion from "./CajaInformacion.astro";
   const equiposError = document.getElementById("equiposError") as HTMLElement;
 
   const registerUserButton = document.getElementById("registerUserButton") as HTMLButtonElement;
+  const registerEquipmentRedirectButton = document.getElementById(
+    "registerEquipmentRedirectButton"
+  ) as HTMLButtonElement;
 
   registerUserButton?.addEventListener("click", () => {
     window.location.href = "/usuarios?new=true";
+  });
+  registerEquipmentRedirectButton?.addEventListener("click", () => {
+    window.location.href = "/usuarios?equipment=true";
   });
   const listaEquipos = document.getElementById("listaEquipos") as HTMLElement;
   const equipoSuccess = document.getElementById("equipoSuccess") as HTMLElement;
@@ -109,6 +115,16 @@ import CajaInformacion from "./CajaInformacion.astro";
   const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
   const btnRegistrar = document.getElementById("btnRegistrar") as HTMLButtonElement;
   const messageFooter = document.getElementById("message") as HTMLElement;
+
+  function handleUnauthorized(detail: string) {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    messageFooter.textContent = detail;
+    messageFooter.style.color = "#dc2626";
+    window.setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 1200);
+  }
 
   function getSelectedEquipments() {
     return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
@@ -181,14 +197,14 @@ import CajaInformacion from "./CajaInformacion.astro";
     btnRegistrar.disabled = false;
   }
 
-  async function buscarEstudiantePorDocumento(documento: string): Promise<IngresoUser> {
+  async function buscarEstudiantePorIdentificador(identificador: string): Promise<IngresoUser> {
     const token = localStorage.getItem("scise-auth-token");
     if (!token) {
       throw new Error("Sesion no valida. Inicia sesion nuevamente.");
     }
 
     const response = await fetch(
-      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(documento)}`,
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(identificador)}`,
       {
         method: "GET",
         headers: {
@@ -203,6 +219,9 @@ import CajaInformacion from "./CajaInformacion.astro";
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "No fue posible consultar el estudiante.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
       throw new Error(detail);
     }
 
@@ -210,7 +229,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     return {
       id: String(estudiante.id),
       nombre: String(estudiante.nombre || ""),
-      documento: String(estudiante.documento || documento),
+      documento: String(estudiante.documento || identificador),
       rol: "Aprendiz",
     };
   }
@@ -237,6 +256,9 @@ import CajaInformacion from "./CajaInformacion.astro";
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "No fue posible consultar equipos asociados.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
       throw new Error(detail);
     }
 
@@ -276,20 +298,23 @@ import CajaInformacion from "./CajaInformacion.astro";
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "No fue posible registrar los ingresos.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
       throw new Error(detail);
     }
 
     return (await response.json()) as MovimientoIngresoBatchResponse;
   }
 
-  async function obtenerUsuario(documento: string): Promise<void> {
+  async function obtenerUsuario(identificador: string): Promise<void> {
     try {
       loadingUser.classList.remove("oculto");
       userError.classList.add("oculto");
       userSuccess.classList.add("oculto");
       userBox.classList.add("oculto");
 
-      const usuario = await buscarEstudiantePorDocumento(documento);
+      const usuario = await buscarEstudiantePorIdentificador(identificador);
 
       usuarioActual = usuario;
       nombreSpan.textContent = usuario.nombre;
@@ -367,9 +392,9 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   barcodeInput.addEventListener("keypress", (event) => {
     if (event.key === "Enter") {
-      const documento = barcodeInput.value.trim();
-      if (documento) {
-        obtenerUsuario(documento);
+      const identificador = barcodeInput.value.trim();
+      if (identificador) {
+        obtenerUsuario(identificador);
       }
     }
   });

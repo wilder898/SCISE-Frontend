@@ -49,7 +49,9 @@ import "../../styles/login.css";
         const payload = await response.json();
         const usuario = payload?.usuario || {};
         const rolBackend = String(usuario?.rol || "").toUpperCase();
-        const role = rolBackend === "ADMINISTRADOR" ? "admin" : "user";
+        const role = ["ADMINISTRADOR", "ADMIN", "ADMINISTRADOR_SCISE"].includes(rolBackend)
+          ? "admin"
+          : "user";
 
         localStorage.setItem("scise-auth-token", String(payload?.access_token || ""));
         localStorage.setItem(

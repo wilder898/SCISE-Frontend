@@ -39,4 +39,30 @@
       Siguiente
     </button>
   </div>
+
+  <div class="reportes-detail-modal" id="reportesDetailModal" hidden>
+    <div class="reportes-detail-modal__backdrop" data-close-reportes-modal></div>
+    <div
+      class="reportes-detail-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reportesDetailTitle"
+    >
+      <header class="reportes-detail-modal__header">
+        <h3 id="reportesDetailTitle">Detalle del Movimiento</h3>
+        <button class="reportes-detail-modal__close" id="reportesDetailCloseButton" type="button" aria-label="Cerrar">
+          x
+        </button>
+      </header>
+      <div class="reportes-detail-modal__content" id="reportesDetailContent"></div>
+      <footer class="reportes-detail-modal__footer">
+        <button class="reportes-button reportes-button--outline" id="reportesDetailFooterCloseButton" type="button">
+          Cerrar
+        </button>
+        <button class="reportes-button reportes-button--ghost" id="reportesDetailPrintButton" type="button">
+          Imprimir Comprobante
+        </button>
+      </footer>
+    </div>
+  </div>
 </section>

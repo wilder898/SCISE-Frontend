@@ -11,9 +11,9 @@
 
 .reportes-filters {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 18rem));
+  grid-template-columns: repeat(3, minmax(0, 18rem));
   gap: 1rem;
-  flex: 1 1 34rem;
+  flex: 1 1 52rem;
   min-width: 0;
 }
 
