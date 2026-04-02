@@ -882,7 +882,7 @@ const initialAuditLog = [
     }
 
     function handleTableAction(event) {
-      const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+      const target = event.target instanceof Element ? event.target.closest("button") : null;
 
       if (!(target instanceof HTMLButtonElement)) {
         return;
@@ -912,7 +912,7 @@ const initialAuditLog = [
     }
 
     function handleModalClose(event) {
-      const closeTarget = event.target instanceof HTMLElement ? event.target.closest("[data-close-modal]") : null;
+      const closeTarget = event.target instanceof Element ? event.target.closest("[data-close-modal]") : null;
 
       if (!(closeTarget instanceof HTMLElement)) {
         return;
