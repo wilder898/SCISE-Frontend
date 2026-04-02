@@ -1,4 +1,4 @@
-﻿<div class="config-modal" id="configNewUserModal" hidden>
+<div class="config-modal" id="configNewUserModal" hidden>
   <div class="config-modal__overlay" data-close-modal="configNewUserModal"></div>
 
   <section
@@ -46,6 +46,11 @@
             <option value="Usuario">Usuario</option>
             <option value="Administrador">Administrador</option>
           </select>
+        </label>
+
+        <label class="config-field">
+          <span>Contrasena inicial</span>
+          <input id="newUserPassword" type="password" placeholder="Minimo 6 caracteres" minlength="6" required />
         </label>
 
         <label class="config-field config-field--full">

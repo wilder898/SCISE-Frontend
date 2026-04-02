@@ -110,11 +110,11 @@ const initialAuditLog = [
 </section>
 
 <script define:vars={{ initialAccessUsers, initialAuditLog, roleCatalog, adminPermissions, userPermissions }}>
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
-  const usersStorageKey = "scise-config-users";
-  const auditStorageKey = "scise-config-audit-log";
   const actorName = sessionData.username === "admin" ? "Admin SENA" : sessionData.username || "Administrador";
+  const roleIdByName = { Administrador: 1, Usuario: 2 };
 
   const adminContent = document.getElementById("configAdminContent");
   const deniedContent = document.getElementById("configDeniedContent");
@@ -129,57 +129,186 @@ const initialAuditLog = [
       return role === "Administrador" ? [...adminPermissions] : [...userPermissions];
     }
 
+    function normalizeRoleForUi(role) {
+      const value = String(role || "").trim();
+      const normalized = value.toUpperCase();
+
+      if (normalized === "ADMINISTRADOR") return "Administrador";
+      if (normalized === "USUARIO") return "Usuario";
+
+      return roleCatalog.includes(value) ? value : "Usuario";
+    }
+
+    function normalizeEstadoForUi(estado) {
+      const value = String(estado || "").trim().toUpperCase();
+      return value === "INACTIVO" ? "Inactivo" : "Activo";
+    }
+
+    function normalizeEstadoForApi(estado) {
+      return String(estado || "").trim().toLowerCase() === "inactivo" ? "INACTIVO" : "ACTIVO";
+    }
+
+    function registerRoleId(roleName, roleId) {
+      const parsedRoleId = Number(roleId);
+      if (!Number.isInteger(parsedRoleId) || parsedRoleId <= 0) {
+        return;
+      }
+
+      roleIdByName[normalizeRoleForUi(roleName)] = parsedRoleId;
+    }
+
+    function resolveRoleId(roleName, fallbackRoleId = null) {
+      const parsedFallback = Number(fallbackRoleId);
+      if (Number.isInteger(parsedFallback) && parsedFallback > 0) {
+        return parsedFallback;
+      }
+
+      const key = normalizeRoleForUi(roleName);
+      const mapped = Number(roleIdByName[key]);
+      if (Number.isInteger(mapped) && mapped > 0) {
+        return mapped;
+      }
+
+      throw new Error(`No fue posible resolver el rol para ${key}.`);
+    }
+
     function normalizeUser(user) {
-      const normalizedRole = roleCatalog.includes(user?.rol) ? user.rol : "Usuario";
-      const normalizedState = user?.estado === "Inactivo" ? "Inactivo" : "Activo";
+      const normalizedRole = normalizeRoleForUi(user?.rol);
+      const roleId = Number(user?.rol_id);
+      if (Number.isInteger(roleId) && roleId > 0) {
+        registerRoleId(normalizedRole, roleId);
+      }
 
       return {
         id: Number(user?.id) || Date.now(),
         nombre: String(user?.nombre || "Usuario sin nombre"),
         documento: String(user?.documento || "Sin documento"),
-        email: String(user?.email || "sin-correo@sena.edu.co"),
+        email: String(user?.correo || ""),
         rol: normalizedRole,
-        departamento: String(user?.departamento || "Sin departamento"),
-        estado: normalizedState,
+        rolId: Number.isInteger(roleId) && roleId > 0 ? roleId : Number(roleIdByName[normalizedRole] || 0),
+        departamento: String(user?.area || ""),
+        estado: normalizeEstadoForUi(user?.estado),
         permisos: getDefaultPermissions(normalizedRole),
       };
     }
 
-    function loadUsers() {
-      try {
-        const raw = localStorage.getItem(usersStorageKey);
-
-        if (!raw) {
-          return initialAccessUsers.map((user) => normalizeUser(user));
-        }
-
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) && parsed.length
-          ? parsed.map((user) => normalizeUser(user))
-          : initialAccessUsers.map((user) => normalizeUser(user));
-      } catch {
-        return initialAccessUsers.map((user) => normalizeUser(user));
+    function formatAuditDate(value) {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return "Sin fecha";
       }
+
+      return parsed.toLocaleString("es-CO", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
     }
 
-    function loadAuditLog() {
-      try {
-        const raw = localStorage.getItem(auditStorageKey);
+    function inferAuditType(evento, tipoAuditoria) {
+      const base = `${String(tipoAuditoria || "")} ${String(evento || "")}`.toLowerCase();
 
-        if (!raw) {
-          return [...initialAuditLog];
-        }
+      if (base.includes("delete") || base.includes("elimin")) return "eliminar";
+      if (base.includes("insert") || base.includes("crea")) return "crear";
+      if (base.includes("password") || base.includes("contras")) return "contrasena";
+      if (base.includes("inactiv") || base.includes("desactiv")) return "desactivar";
+      if (base.includes("activ")) return "activar";
+      if (base.includes("update") || base.includes("edit")) return "editar";
 
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [...initialAuditLog];
-      } catch {
-        return [...initialAuditLog];
+      return "editar";
+    }
+
+    function normalizeAuditItem(item) {
+      const actor = String(item?.actor_nombre || (item?.usuario_id ? `Usuario ${item.usuario_id}` : "Sistema"));
+      const evento = String(item?.evento || "Movimiento").trim();
+      const tipoAuditoria = String(item?.tipo_auditoria || "").trim();
+
+      const detailParts = [];
+      if (evento) detailParts.push(`Evento: ${evento}.`);
+      if (tipoAuditoria) detailParts.push(`Tipo: ${tipoAuditoria}.`);
+      if (item?.url) detailParts.push(`Ruta: ${item.url}.`);
+      if (item?.tabla_id) detailParts.push(`Registro: ${item.tabla_id}.`);
+
+      return {
+        id: Number(item?.id) || Date.now(),
+        tipo: inferAuditType(evento, tipoAuditoria),
+        usuario: actor,
+        actor,
+        detalle: detailParts.join(" ") || "Registro de auditoria del sistema.",
+        fecha: formatAuditDate(item?.fecha_novedad),
+      };
+    }
+
+    async function apiRequest(path, options = {}) {
+      const method = options.method || "GET";
+      const query = options.query || null;
+      const body = options.body;
+      const token = localStorage.getItem("scise-auth-token");
+
+      if (!token) {
+        const authError = new Error("Tu sesion expiro. Inicia sesion nuevamente.");
+        authError.status = 401;
+        throw authError;
       }
+
+      const url = new URL(`${API_BASE_URL}${path}`);
+      if (query && typeof query === "object") {
+        Object.entries(query).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== "") {
+            url.searchParams.set(key, String(value));
+          }
+        });
+      }
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const response = await fetch(url.toString(), {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "No fue posible completar la solicitud.";
+
+        const requestError = new Error(detail);
+        requestError.status = response.status;
+        throw requestError;
+      }
+
+      return payload;
+    }
+
+    function handleRequestError(error, fallbackMessage) {
+      const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+      const status = Number(error?.status || 0);
+
+      if (status === 401) {
+        alert(`${message} Debes iniciar sesion nuevamente.`);
+        window.location.href = "/auth/login";
+        return;
+      }
+
+      alert(message || fallbackMessage);
     }
 
     const state = {
-      accesses: loadUsers(),
-      auditLog: loadAuditLog(),
+      accesses: [],
+      auditLog: [],
       passwordTargetId: null,
     };
 
@@ -198,6 +327,7 @@ const initialAuditLog = [
     const newUserDocumento = document.getElementById("newUserDocumento");
     const newUserRol = document.getElementById("newUserRol");
     const newUserDepartamento = document.getElementById("newUserDepartamento");
+    const newUserPassword = document.getElementById("newUserPassword");
 
     const editUserModal = document.getElementById("configEditUserModal");
     const editUserForm = document.getElementById("editUserForm");
@@ -217,14 +347,6 @@ const initialAuditLog = [
     const passwordResetFeedback = document.getElementById("passwordResetFeedback");
     const applyPasswordChange = document.getElementById("applyPasswordChange");
     const togglePasswordVisibility = document.getElementById("togglePasswordVisibility");
-
-    function persistUsers() {
-      localStorage.setItem(usersStorageKey, JSON.stringify(state.accesses));
-    }
-
-    function persistAuditLog() {
-      localStorage.setItem(auditStorageKey, JSON.stringify(state.auditLog));
-    }
 
     function escapeHtml(value) {
       return String(value)
@@ -302,7 +424,6 @@ const initialAuditLog = [
       if (!state.auditLog.length) {
         auditList.innerHTML = "";
         auditEmpty.hidden = false;
-        persistAuditLog();
         return;
       }
 
@@ -320,8 +441,6 @@ const initialAuditLog = [
           </article>
         `)
         .join("");
-
-      persistAuditLog();
     }
 
     function renderTable() {
@@ -333,7 +452,6 @@ const initialAuditLog = [
         tableBody.innerHTML = "";
         emptyState.hidden = false;
         updateCounters();
-        persistUsers();
         return;
       }
 
@@ -397,7 +515,6 @@ const initialAuditLog = [
         .join("");
 
       updateCounters();
-      persistUsers();
     }
 
     function openModal(modal) {
@@ -436,7 +553,33 @@ const initialAuditLog = [
       openModal(newUserModal);
     }
 
-    function createUser(event) {
+    async function refreshUsers() {
+      const payload = await apiRequest("/usuarios", {
+        query: { skip: 0, limit: 100 },
+      });
+
+      const users = Array.isArray(payload?.data) ? payload.data : [];
+      state.accesses = users.map((user) => normalizeUser(user));
+
+      if (state.passwordTargetId && !findAccessById(state.passwordTargetId)) {
+        state.passwordTargetId = null;
+      }
+
+      renderTable();
+      updatePasswordTarget();
+    }
+
+    async function refreshAudit() {
+      const payload = await apiRequest("/auditoria", {
+        query: { skip: 0, limit: 20 },
+      });
+
+      const logs = Array.isArray(payload?.data) ? payload.data : [];
+      state.auditLog = logs.map((item) => normalizeAuditItem(item)).slice(0, 8);
+      renderAudit();
+    }
+
+    async function createUser(event) {
       event.preventDefault();
 
       if (
@@ -444,7 +587,8 @@ const initialAuditLog = [
         !(newUserEmail instanceof HTMLInputElement) ||
         !(newUserDocumento instanceof HTMLInputElement) ||
         !(newUserRol instanceof HTMLSelectElement) ||
-        !(newUserDepartamento instanceof HTMLInputElement)
+        !(newUserDepartamento instanceof HTMLInputElement) ||
+        !(newUserPassword instanceof HTMLInputElement)
       ) {
         return;
       }
@@ -454,27 +598,48 @@ const initialAuditLog = [
       const documento = newUserDocumento.value.trim();
       const rol = newUserRol.value;
       const departamento = newUserDepartamento.value.trim();
+      const contrasena = newUserPassword.value.trim();
 
-      if (!nombre || !email || !documento || !departamento) {
+      if (!nombre || !email || !documento || !departamento || !contrasena) {
         alert("Completa todos los campos requeridos del nuevo usuario.");
         return;
       }
 
-      state.accesses.unshift({
-        id: Date.now(),
-        nombre,
-        documento,
-        email,
-        rol,
-        departamento,
-        estado: "Activo",
-        permisos: getDefaultPermissions(rol),
-      });
+      if (contrasena.length < 6) {
+        alert("La contrasena inicial debe tener al menos 6 caracteres.");
+        return;
+      }
 
-      renderTable();
-      addAuditEntry("crear", nombre, `Se creo una nueva cuenta con perfil ${rol}.`);
-      closeModal(newUserModal);
-      resetNewUserForm();
+      let roleId;
+      try {
+        roleId = resolveRoleId(rol);
+      } catch (error) {
+        handleRequestError(error, "No fue posible determinar el rol seleccionado.");
+        return;
+      }
+
+      try {
+        const createdUser = await apiRequest("/usuarios", {
+          method: "POST",
+          body: {
+            documento,
+            nombre,
+            correo: email,
+            area: departamento,
+            contrasena,
+            rol_id: roleId,
+            estado: "ACTIVO",
+          },
+        });
+
+        state.accesses.unshift(normalizeUser(createdUser));
+        renderTable();
+        addAuditEntry("crear", nombre, `Se creo una nueva cuenta con perfil ${rol}.`);
+        closeModal(newUserModal);
+        resetNewUserForm();
+      } catch (error) {
+        handleRequestError(error, "No fue posible crear el usuario.");
+      }
     }
 
     function openEdit(accessIdValue) {
@@ -494,7 +659,7 @@ const initialAuditLog = [
       openModal(editUserModal);
     }
 
-    function saveEdit(event) {
+    async function saveEdit(event) {
       event.preventDefault();
 
       if (
@@ -514,37 +679,82 @@ const initialAuditLog = [
         return;
       }
 
-      access.nombre = editUserNombre.value.trim();
-      access.email = editUserEmail.value.trim();
-      access.documento = editUserDocumento.value.trim();
-      access.rol = editUserRol.value;
-      access.departamento = editUserDepartamento.value.trim();
-      access.permisos = getDefaultPermissions(access.rol);
+      const nombre = editUserNombre.value.trim();
+      const email = editUserEmail.value.trim();
+      const documento = editUserDocumento.value.trim();
+      const rol = editUserRol.value;
+      const departamento = editUserDepartamento.value.trim();
 
-      renderTable();
-      addAuditEntry("editar", access.nombre, `Se actualizo la informacion del perfil ${access.rol}.`);
-      closeModal(editUserModal);
+      if (!nombre || !email || !documento || !departamento) {
+        alert("Completa todos los campos requeridos del usuario.");
+        return;
+      }
+
+      let roleId;
+      try {
+        roleId = resolveRoleId(rol, access.rolId);
+      } catch (error) {
+        handleRequestError(error, "No fue posible determinar el rol seleccionado.");
+        return;
+      }
+
+      try {
+        const updatedUser = await apiRequest(`/usuarios/${access.id}`, {
+          method: "PATCH",
+          body: {
+            documento,
+            nombre,
+            correo: email,
+            area: departamento,
+            rol_id: roleId,
+          },
+        });
+
+        const updatedAccess = normalizeUser(updatedUser);
+        state.accesses = state.accesses.map((item) => (item.id === access.id ? updatedAccess : item));
+
+        renderTable();
+        addAuditEntry("editar", updatedAccess.nombre, `Se actualizo la informacion del perfil ${updatedAccess.rol}.`);
+        closeModal(editUserModal);
+      } catch (error) {
+        handleRequestError(error, "No fue posible actualizar el usuario.");
+      }
     }
 
-    function toggleAccess(accessIdValue) {
+    async function toggleAccess(accessIdValue) {
       const access = findAccessById(accessIdValue);
 
       if (!access) {
         return;
       }
 
-      access.estado = access.estado === "Activo" ? "Inactivo" : "Activo";
-      renderTable();
-      addAuditEntry(
-        access.estado === "Activo" ? "activar" : "desactivar",
-        access.nombre,
-        access.estado === "Activo"
-          ? "La cuenta fue habilitada nuevamente para operar SCISE."
-          : "La cuenta fue deshabilitada para impedir acceso al sistema."
-      );
+      const nextEstadoUi = access.estado === "Activo" ? "Inactivo" : "Activo";
+
+      try {
+        const updatedUser = await apiRequest(`/usuarios/${access.id}/estado`, {
+          method: "PATCH",
+          body: {
+            estado: normalizeEstadoForApi(nextEstadoUi),
+          },
+        });
+
+        const updatedAccess = normalizeUser(updatedUser);
+        state.accesses = state.accesses.map((item) => (item.id === access.id ? updatedAccess : item));
+
+        renderTable();
+        addAuditEntry(
+          updatedAccess.estado === "Activo" ? "activar" : "desactivar",
+          updatedAccess.nombre,
+          updatedAccess.estado === "Activo"
+            ? "La cuenta fue habilitada nuevamente para operar SCISE."
+            : "La cuenta fue deshabilitada para impedir acceso al sistema."
+        );
+      } catch (error) {
+        handleRequestError(error, "No fue posible actualizar el estado del usuario.");
+      }
     }
 
-    function deleteAccess(accessIdValue) {
+    async function deleteAccess(accessIdValue) {
       const access = findAccessById(accessIdValue);
 
       if (!access) {
@@ -552,21 +762,29 @@ const initialAuditLog = [
       }
 
       const userName = access.nombre;
-      const confirmed = window.confirm(`Vas a eliminar el usuario ${userName}. Esta accion no se puede deshacer en este entorno local.`);
+      const confirmed = window.confirm(`Vas a eliminar el usuario ${userName}. Esta accion no se puede deshacer.`);
 
       if (!confirmed) {
         return;
       }
 
-      state.accesses = state.accesses.filter((item) => item.id !== accessIdValue);
+      try {
+        await apiRequest(`/usuarios/${access.id}`, {
+          method: "DELETE",
+        });
 
-      if (state.passwordTargetId === accessIdValue) {
-        state.passwordTargetId = null;
+        state.accesses = state.accesses.filter((item) => item.id !== accessIdValue);
+
+        if (state.passwordTargetId === accessIdValue) {
+          state.passwordTargetId = null;
+        }
+
+        renderTable();
+        updatePasswordTarget();
+        addAuditEntry("eliminar", userName, "La cuenta fue eliminada del catalogo de accesos del sistema.");
+      } catch (error) {
+        handleRequestError(error, "No fue posible eliminar el usuario.");
       }
-
-      renderTable();
-      updatePasswordTarget();
-      addAuditEntry("eliminar", userName, "La cuenta fue eliminada del catalogo de accesos del sistema.");
     }
 
     function updatePasswordTarget() {
@@ -588,7 +806,7 @@ const initialAuditLog = [
 
       if (passwordResetFeedback instanceof HTMLElement) {
         passwordResetFeedback.textContent = access
-          ? "Ingresa una nueva contrasena segura y confirrmala antes de aplicar."
+          ? "Ingresa una nueva contrasena segura y confirmala antes de aplicar."
           : "La nueva contrasena debe tener al menos 6 caracteres.";
       }
     }
@@ -609,7 +827,7 @@ const initialAuditLog = [
       openModal(passwordModal);
     }
 
-    function applyPasswordReset(event) {
+    async function applyPasswordReset(event) {
       event.preventDefault();
 
       const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
@@ -641,11 +859,24 @@ const initialAuditLog = [
         return;
       }
 
-      passwordNueva.value = "";
-      passwordConfirmacion.value = "";
-      addAuditEntry("contrasena", access.nombre, "Se realizo un cambio de contrasena desde configuracion.");
-      passwordResetFeedback.textContent = `Contrasena actualizada para ${access.nombre}.`;
-      closeModal(passwordModal);
+      try {
+        await apiRequest(`/usuarios/${access.id}/password`, {
+          method: "PATCH",
+          body: {
+            nueva_password: newPassword,
+            confirmacion: confirmPassword,
+          },
+        });
+
+        passwordNueva.value = "";
+        passwordConfirmacion.value = "";
+        addAuditEntry("contrasena", access.nombre, "Se realizo un cambio de contrasena desde configuracion.");
+        passwordResetFeedback.textContent = `Contrasena actualizada para ${access.nombre}.`;
+        closeModal(passwordModal);
+      } catch (error) {
+        passwordResetFeedback.textContent =
+          error instanceof Error && error.message ? error.message : "No fue posible actualizar la contrasena.";
+      }
     }
 
     function handleTableAction(event) {
@@ -658,10 +889,24 @@ const initialAuditLog = [
       const accessIdValue = Number(target.dataset.accessId || 0);
       const action = target.dataset.action;
 
-      if (action === "password") openPassword(accessIdValue);
-      if (action === "toggle") toggleAccess(accessIdValue);
-      if (action === "edit") openEdit(accessIdValue);
-      if (action === "delete") deleteAccess(accessIdValue);
+      if (action === "password") {
+        openPassword(accessIdValue);
+        return;
+      }
+
+      if (action === "toggle") {
+        void toggleAccess(accessIdValue);
+        return;
+      }
+
+      if (action === "edit") {
+        openEdit(accessIdValue);
+        return;
+      }
+
+      if (action === "delete") {
+        void deleteAccess(accessIdValue);
+      }
     }
 
     function handleModalClose(event) {
@@ -681,9 +926,15 @@ const initialAuditLog = [
     }
 
     openCreateUserModalButton?.addEventListener("click", openCreateUser);
-    newUserForm?.addEventListener("submit", createUser);
-    editUserForm?.addEventListener("submit", saveEdit);
-    passwordResetForm?.addEventListener("submit", applyPasswordReset);
+    newUserForm?.addEventListener("submit", (event) => {
+      void createUser(event);
+    });
+    editUserForm?.addEventListener("submit", (event) => {
+      void saveEdit(event);
+    });
+    passwordResetForm?.addEventListener("submit", (event) => {
+      void applyPasswordReset(event);
+    });
     tableBody?.addEventListener("click", handleTableAction);
     document.addEventListener("click", handleModalClose);
 
@@ -701,5 +952,19 @@ const initialAuditLog = [
     resetNewUserForm();
     renderTable();
     renderAudit();
+
+    (async () => {
+      try {
+        await refreshUsers();
+      } catch (error) {
+        handleRequestError(error, "No fue posible cargar los usuarios del sistema.");
+      }
+
+      try {
+        await refreshAudit();
+      } catch (error) {
+        handleRequestError(error, "No fue posible cargar la auditoria.");
+      }
+    })();
   }
 </script>
