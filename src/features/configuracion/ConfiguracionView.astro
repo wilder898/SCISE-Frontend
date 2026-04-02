@@ -402,7 +402,6 @@ const initialAuditLog = [
         }),
       });
 
-      state.auditLog = state.auditLog.slice(0, 8);
       renderAudit();
     }
 
@@ -574,11 +573,11 @@ const initialAuditLog = [
 
     async function refreshAudit() {
       const payload = await apiRequest("/auditoria", {
-        query: { skip: 0, limit: 20 },
+        query: { skip: 0, limit: 50 },
       });
 
       const logs = Array.isArray(payload?.data) ? payload.data : [];
-      state.auditLog = logs.map((item) => normalizeAuditItem(item)).slice(0, 8);
+      state.auditLog = logs.map((item) => normalizeAuditItem(item));
       renderAudit();
     }
 
