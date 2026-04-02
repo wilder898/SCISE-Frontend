@@ -10,32 +10,7 @@ import ModalNuevoEquipo from "./ModalNuevoEquipo.astro";
 
 const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 
-const initialUsers = [
-  {
-    id: 1,
-    nombre: "Juan",
-    apellido: "Perez",
-    cedula: "123456789",
-    carnet: "SENA-001",
-    email: "juan.perez@sena.edu.co",
-    telefono: "3001234567",
-    rol: "Aprendiz",
-    estado: "Activo",
-    fechaRegistro: "2026-01-12",
-    equipos: [
-      {
-        id: 101,
-        serial: "LAP-2024-0012345",
-        nombre: "Lenovo ThinkPad E15",
-        tipo: "Portátil",
-        marca: "Lenovo",
-        modelo: "ThinkPad E15",
-        descripcion: "Equipo institucional asignado para pruebas.",
-        estado: "En Bodega",
-      },
-    ],
-  },
-];
+const initialUsers = [];
 ---
 
 <section class="users-page">
@@ -201,6 +176,219 @@ const initialUsers = [
     localStorage.removeItem("scise-session");
     alert(detail);
     window.location.href = "/auth/login";
+  }
+
+  function normalizeEstadoFromApi(estado) {
+    return String(estado || "").toUpperCase() === "INACTIVO" ? "Inactivo" : "Activo";
+  }
+
+  function normalizeEstadoToApi(estado) {
+    return String(estado || "").toLowerCase() === "inactivo" ? "INACTIVO" : "ACTIVO";
+  }
+
+  function splitFullName(fullName) {
+    const normalized = String(fullName || "").trim().replace(/\s+/g, " ");
+    if (!normalized) {
+      return { nombre: "", apellido: "" };
+    }
+
+    const parts = normalized.split(" ");
+    return {
+      nombre: parts.shift() || "",
+      apellido: parts.join(" "),
+    };
+  }
+
+  function joinName(nombre, apellido) {
+    return [String(nombre || "").trim(), String(apellido || "").trim()]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  function mapApiStudentToUser(estudiante) {
+    const nombres = splitFullName(estudiante?.nombre);
+    return {
+      id: Number(estudiante?.id || 0),
+      nombre: nombres.nombre,
+      apellido: nombres.apellido,
+      cedula: String(estudiante?.documento || ""),
+      carnet: String(estudiante?.codigo_barras || ""),
+      email: String(estudiante?.email || ""),
+      telefono: String(estudiante?.celular || ""),
+      rol: String(estudiante?.rol || "Aprendiz"),
+      estado: normalizeEstadoFromApi(estudiante?.estado),
+      fechaRegistro: getTodayDate(),
+      equipos: [],
+    };
+  }
+
+  function upsertUserFromApi(estudiante) {
+    const mapped = mapApiStudentToUser(estudiante);
+    const existingIndex = state.users.findIndex((item) => item.id === mapped.id);
+    if (existingIndex >= 0) {
+      const equiposPrevios = state.users[existingIndex].equipos || [];
+      const fechaRegistroPrevia = state.users[existingIndex].fechaRegistro || mapped.fechaRegistro;
+      state.users[existingIndex] = {
+        ...mapped,
+        fechaRegistro: fechaRegistroPrevia,
+        equipos: [...equiposPrevios],
+      };
+    } else {
+      state.users.unshift(mapped);
+    }
+    return mapped;
+  }
+
+  async function listStudentsInApi() {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return [];
+    }
+
+    const response = await fetch(`${API_BASE_URL}/estudiantes?skip=0&limit=300`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      const payload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof payload?.detail === "string" ? payload.detail : undefined);
+      return [];
+    }
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible cargar los usuarios operativos."
+      );
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function createStudentInApi(payload) {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/estudiantes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      const unauthorizedPayload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof unauthorizedPayload?.detail === "string" ? unauthorizedPayload.detail : undefined);
+      return null;
+    }
+
+    if (!response.ok) {
+      const payloadError = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payloadError?.detail === "string" && payloadError.detail.trim()
+          ? payloadError.detail
+          : "No fue posible crear el usuario."
+      );
+    }
+
+    return await response.json();
+  }
+
+  async function patchStudentInApi(estudianteId, payload) {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/estudiantes/${estudianteId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.status === 401) {
+      const unauthorizedPayload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof unauthorizedPayload?.detail === "string" ? unauthorizedPayload.detail : undefined);
+      return null;
+    }
+
+    if (!response.ok) {
+      const payloadError = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payloadError?.detail === "string" && payloadError.detail.trim()
+          ? payloadError.detail
+          : "No fue posible actualizar el usuario."
+      );
+    }
+
+    return await response.json();
+  }
+
+  async function patchStudentEstadoInApi(estudianteId, estado) {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/estudiantes/${estudianteId}/estado`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ estado: normalizeEstadoToApi(estado) }),
+    });
+
+    if (response.status === 401) {
+      const unauthorizedPayload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof unauthorizedPayload?.detail === "string" ? unauthorizedPayload.detail : undefined);
+      return null;
+    }
+
+    if (!response.ok) {
+      const payloadError = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payloadError?.detail === "string" && payloadError.detail.trim()
+          ? payloadError.detail
+          : "No fue posible actualizar el estado del usuario."
+      );
+    }
+
+    return await response.json();
+  }
+
+  async function loadUsersFromApi() {
+    try {
+      const students = await listStudentsInApi();
+      if (!students.length) {
+        state.users = [];
+      } else {
+        state.users = students.map((student) => mapApiStudentToUser(student));
+      }
+      renderTable();
+      renderEquipmentTable();
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "No fue posible cargar usuarios desde API.");
+    }
   }
 
   function getFilteredUsers() {
@@ -436,7 +624,7 @@ const initialUsers = [
     document.body.classList.remove("user-modal-open");
   }
 
-  function saveModalChanges() {
+  async function saveModalChanges() {
     if (sessionRole !== "admin") {
       return;
     }
@@ -447,15 +635,42 @@ const initialUsers = [
       return;
     }
 
-    user.nombre = modalFields.nombre.value.trim();
-    user.apellido = modalFields.apellido.value.trim();
-    user.email = modalFields.email.value.trim();
-    user.telefono = modalFields.telefono.value.trim();
-    user.rol = modalFields.rol.value;
-    user.estado = modalFields.estado.value;
+    try {
+      saveUserButton?.setAttribute("disabled", "true");
 
-    renderTable();
-    closeModal();
+      const nombre = modalFields.nombre.value.trim();
+      const apellido = modalFields.apellido.value.trim();
+      const estadoSeleccionado = modalFields.estado.value;
+
+      const updatedStudent = await patchStudentInApi(user.id, {
+        nombre: joinName(nombre, apellido),
+        documento: modalFields.cedula.value.trim(),
+        codigo_barras: modalFields.carnet.value.trim(),
+        email: modalFields.email.value.trim() || null,
+        rol: modalFields.rol.value,
+        celular: modalFields.telefono.value.trim() || null,
+      });
+
+      if (!updatedStudent) {
+        return;
+      }
+
+      upsertUserFromApi(updatedStudent);
+
+      if (normalizeEstadoFromApi(updatedStudent.estado) !== estadoSeleccionado) {
+        const estadoActualizado = await patchStudentEstadoInApi(user.id, estadoSeleccionado);
+        if (estadoActualizado) {
+          upsertUserFromApi(estadoActualizado);
+        }
+      }
+
+      renderTable();
+      closeModal();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No fue posible guardar cambios.");
+    } finally {
+      saveUserButton?.removeAttribute("disabled");
+    }
   }
 
   function addEquipment() {
@@ -496,15 +711,25 @@ const initialUsers = [
     renderEquipmentList();
   }
 
-  function toggleStatus(userId) {
+  async function toggleStatus(userId) {
     const user = state.users.find((item) => item.id === userId);
 
     if (!user) {
       return;
     }
 
-    user.estado = user.estado === "Activo" ? "Inactivo" : "Activo";
-    renderTable();
+    try {
+      const siguienteEstado = user.estado === "Activo" ? "Inactivo" : "Activo";
+      const updated = await patchStudentEstadoInApi(user.id, siguienteEstado);
+      if (!updated) {
+        return;
+      }
+
+      upsertUserFromApi(updated);
+      renderTable();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No fue posible actualizar el estado.");
+    }
   }
 
   function exportCsv() {
@@ -805,27 +1030,37 @@ const initialUsers = [
     return isValid;
   }
 
-  function createUser() {
+  async function createUser() {
     if (!validateNewUserForm()) {
       return;
     }
 
-    state.users.unshift({
-      id: Date.now(),
-      nombre: newUserFields.nombre.value.trim(),
-      apellido: newUserFields.apellido.value.trim(),
-      cedula: newUserFields.cedula.value.trim(),
-      carnet: newUserFields.carnet.value.trim(),
-      email: newUserFields.email.value.trim(),
-      telefono: newUserFields.telefono.value.trim(),
-      rol: newUserFields.rol.value,
-      estado: "Activo",
-      fechaRegistro: getTodayDate(),
-      equipos: [],
-    });
+    try {
+      createUserButton?.setAttribute("disabled", "true");
 
-    renderTable();
-    closeCreateModal();
+      const payload = {
+        nombre: joinName(newUserFields.nombre.value.trim(), newUserFields.apellido.value.trim()),
+        documento: newUserFields.cedula.value.trim(),
+        codigo_barras: newUserFields.carnet.value.trim(),
+        email: newUserFields.email.value.trim() || null,
+        rol: newUserFields.rol.value,
+        celular: newUserFields.telefono.value.trim() || null,
+        estado: "ACTIVO",
+      };
+
+      const createdStudent = await createStudentInApi(payload);
+      if (!createdStudent) {
+        return;
+      }
+
+      upsertUserFromApi(createdStudent);
+      renderTable();
+      closeCreateModal();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No fue posible crear el usuario.");
+    } finally {
+      createUserButton?.removeAttribute("disabled");
+    }
   }
 
   function simulateCarnetScan() {
@@ -1100,6 +1335,7 @@ const initialUsers = [
 
   renderTable();
   renderEquipmentTable();
+  loadUsersFromApi();
 
   const routeParams = new URLSearchParams(window.location.search);
 
