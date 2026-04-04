@@ -86,3 +86,5 @@ Frontend de SCISE construido con Astro.
 | `npm run build` | Genera build de produccion |
 | `npm run preview` | Previsualiza el build |
 >>>>>>> main
+
+Prueba
