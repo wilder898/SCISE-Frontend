@@ -9,33 +9,6 @@ import NewUserModal from "./NewUserModal.astro";
 import ModalNuevoEquipo from "./ModalNuevoEquipo.astro";
 
 const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
-
-const initialUsers = [
-  {
-    id: 1,
-    nombre: "Juan",
-    apellido: "Perez",
-    cedula: "123456789",
-    carnet: "SENA-001",
-    email: "juan.perez@sena.edu.co",
-    telefono: "3001234567",
-    rol: "Aprendiz",
-    estado: "Activo",
-    fechaRegistro: "2026-01-12",
-    equipos: [
-      {
-        id: 101,
-        serial: "LAP-2024-0012345",
-        nombre: "Lenovo ThinkPad E15",
-        tipo: "Portátil",
-        marca: "Lenovo",
-        modelo: "ThinkPad E15",
-        descripcion: "Equipo institucional asignado para pruebas.",
-        estado: "En Bodega",
-      },
-    ],
-  },
-];
 ---
 
 <section class="users-page">
@@ -198,17 +171,42 @@ const initialUsers = [
     return `${user.nombre} ${user.apellido}`.trim();
   }
 
-  function formatDate(value) {
-    if (!value || !String(value).includes("-")) {
-      return "Sin fecha";
+  function splitFullName(fullName) {
+    const normalized = String(fullName || "").trim();
+    if (!normalized) {
+      return { nombre: "", apellido: "" };
     }
+    const parts = normalized.split(/\s+/);
+    return {
+      nombre: parts.shift() || "",
+      apellido: parts.join(" "),
+    };
+  }
 
+  function formatDate(value) {
+    if (!value || typeof value !== "string" || !value.includes("-")) {
+      return "--";
+    }
     const [year, month, day] = value.split("-");
     if (!year || !month || !day) {
-      return "Sin fecha";
+      return "--";
     }
-
     return `${day}/${month}/${year}`;
+  }
+
+  function toUiStatus(status) {
+    return String(status || "").toUpperCase() === "ACTIVO" ? "Activo" : "Inactivo";
+  }
+
+  function toBackendStatus(status) {
+    return String(status || "").toLowerCase() === "activo" ? "ACTIVO" : "INACTIVO";
+  }
+
+  function getErrorDetail(payload, fallbackMessage) {
+    if (typeof payload?.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+    return fallbackMessage;
   }
 
   function getAuthToken() {
@@ -282,62 +280,119 @@ const initialUsers = [
     window.location.href = "/auth/login";
   }
 
-  async function apiRequest(path, options = {}) {
+  function mapEstudianteToUser(estudiante) {
+    const { nombre, apellido } = splitFullName(estudiante?.nombre);
+    return {
+      id: Number(estudiante?.id || 0),
+      nombre,
+      apellido,
+      cedula: String(estudiante?.documento || ""),
+      carnet: String(estudiante?.codigo_barras || ""),
+      email: String(estudiante?.email || ""),
+      telefono: String(estudiante?.celular || ""),
+      rol: String(estudiante?.rol || "Aprendiz"),
+      estado: toUiStatus(estudiante?.estado),
+      fechaRegistro: String(estudiante?.fecha_registro || "").slice(0, 10),
+      equipos: [],
+    };
+  }
+
+  function listFromPayload(payload) {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    if (Array.isArray(payload?.data)) {
+      return payload.data;
+    }
+    return [];
+  }
+
+  async function apiRequest(path, options = {}, fallbackError = "No fue posible completar la solicitud.") {
     const token = getAuthToken();
     if (!token) {
       handleUnauthorized();
       return null;
     }
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const requestOptions = {
       method: options.method || "GET",
       headers: {
-        ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
         Authorization: `Bearer ${token}`,
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {}),
       },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    });
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    };
 
+    const response = await fetch(`${API_BASE_URL}${path}`, requestOptions);
     if (response.status === 401) {
       const payload = await response.json().catch(() => ({}));
-      handleUnauthorized(typeof payload?.detail === "string" ? payload.detail : undefined);
+      handleUnauthorized(getErrorDetail(payload, "Sesion no valida. Inicia sesion nuevamente."));
       return null;
     }
 
-    const payload = await response.json().catch(() => ({}));
-
     if (!response.ok) {
-      throw new Error(
-        typeof payload?.detail === "string" && payload.detail.trim()
-          ? payload.detail
-          : "No fue posible completar la solicitud."
-      );
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(getErrorDetail(payload, fallbackError));
     }
 
-    return payload;
+    if (response.status === 204) {
+      return null;
+    }
+
+    return await response.json().catch(() => null);
   }
 
-  async function loadUsersFromApi() {
-    state.usersLoading = true;
-    state.userErrorMessage = "";
-    renderTable();
+  async function hydrateUsersAndEquipments() {
+    const [studentsPayload, equipmentsPayload] = await Promise.all([
+      apiRequest("/estudiantes?skip=0&limit=500", {}, "No fue posible cargar estudiantes."),
+      apiRequest("/equipos?skip=0&limit=100", {}, "No fue posible cargar equipos."),
+    ]);
 
-    try {
-      const payload = await apiRequest("/estudiantes?skip=0&limit=200");
-      if (!payload) {
+    const users = listFromPayload(studentsPayload).map(mapEstudianteToUser);
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    listFromPayload(equipmentsPayload).forEach((equipo) => {
+      const estudianteId = Number(equipo?.estudiante_id || 0);
+      if (!estudianteId) {
         return;
       }
 
-      const items = Array.isArray(payload) ? payload : [];
-      state.users = items.map(mapStudentFromApi);
-    } catch (error) {
-      state.users = [];
-      state.userErrorMessage =
-        error instanceof Error ? error.message : "No fue posible cargar usuarios desde la base de datos.";
-    } finally {
-      state.usersLoading = false;
-      renderTable();
-    }
+      let user = usersById.get(estudianteId);
+      if (!user) {
+        const splitName = splitFullName(equipo?.estudiante_nombre || "");
+        user = {
+          id: estudianteId,
+          nombre: splitName.nombre || "Usuario",
+          apellido: splitName.apellido,
+          cedula: String(equipo?.estudiante_documento || ""),
+          carnet: "",
+          email: "",
+          telefono: "",
+          rol: "Aprendiz",
+          estado: "Activo",
+          fechaRegistro: "",
+          equipos: [],
+        };
+        users.push(user);
+        usersById.set(estudianteId, user);
+      }
+
+      user.equipos.push({
+        id: Number(equipo?.id || 0),
+        serial: String(equipo?.serial || ""),
+        nombre: String(equipo?.nombre || "Equipo"),
+        tipo: String(equipo?.tipo_equipo || "Otro"),
+        estado: String(equipo?.estado || "SIN_ESTADO"),
+        marca: "",
+        modelo: "",
+        descripcion: String(equipo?.descripcion || ""),
+      });
+    });
+
+    state.users = users;
+    renderTable();
+    renderEquipmentTable();
   }
 
   function getFilteredUsers() {
@@ -644,6 +699,42 @@ const initialUsers = [
       return;
     }
 
+    try {
+      saveUserButton?.setAttribute("disabled", "true");
+
+      const payload = await apiRequest(
+        `/estudiantes/${encodeURIComponent(user.id)}`,
+        {
+          method: "PATCH",
+          body: {
+            nombre: [modalFields.nombre.value.trim(), modalFields.apellido.value.trim()]
+              .filter(Boolean)
+              .join(" ")
+              .trim(),
+            documento: modalFields.cedula.value.trim(),
+            codigo_barras: modalFields.carnet.value.trim(),
+            email: modalFields.email.value.trim() || null,
+            rol: modalFields.rol.value,
+            celular: modalFields.telefono.value.trim() || null,
+            estado: toBackendStatus(modalFields.estado.value),
+          },
+        },
+        "No fue posible actualizar el usuario."
+      );
+
+      if (!payload) {
+        return;
+      }
+
+      const nextUser = mapEstudianteToUser(payload);
+      nextUser.equipos = [...user.equipos];
+      const userIndex = state.users.findIndex((item) => item.id === user.id);
+      if (userIndex >= 0) {
+        state.users[userIndex] = nextUser;
+      }
+
+      renderTable();
+      renderEquipmentTable();
     const updatedUser = {
       ...user,
       nombre: modalFields.nombre.value.trim(),
@@ -718,27 +809,34 @@ const initialUsers = [
     renderEquipmentList();
   }
 
-  async function toggleStatus(userId) {
+  function toggleStatus(userId) {
+    toggleStatusAsync(userId);
+  }
+
+  async function toggleStatusAsync(userId) {
     const user = state.users.find((item) => item.id === userId);
 
     if (!user) {
       return;
     }
 
-    try {
-      const response = await apiRequest(`/estudiantes/${user.id}/estado`, {
-        method: "PATCH",
-        body: {
-          estado: user.estado === "Activo" ? "INACTIVO" : "ACTIVO",
-        },
-      });
+    const nextState = user.estado === "Activo" ? "INACTIVO" : "ACTIVO";
 
-      if (!response) {
+    try {
+      const payload = await apiRequest(
+        `/estudiantes/${encodeURIComponent(userId)}/estado`,
+        {
+          method: "PATCH",
+          body: { estado: nextState },
+        },
+        "No fue posible actualizar el estado del usuario."
+      );
+
+      if (!payload) {
         return;
       }
 
-      const normalized = mapStudentFromApi(response);
-      state.users = state.users.map((item) => (item.id === normalized.id ? normalized : item));
+      user.estado = toUiStatus(payload?.estado || nextState);
       renderTable();
     } catch (error) {
       alert(error instanceof Error ? error.message : "No fue posible actualizar el estado del usuario.");
@@ -1190,37 +1288,50 @@ const initialUsers = [
       return;
     }
 
+    const nombre = newUserFields.nombre.value.trim();
+    const apellido = newUserFields.apellido.value.trim();
+    const documento = newUserFields.cedula.value.trim();
+    const carnet = newUserFields.carnet.value.trim();
+    const email = newUserFields.email.value.trim();
+    const telefono = newUserFields.telefono.value.trim();
+    const rol = newUserFields.rol.value;
+
     try {
       createUserButton?.setAttribute("disabled", "true");
 
-      const payload = buildStudentPayloadFromUserInput(
+      const payload = await apiRequest(
+        "/estudiantes",
         {
-          nombre: newUserFields.nombre.value.trim(),
-          apellido: newUserFields.apellido.value.trim(),
-          cedula: newUserFields.cedula.value.trim(),
-          carnet: newUserFields.carnet.value.trim(),
-          email: newUserFields.email.value.trim(),
-          telefono: newUserFields.telefono.value.trim(),
-          rol: newUserFields.rol.value,
-          estado: "Activo",
+          method: "POST",
+          body: {
+            nombre: [nombre, apellido].filter(Boolean).join(" ").trim(),
+            documento,
+            codigo_barras: carnet,
+            email,
+            rol,
+            celular: telefono || null,
+            estado: "ACTIVO",
+          },
         },
-        true
+        "No fue posible crear el usuario."
       );
 
-      const response = await apiRequest("/estudiantes", {
-        method: "POST",
-        body: payload,
-      });
-
-      if (!response) {
+      if (!payload) {
         return;
       }
 
-      state.users.unshift(mapStudentFromApi(response));
+      const nuevo = mapEstudianteToUser(payload);
+      state.users.unshift(nuevo);
       renderTable();
       closeCreateModal();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "No fue posible crear el usuario.");
+      const message = error instanceof Error ? error.message : "No fue posible crear el usuario.";
+      if (scanStatusMessage) {
+        scanStatusMessage.textContent = message;
+        scanStatusMessage.className = "new-user-scan-card__status is-error";
+      } else {
+        alert(message);
+      }
     } finally {
       createUserButton?.removeAttribute("disabled");
     }
@@ -1302,8 +1413,7 @@ const initialUsers = [
         return;
       }
 
-      await loadUsersFromApi();
-      await loadEquipmentTable();
+      await hydrateUsersAndEquipments();
       closeEquipmentModal();
     } catch (error) {
       if (equipmentLookupError) {
@@ -1484,8 +1594,9 @@ const initialUsers = [
     }
   });
 
-  void loadUsersFromApi();
-  loadEquipmentTable();
+  hydrateUsersAndEquipments().catch((error) => {
+    alert(error instanceof Error ? error.message : "No fue posible cargar los usuarios.");
+  });
 
   const routeParams = new URLSearchParams(window.location.search);
 
