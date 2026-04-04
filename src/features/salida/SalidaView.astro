@@ -181,14 +181,14 @@ import CajaInformacion from "./CajaInformacion.astro";
     btnRegistrar.disabled = false;
   }
 
-  async function buscarEstudiantePorIdentificador(identificador: string): Promise<SalidaUser> {
+  async function buscarEstudiantePorDocumento(documento: string): Promise<SalidaUser> {
     const token = localStorage.getItem("scise-auth-token");
     if (!token) {
       throw new Error("Sesion no valida. Inicia sesion nuevamente.");
     }
 
     const response = await fetch(
-      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(identificador)}`,
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(documento)}`,
       {
         method: "GET",
         headers: {
@@ -210,7 +210,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     return {
       id: String(estudiante.id),
       nombre: String(estudiante.nombre || ""),
-      documento: String(estudiante.documento || identificador),
+      documento: String(estudiante.documento || documento),
       rol: "Aprendiz",
     };
   }
@@ -288,13 +288,13 @@ import CajaInformacion from "./CajaInformacion.astro";
     return (await response.json()) as MovimientoSalidaBatchResponse;
   }
 
-  async function obtenerUsuario(identificador: string): Promise<void> {
+  async function obtenerUsuario(documento: string): Promise<void> {
     try {
       loadingUser.classList.remove("oculto");
       userError.classList.add("oculto");
       userSuccess.classList.add("oculto");
       userBox.classList.add("oculto");
-      const usuario = await buscarEstudiantePorIdentificador(identificador);
+      const usuario = await buscarEstudiantePorDocumento(documento);
 
       usuarioActual = usuario;
       nombreSpan.textContent = usuario.nombre;
@@ -364,9 +364,9 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   barcodeInput.addEventListener("keypress", (event) => {
     if (event.key === "Enter") {
-      const identificador = barcodeInput.value.trim();
-      if (identificador) {
-        obtenerUsuario(identificador);
+      const documento = barcodeInput.value.trim();
+      if (documento) {
+        obtenerUsuario(documento);
       }
     }
   });
