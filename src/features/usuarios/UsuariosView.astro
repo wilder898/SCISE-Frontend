@@ -172,6 +172,18 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     return `${user.nombre} ${user.apellido}`.trim();
   }
 
+  function splitFullName(fullName) {
+    const normalized = String(fullName || "").trim();
+    if (!normalized) {
+      return { nombre: "", apellido: "" };
+    }
+    const parts = normalized.split(/\s+/);
+    return {
+      nombre: parts.shift() || "",
+      apellido: parts.join(" "),
+    };
+  }
+
   function formatDate(value) {
     if (!value || !String(value).includes("-")) {
       return "Sin fecha";
