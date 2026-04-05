@@ -154,6 +154,28 @@ import CajaInformacion from "./CajaInformacion.astro";
     return localStorage.getItem("scise-auth-token") || "";
   }
 
+  function readSession(): Record<string, unknown> {
+    try {
+      const raw = localStorage.getItem("scise-session");
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function resolveIsAdmin(session: Record<string, unknown>): boolean {
+    const roleValue = String(session?.role || session?.rol || "").toLowerCase();
+    const backendRole = String(session?.roleBackend || "").toUpperCase();
+    return roleValue === "admin" || roleValue === "administrador" || backendRole === "ADMINISTRADOR";
+  }
+
+  const sessionData = readSession();
+  const isAdmin = resolveIsAdmin(sessionData);
+
   function handleUnauthorized(detail?: string): void {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
@@ -479,8 +501,8 @@ import CajaInformacion from "./CajaInformacion.astro";
 
     const query = buildFilterQuery(filters);
     const url = query.toString()
-      ? `${API_BASE_URL}/reportes/movimientos/resumen?${query.toString()}`
-      : `${API_BASE_URL}/reportes/movimientos/resumen`;
+      ? `${API_BASE_URL}/${isAdmin ? "reportes/movimientos/resumen" : "dashboard/resumen"}?${query.toString()}`
+      : `${API_BASE_URL}/${isAdmin ? "reportes/movimientos/resumen" : "dashboard/resumen"}`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -532,13 +554,19 @@ import CajaInformacion from "./CajaInformacion.astro";
     const query = buildFilterQuery(filters);
     const safePage = Math.max(1, page);
     const safePageSize = Math.max(1, pageSize);
-    const skip = (safePage - 1) * safePageSize;
-    query.set("skip", String(skip));
-    query.set("limit", String(safePageSize));
-    query.set("page", String(safePage));
-    query.set("page_size", String(safePageSize));
+    if (isAdmin) {
+      const skip = (safePage - 1) * safePageSize;
+      query.set("skip", String(skip));
+      query.set("limit", String(safePageSize));
+      query.set("page", String(safePage));
+      query.set("page_size", String(safePageSize));
+    } else {
+      query.set("page", String(safePage));
+      query.set("limit", String(safePageSize));
+    }
 
-    const response = await fetch(`${API_BASE_URL}/reportes/movimientos/historial?${query.toString()}`, {
+    const endpoint = isAdmin ? "reportes/movimientos/historial" : "dashboard/historial-reciente";
+    const response = await fetch(`${API_BASE_URL}/${endpoint}?${query.toString()}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -680,6 +708,62 @@ import CajaInformacion from "./CajaInformacion.astro";
     throw new Error(lastError);
   }
 
+  async function downloadPdfWithFilters(filters: ReportFilters): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+    }
+
+    const query = buildFilterQuery(filters);
+    const endpoints = [
+      `${API_BASE_URL}/reportes/movimientos/export.pdf`,
+      `${API_BASE_URL}/reportes/movimientos/historial/pdf`,
+      `${API_BASE_URL}/reportes/movimientos/pdf`,
+      `${API_BASE_URL}/reportes/movimientos/export/pdf`,
+    ];
+
+    let lastError = "No fue posible descargar PDF.";
+
+    for (const endpoint of endpoints) {
+      const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/pdf",
+        },
+      });
+
+      await handleAuthStatus(response);
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 405) {
+          lastError = `Endpoint no disponible en ${endpoint}`;
+          continue;
+        }
+
+        const detail = await getResponseDetail(response, "No fue posible descargar PDF.");
+        throw new Error(detail);
+      }
+
+      const blob = await response.blob();
+      if (!blob || !blob.size) {
+        lastError = "El archivo PDF llego vacio.";
+        continue;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "reporte-movimientos.pdf";
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
+
+    throw new Error(lastError);
+  }
+
   async function fetchMovimientoDetalleById(movimientoId: string): Promise<Record<string, unknown>> {
     const token = getAuthToken();
     if (!token) {
@@ -802,14 +886,20 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   });
 
-  if (pdfButton) {
-    pdfButton.disabled = true;
-    pdfButton.title = "Exportacion PDF no disponible por ahora.";
-  }
-
-  pdfButton?.addEventListener("click", () => {
-    state.errorMessage = "La exportacion PDF esta deshabilitada temporalmente.";
-    renderTable();
+  pdfButton?.addEventListener("click", async () => {
+    try {
+      const filters = getFilters();
+      if (!isValidDateRange(filters)) {
+        state.errorMessage = "El rango de fechas no es valido para exportar PDF.";
+        renderTable();
+        return;
+      }
+      await downloadPdfWithFilters(filters);
+    } catch (error) {
+      state.errorMessage =
+        error instanceof Error ? error.message : "No fue posible exportar PDF.";
+      renderTable();
+    }
   });
 
   prevButton?.addEventListener("click", () => {
