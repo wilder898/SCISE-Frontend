@@ -23,75 +23,6 @@ const adminPermissions = [
 
 const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"];
 
-const initialAccessUsers = [
-  {
-    id: 1,
-    nombre: "Admin SENA",
-    documento: "1000000001",
-    email: "admin@sena.edu.co",
-    rol: "Administrador",
-    departamento: "Administracion del Sistema",
-    estado: "Activo",
-    permisos: adminPermissions,
-  },
-  {
-    id: 2,
-    nombre: "Control Principal",
-    documento: "1000000002",
-    email: "control.scise@sena.edu.co",
-    rol: "Usuario",
-    departamento: "Seguridad",
-    estado: "Activo",
-    permisos: userPermissions,
-  },
-  {
-    id: 3,
-    nombre: "Operador Turno",
-    documento: "1000000003",
-    email: "operacion.scise@sena.edu.co",
-    rol: "Usuario",
-    departamento: "Soporte Tecnico",
-    estado: "Activo",
-    permisos: userPermissions,
-  },
-  {
-    id: 4,
-    nombre: "Usuario Consulta",
-    documento: "1000000004",
-    email: "consulta.scise@sena.edu.co",
-    rol: "Usuario",
-    departamento: "Coordinacion",
-    estado: "Inactivo",
-    permisos: userPermissions,
-  },
-];
-
-const initialAuditLog = [
-  {
-    id: 1,
-    tipo: "activar",
-    usuario: "Control Principal",
-    actor: "Admin SENA",
-    detalle: "Acceso habilitado para control de ingresos y salidas.",
-    fecha: "2026-03-18 08:10",
-  },
-  {
-    id: 2,
-    tipo: "editar",
-    usuario: "Operador Turno",
-    actor: "Admin SENA",
-    detalle: "Perfil actualizado para operacion diaria del sistema.",
-    fecha: "2026-03-18 08:32",
-  },
-  {
-    id: 3,
-    tipo: "desactivar",
-    usuario: "Usuario Consulta",
-    actor: "Admin SENA",
-    detalle: "Cuenta pausada temporalmente por inactividad.",
-    fecha: "2026-03-18 09:05",
-  },
-];
 ---
 
 <section class="config-page">
@@ -111,7 +42,7 @@ const initialAuditLog = [
   </div>
 </section>
 
-<script define:vars={{ initialAccessUsers, initialAuditLog, roleCatalog, adminPermissions, userPermissions, apiBaseUrl }}>
+<script define:vars={{ roleCatalog, adminPermissions, userPermissions, apiBaseUrl }}>
   const API_BASE_URL = String(apiBaseUrl || "http://localhost:8000/api/v1").replace(/\/$/, "");
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
