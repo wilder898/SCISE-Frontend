@@ -10,32 +10,6 @@ import ModalNuevoEquipo from "./ModalNuevoEquipo.astro";
 
 const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 
-const initialUsers = [
-  {
-    id: 1,
-    nombre: "Juan",
-    apellido: "Perez",
-    cedula: "123456789",
-    carnet: "SENA-001",
-    email: "juan.perez@sena.edu.co",
-    telefono: "3001234567",
-    rol: "Aprendiz",
-    estado: "Activo",
-    fechaRegistro: "2026-01-12",
-    equipos: [
-      {
-        id: 101,
-        serial: "LAP-2024-0012345",
-        nombre: "Lenovo ThinkPad E15",
-        tipo: "Portátil",
-        marca: "Lenovo",
-        modelo: "ThinkPad E15",
-        descripcion: "Equipo institucional asignado para pruebas.",
-        estado: "En Bodega",
-      },
-    ],
-  },
-];
 ---
 
 <section class="users-page">
