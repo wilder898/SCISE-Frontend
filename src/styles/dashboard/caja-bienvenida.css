@@ -16,17 +16,43 @@
   color: #475569;
 }
 
-.dashboard-card ul {
-  margin: 0;
-  padding-left: 1.5rem;
+.dashboard-metrics {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
-  color: #475569;
-  font-size: 1rem;
 }
 
-.dashboard-card li {
-  padding-left: 0.3rem;
+.dashboard-metric {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem 1.05rem;
+  background: #ffffff;
+}
+
+.dashboard-metric p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.dashboard-metric strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: #0f172a;
+  font-size: 1.85rem;
+}
+
+.dashboard-metric span {
+  display: block;
+  margin-top: 0.2rem;
+  color: #64748b;
+}
+
+.dashboard-metric--ingreso {
+  border-left: 4px solid #16a34a;
+}
+
+.dashboard-metric--salida {
+  border-left: 4px solid #ea580c;
 }
 
 .dashboard-card__footer {
@@ -37,5 +63,9 @@
 @media (max-width: 900px) {
   .dashboard-card h2 {
     font-size: 1.65rem;
+  }
+
+  .dashboard-metrics {
+    grid-template-columns: 1fr;
   }
 }

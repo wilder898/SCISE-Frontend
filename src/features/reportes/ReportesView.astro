@@ -15,7 +15,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import { type MovementReportRow, type MovementType } from "../../lib/movimientos";
+  import { formatMovementDateTime, type MovementReportRow, type MovementType } from "../../lib/movimientos";
 
   interface ReportesResumenResponse {
     total_equipos?: number;
@@ -204,7 +204,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     const tipo = normalizeMovementType(item.tipo_movimiento || item.tipo);
     const equipoInfo = item.equipo || {};
     const usuarioInfo = item.usuario || item.estudiante || {};
-    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || new Date().toISOString());
+    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || "");
     const equipoId = String(item.equipo_id || equipoInfo.id || "");
     const serial = String(item.serial || equipoInfo.serial || "");
     const equipo = String(
@@ -300,13 +300,10 @@ import CajaInformacion from "./CajaInformacion.astro";
   }
 
   function formatDateTime(value: string): string {
-    const date = new Date(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+    if (!value) {
+      return "Sin fecha";
+    }
+    return formatMovementDateTime(value);
   }
 
   function escapeHtml(value: string): string {
@@ -538,8 +535,8 @@ import CajaInformacion from "./CajaInformacion.astro";
     const skip = (safePage - 1) * safePageSize;
     query.set("skip", String(skip));
     query.set("limit", String(safePageSize));
-    query.set("page", String(page));
-    query.set("page_size", String(pageSize));
+    query.set("page", String(safePage));
+    query.set("page_size", String(safePageSize));
 
     const response = await fetch(`${API_BASE_URL}/reportes/movimientos/historial?${query.toString()}`, {
       method: "GET",
@@ -683,62 +680,6 @@ import CajaInformacion from "./CajaInformacion.astro";
     throw new Error(lastError);
   }
 
-  async function downloadPdfWithFilters(filters: ReportFilters): Promise<void> {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
-    }
-
-    const query = buildFilterQuery(filters);
-    const endpoints = [
-      `${API_BASE_URL}/reportes/movimientos/export.pdf`,
-      `${API_BASE_URL}/reportes/movimientos/historial/pdf`,
-      `${API_BASE_URL}/reportes/movimientos/pdf`,
-      `${API_BASE_URL}/reportes/movimientos/export/pdf`,
-    ];
-
-    let lastError = "No fue posible descargar PDF.";
-
-    for (const endpoint of endpoints) {
-      const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/pdf",
-        },
-      });
-
-      await handleAuthStatus(response);
-
-      if (!response.ok) {
-        if (response.status === 404 || response.status === 405) {
-          lastError = `Endpoint no disponible en ${endpoint}`;
-          continue;
-        }
-
-        const detail = await getResponseDetail(response, "No fue posible descargar PDF.");
-        throw new Error(detail);
-      }
-
-      const blob = await response.blob();
-      if (!blob || !blob.size) {
-        lastError = "El archivo PDF llego vacio.";
-        continue;
-      }
-
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = "reporte-movimientos.pdf";
-      link.click();
-      URL.revokeObjectURL(objectUrl);
-      return;
-    }
-
-    throw new Error(lastError);
-  }
-
   async function fetchMovimientoDetalleById(movimientoId: string): Promise<Record<string, unknown>> {
     const token = getAuthToken();
     if (!token) {
@@ -861,20 +802,14 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   });
 
-  pdfButton?.addEventListener("click", async () => {
-    try {
-      const filters = getFilters();
-      if (!isValidDateRange(filters)) {
-        state.errorMessage = "El rango de fechas no es valido para exportar PDF.";
-        renderTable();
-        return;
-      }
-      await downloadPdfWithFilters(filters);
-    } catch (error) {
-      state.errorMessage =
-        error instanceof Error ? error.message : "No fue posible exportar PDF.";
-      renderTable();
-    }
+  if (pdfButton) {
+    pdfButton.disabled = true;
+    pdfButton.title = "Exportacion PDF no disponible por ahora.";
+  }
+
+  pdfButton?.addEventListener("click", () => {
+    state.errorMessage = "La exportacion PDF esta deshabilitada temporalmente.";
+    renderTable();
   });
 
   prevButton?.addEventListener("click", () => {

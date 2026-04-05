@@ -187,3 +187,37 @@ const links = [
     logout();
   });
 </script>
+
+<style is:global>
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .app-sidebar-middle {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+  }
+
+  .app-sidebar-bottom {
+    flex-shrink: 0;
+    padding-top: 0.35rem;
+    background: var(--color-primary);
+  }
+
+  @media (max-width: 900px) {
+    .app-sidebar {
+      position: static;
+      height: auto;
+      overflow: visible;
+    }
+
+    .app-sidebar-middle {
+      overflow: visible;
+      padding-right: 0;
+    }
+  }
+</style>

@@ -21,8 +21,6 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import { appendMovement } from "../../lib/movimientos";
-
   interface IngresoUser {
     id: string;
     nombre: string;
@@ -48,8 +46,10 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   interface IngresoEquipment {
     id: string;
+    nombre: string;
     serial: string;
     tipo: string;
+    estado: string;
     descripcion: string;
   }
 
@@ -132,6 +132,27 @@ import CajaInformacion from "./CajaInformacion.astro";
     return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
   }
 
+  function formatApiDateTime(value: string | undefined): string {
+    if (!value) {
+      return "";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return "";
+    }
+
+    return parsed.toLocaleString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  }
+
   function notifyScannerActivation() {
     if (scanReaderStatus) {
       scanReaderStatus.textContent =
@@ -188,9 +209,10 @@ import CajaInformacion from "./CajaInformacion.astro";
               ${equiposSeleccionados.has(equipo.id) ? "checked" : ""}
             >
             <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
-              <strong>${equipo.descripcion}</strong><br>
-              <small>${equipo.serial}</small><br>
-              <small>${equipo.tipo}</small>
+              <strong>${equipo.nombre}</strong><br>
+              <small>Serial: ${equipo.serial}</small><br>
+              <small>Tipo: ${equipo.tipo} | Estado: ${equipo.estado}</small><br>
+              <small>Descripcion: ${equipo.descripcion}</small>
             </label>
           </div>
         `
@@ -296,8 +318,10 @@ import CajaInformacion from "./CajaInformacion.astro";
     const equipos = (await response.json()) as EquipoAsociadoResponse[];
     return (Array.isArray(equipos) ? equipos : []).map((equipo) => ({
       id: String(equipo.id),
+      nombre: String(equipo.nombre || equipo.serial || "Equipo sin nombre"),
       serial: String(equipo.serial || ""),
       tipo: String(equipo.tipo || "Sin tipo"),
+      estado: String(equipo.estado || "Sin estado"),
       descripcion: String(equipo.descripcion || equipo.nombre || "Equipo sin descripcion"),
     }));
   }
@@ -485,34 +509,16 @@ import CajaInformacion from "./CajaInformacion.astro";
         selected.map((equipo) => equipo.id),
       );
 
-      const movimientosByEquipoId = new Map<string, MovimientoIngresoItemResponse>(
-        (Array.isArray(payload.movimientos) ? payload.movimientos : []).map((movimiento) => [
-          String(movimiento.equipo_id),
-          movimiento,
-        ])
-      );
-      selected.forEach((equipo) => {
-        const movimiento = movimientosByEquipoId.get(equipo.id);
-        appendMovement({
-          tipo: "Ingreso",
-          usuarioId: currentUser.id,
-          usuarioNombre: currentUser.nombre,
-          usuarioDocumento: currentUser.documento,
-          usuarioRol: currentUser.rol,
-          equipoId: equipo.id,
-          equipoSerial: equipo.serial,
-          equipoTipo: equipo.tipo,
-          equipoDescripcion: equipo.descripcion,
-          timestamp: movimiento?.fecha_registro || new Date().toISOString(),
-        });
-      });
-
-      const horaRegistro = new Date().toLocaleTimeString("es-CO");
+      window.dispatchEvent(new CustomEvent("scise:movimientos-updated"));
+      const movimientos = Array.isArray(payload.movimientos) ? payload.movimientos : [];
+      const primeraFechaMovimiento = formatApiDateTime(movimientos[0]?.fecha_registro);
       const mensajeApi =
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "Ingresos registrados correctamente";
-      messageFooter.textContent = `${mensajeApi} - ${horaRegistro}`;
+      messageFooter.textContent = primeraFechaMovimiento
+        ? `${mensajeApi} - ${primeraFechaMovimiento}`
+        : mensajeApi;
       messageFooter.style.color = "#16a34a";
 
       setTimeout(() => {
