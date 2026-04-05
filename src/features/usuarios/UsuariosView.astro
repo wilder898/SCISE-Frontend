@@ -9,6 +9,7 @@ import NewUserModal from "./NewUserModal.astro";
 import ModalNuevoEquipo from "./ModalNuevoEquipo.astro";
 
 const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
 ---
 
 <section class="users-page">
@@ -55,6 +56,18 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
   const state = {
     users: [],
+    usersLoading: false,
+    userErrorMessage: "",
+    equipments: [],
+    equipmentMeta: {
+      total: 0,
+      skip: 0,
+      limit: 100,
+      has_next: false,
+    },
+    equipmentLoading: false,
+    equipmentErrorMessage: "",
+    equipmentRequestId: 0,
     selectedUserId: null,
     equipmentModalUserId: null,
     equipmentModalUserLookup: null,
@@ -101,6 +114,10 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   const equipmentTableBody = document.getElementById("equipmentTableBody");
   const equipmentTableCount = document.getElementById("equipmentTableCount");
   const equipmentEmptyState = document.getElementById("equipmentEmptyState");
+  const equipmentSearchInput = document.getElementById("equipmentSearchInput");
+  const equipmentTypeFilter = document.getElementById("equipmentTypeFilter");
+  const equipmentStatusFilter = document.getElementById("equipmentStatusFilter");
+  const clearEquipmentFiltersButton = document.getElementById("clearEquipmentFiltersButton");
 
   const modalFields = {
     nombre: document.getElementById("modalNombre"),
@@ -148,6 +165,8 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   };
 
   const editableKeys = ["nombre", "apellido", "email", "telefono", "rol", "estado"];
+  const EQUIPMENT_PAGE_LIMIT = 100;
+  let equipmentSearchDebounce = null;
 
   function getFullName(user) {
     return `${user.nombre} ${user.apellido}`.trim();
@@ -166,33 +185,80 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   }
 
   function formatDate(value) {
-    if (!value || typeof value !== "string" || !value.includes("-")) {
-      return "--";
+    if (!value || !String(value).includes("-")) {
+      return "Sin fecha";
     }
+
     const [year, month, day] = value.split("-");
     if (!year || !month || !day) {
-      return "--";
+      return "Sin fecha";
     }
+
     return `${day}/${month}/${year}`;
-  }
-
-  function toUiStatus(status) {
-    return String(status || "").toUpperCase() === "ACTIVO" ? "Activo" : "Inactivo";
-  }
-
-  function toBackendStatus(status) {
-    return String(status || "").toLowerCase() === "activo" ? "ACTIVO" : "INACTIVO";
-  }
-
-  function getErrorDetail(payload, fallbackMessage) {
-    if (typeof payload?.detail === "string" && payload.detail.trim()) {
-      return payload.detail;
-    }
-    return fallbackMessage;
   }
 
   function getAuthToken() {
     return localStorage.getItem("scise-auth-token") || "";
+  }
+
+  function splitFullName(value) {
+    const fullName = String(value || "").trim();
+    if (!fullName) {
+      return { nombre: "Sin nombre", apellido: "" };
+    }
+
+    const parts = fullName.split(/\s+/);
+    const nombre = parts.shift() || fullName;
+    const apellido = parts.join(" ");
+    return { nombre, apellido };
+  }
+
+  function normalizeStudentStatus(value) {
+    return String(value || "").trim().toUpperCase() === "INACTIVO" ? "Inactivo" : "Activo";
+  }
+
+  function normalizeStudentStatusForApi(value) {
+    return String(value || "").trim().toLowerCase() === "inactivo" ? "INACTIVO" : "ACTIVO";
+  }
+
+  function mapStudentFromApi(item) {
+    const nameParts = splitFullName(item?.nombre);
+
+    return {
+      id: Number(item?.id || 0),
+      nombre: nameParts.nombre,
+      apellido: nameParts.apellido,
+      cedula: String(item?.documento || "").trim(),
+      carnet: String(item?.codigo_barras || "").trim(),
+      email: String(item?.email || "").trim(),
+      telefono: String(item?.celular || "").trim(),
+      rol: String(item?.rol || "").trim() || "Sin rol",
+      estado: normalizeStudentStatus(item?.estado),
+      fechaRegistro: "",
+      equipos: [],
+    };
+  }
+
+  function buildStudentPayloadFromUserInput(user, includeStatus = false) {
+    const fullName = [String(user?.nombre || "").trim(), String(user?.apellido || "").trim()]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    const payload = {
+      nombre: fullName,
+      documento: String(user?.cedula || "").trim(),
+      codigo_barras: String(user?.carnet || "").trim(),
+      email: String(user?.email || "").trim() || null,
+      rol: String(user?.rol || "").trim(),
+      celular: String(user?.telefono || "").trim() || null,
+    };
+
+    if (includeStatus) {
+      payload.estado = normalizeStudentStatusForApi(user?.estado);
+    }
+
+    return payload;
   }
 
   function handleUnauthorized(detail = "Sesion no valida. Inicia sesion nuevamente.") {
@@ -202,119 +268,62 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     window.location.href = "/auth/login";
   }
 
-  function mapEstudianteToUser(estudiante) {
-    const { nombre, apellido } = splitFullName(estudiante?.nombre);
-    return {
-      id: Number(estudiante?.id || 0),
-      nombre,
-      apellido,
-      cedula: String(estudiante?.documento || ""),
-      carnet: String(estudiante?.codigo_barras || ""),
-      email: String(estudiante?.email || ""),
-      telefono: String(estudiante?.celular || ""),
-      rol: String(estudiante?.rol || "Aprendiz"),
-      estado: toUiStatus(estudiante?.estado),
-      fechaRegistro: String(estudiante?.fecha_registro || "").slice(0, 10),
-      equipos: [],
-    };
-  }
-
-  function listFromPayload(payload) {
-    if (Array.isArray(payload)) {
-      return payload;
-    }
-    if (Array.isArray(payload?.data)) {
-      return payload.data;
-    }
-    return [];
-  }
-
-  async function apiRequest(path, options = {}, fallbackError = "No fue posible completar la solicitud.") {
+  async function apiRequest(path, options = {}) {
     const token = getAuthToken();
     if (!token) {
       handleUnauthorized();
       return null;
     }
 
-    const requestOptions = {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
       method: options.method || "GET",
       headers: {
+        ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
         Authorization: `Bearer ${token}`,
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...(options.headers || {}),
       },
-      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-    };
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
 
-    const response = await fetch(`${API_BASE_URL}${path}`, requestOptions);
     if (response.status === 401) {
       const payload = await response.json().catch(() => ({}));
-      handleUnauthorized(getErrorDetail(payload, "Sesion no valida. Inicia sesion nuevamente."));
+      handleUnauthorized(typeof payload?.detail === "string" ? payload.detail : undefined);
       return null;
     }
+
+    const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new Error(getErrorDetail(payload, fallbackError));
+      throw new Error(
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible completar la solicitud."
+      );
     }
 
-    if (response.status === 204) {
-      return null;
-    }
-
-    return await response.json().catch(() => null);
+    return payload;
   }
 
-  async function hydrateUsersAndEquipments() {
-    const [studentsPayload, equipmentsPayload] = await Promise.all([
-      apiRequest("/estudiantes?skip=0&limit=500", {}, "No fue posible cargar estudiantes."),
-      apiRequest("/equipos?skip=0&limit=100", {}, "No fue posible cargar equipos."),
-    ]);
+  async function loadUsersFromApi() {
+    state.usersLoading = true;
+    state.userErrorMessage = "";
+    renderTable();
 
-    const users = listFromPayload(studentsPayload).map(mapEstudianteToUser);
-    const usersById = new Map(users.map((user) => [user.id, user]));
-
-    listFromPayload(equipmentsPayload).forEach((equipo) => {
-      const estudianteId = Number(equipo?.estudiante_id || 0);
-      if (!estudianteId) {
+    try {
+      const payload = await apiRequest("/estudiantes?skip=0&limit=200");
+      if (!payload) {
         return;
       }
 
-      let user = usersById.get(estudianteId);
-      if (!user) {
-        const splitName = splitFullName(equipo?.estudiante_nombre || "");
-        user = {
-          id: estudianteId,
-          nombre: splitName.nombre || "Usuario",
-          apellido: splitName.apellido,
-          cedula: String(equipo?.estudiante_documento || ""),
-          carnet: "",
-          email: "",
-          telefono: "",
-          rol: "Aprendiz",
-          estado: "Activo",
-          fechaRegistro: "",
-          equipos: [],
-        };
-        users.push(user);
-        usersById.set(estudianteId, user);
-      }
-
-      user.equipos.push({
-        id: Number(equipo?.id || 0),
-        serial: String(equipo?.serial || ""),
-        nombre: String(equipo?.nombre || "Equipo"),
-        tipo: String(equipo?.tipo_equipo || "Otro"),
-        estado: String(equipo?.estado || "SIN_ESTADO"),
-        marca: "",
-        modelo: "",
-        descripcion: String(equipo?.descripcion || ""),
-      });
-    });
-
-    state.users = users;
-    renderTable();
-    renderEquipmentTable();
+      const items = Array.isArray(payload) ? payload : [];
+      state.users = items.map(mapStudentFromApi);
+    } catch (error) {
+      state.users = [];
+      state.userErrorMessage =
+        error instanceof Error ? error.message : "No fue posible cargar usuarios desde la base de datos.";
+    } finally {
+      state.usersLoading = false;
+      renderTable();
+    }
   }
 
   function getFilteredUsers() {
@@ -345,9 +354,24 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
+    if (state.usersLoading) {
+      tableBody.innerHTML = "";
+      emptyState.hidden = false;
+      emptyState.textContent = "Cargando usuarios desde la base de datos...";
+      return;
+    }
+
+    if (state.userErrorMessage) {
+      tableBody.innerHTML = "";
+      emptyState.hidden = false;
+      emptyState.textContent = state.userErrorMessage;
+      return;
+    }
+
     if (!filteredUsers.length) {
       tableBody.innerHTML = "";
       emptyState.hidden = false;
+      emptyState.textContent = "No hay usuarios que coincidan con los filtros aplicados.";
       return;
     }
 
@@ -394,53 +418,98 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       .join("");
   }
 
-  function getAllEquipments() {
-    return state.users.flatMap((user) =>
-      user.equipos.map((equipo) => ({
-        ...equipo,
-        usuarioId: user.id,
-        usuarioNombre: getFullName(user),
-        usuarioDocumento: user.cedula,
-        usuarioCarnet: user.carnet,
-      }))
-    );
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function getEquipmentFilters() {
+    return {
+      q: String(equipmentSearchInput?.value || "").trim(),
+      tipo: String(equipmentTypeFilter?.value || "").trim(),
+      estado: String(equipmentStatusFilter?.value || "").trim().toUpperCase(),
+    };
+  }
+
+  function formatEquipmentStatus(status) {
+    const normalized = String(status || "").toUpperCase();
+    if (normalized === "DISPONIBLE") return "Disponible";
+    if (normalized === "INGRESADO") return "Ingresado";
+    if (normalized === "RETIRADO") return "Retirado";
+    return normalized || "Sin estado";
+  }
+
+  function mapEquipmentItemFromApi(item) {
+    const serial = String(item?.serial || "").trim();
+    const nombre = String(item?.nombre || "").trim();
+    const descripcion = String(item?.descripcion || "").trim();
+
+    return {
+      id: Number(item?.id || 0),
+      serial: serial || "Sin serial",
+      nombre: nombre || serial || "Sin nombre",
+      tipo: String(item?.tipo_equipo || "").trim() || "Sin tipo",
+      estado: String(item?.estado || "").trim(),
+      descripcion,
+      usuarioNombre: String(item?.estudiante_nombre || "").trim() || "Sin asignar",
+      usuarioDocumento: String(item?.estudiante_documento || "").trim() || "Sin documento",
+      codigoBarras: String(item?.codigo_barras_equipo || "").trim(),
+    };
   }
 
   function renderEquipmentTable() {
-    const equipmentItems = getAllEquipments();
-
     if (!equipmentTableBody || !equipmentTableCount || !equipmentEmptyState) {
       return;
     }
 
-    equipmentTableCount.textContent = String(equipmentItems.length);
+    const total = Number(state.equipmentMeta?.total ?? 0);
+    equipmentTableCount.textContent = String(total);
 
-    if (!equipmentItems.length) {
+    if (state.equipmentLoading && !state.equipments.length) {
       equipmentTableBody.innerHTML = "";
       equipmentEmptyState.hidden = false;
+      equipmentEmptyState.textContent = "Cargando equipos...";
+      return;
+    }
+
+    if (state.equipmentErrorMessage) {
+      equipmentTableBody.innerHTML = "";
+      equipmentEmptyState.hidden = false;
+      equipmentEmptyState.textContent = state.equipmentErrorMessage;
+      return;
+    }
+
+    if (!state.equipments.length) {
+      equipmentTableBody.innerHTML = "";
+      equipmentEmptyState.hidden = false;
+      equipmentEmptyState.textContent = "No hay equipos que coincidan con los filtros aplicados.";
       return;
     }
 
     equipmentEmptyState.hidden = true;
-    equipmentTableBody.innerHTML = equipmentItems
+    equipmentTableBody.innerHTML = state.equipments
       .map(
         (equipo) => `
           <tr>
-            <td><strong>${equipo.serial}</strong></td>
+            <td><strong>${escapeHtml(equipo.serial)}</strong></td>
             <td>
               <div class="users-table__identity">
-                <strong>${equipo.nombre}</strong>
-                <span>${[equipo.marca, equipo.modelo].filter(Boolean).join(" / ") || "Sin marca/modelo"}</span>
+                <strong>${escapeHtml(equipo.nombre)}</strong>
+                <span>${escapeHtml(equipo.descripcion || equipo.codigoBarras || "Sin detalle")}</span>
               </div>
             </td>
-            <td><span class="table-pill table-pill--neutral">${equipo.tipo}</span></td>
+            <td><span class="table-pill table-pill--neutral">${escapeHtml(equipo.tipo)}</span></td>
             <td>
               <div class="users-table__identity">
-                <strong>${equipo.usuarioNombre}</strong>
-                <span>${equipo.usuarioDocumento}</span>
+                <strong>${escapeHtml(equipo.usuarioNombre)}</strong>
+                <span>${escapeHtml(equipo.usuarioDocumento)}</span>
               </div>
             </td>
-            <td><span class="table-pill table-pill--status">${equipo.estado}</span></td>
+            <td><span class="table-pill table-pill--status">${escapeHtml(formatEquipmentStatus(equipo.estado))}</span></td>
           </tr>
         `
       )
@@ -561,42 +630,34 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
+    const updatedUser = {
+      ...user,
+      nombre: modalFields.nombre.value.trim(),
+      apellido: modalFields.apellido.value.trim(),
+      email: modalFields.email.value.trim(),
+      telefono: modalFields.telefono.value.trim(),
+      rol: modalFields.rol.value,
+      estado: modalFields.estado.value,
+      cedula: modalFields.cedula.value.trim(),
+      carnet: modalFields.carnet.value.trim(),
+    };
+
     try {
       saveUserButton?.setAttribute("disabled", "true");
 
-      const payload = await apiRequest(
-        `/estudiantes/${encodeURIComponent(user.id)}`,
-        {
-          method: "PATCH",
-          body: {
-            nombre: [modalFields.nombre.value.trim(), modalFields.apellido.value.trim()]
-              .filter(Boolean)
-              .join(" ")
-              .trim(),
-            documento: modalFields.cedula.value.trim(),
-            codigo_barras: modalFields.carnet.value.trim(),
-            email: modalFields.email.value.trim() || null,
-            rol: modalFields.rol.value,
-            celular: modalFields.telefono.value.trim() || null,
-            estado: toBackendStatus(modalFields.estado.value),
-          },
-        },
-        "No fue posible actualizar el usuario."
-      );
+      const payload = buildStudentPayloadFromUserInput(updatedUser, true);
+      const response = await apiRequest(`/estudiantes/${user.id}`, {
+        method: "PATCH",
+        body: payload,
+      });
 
-      if (!payload) {
+      if (!response) {
         return;
       }
 
-      const nextUser = mapEstudianteToUser(payload);
-      nextUser.equipos = [...user.equipos];
-      const userIndex = state.users.findIndex((item) => item.id === user.id);
-      if (userIndex >= 0) {
-        state.users[userIndex] = nextUser;
-      }
-
+      const normalized = mapStudentFromApi(response);
+      state.users = state.users.map((item) => (item.id === normalized.id ? normalized : item));
       renderTable();
-      renderEquipmentTable();
       closeModal();
     } catch (error) {
       alert(error instanceof Error ? error.message : "No fue posible actualizar el usuario.");
@@ -643,34 +704,27 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     renderEquipmentList();
   }
 
-  function toggleStatus(userId) {
-    toggleStatusAsync(userId);
-  }
-
-  async function toggleStatusAsync(userId) {
+  async function toggleStatus(userId) {
     const user = state.users.find((item) => item.id === userId);
 
     if (!user) {
       return;
     }
 
-    const nextState = user.estado === "Activo" ? "INACTIVO" : "ACTIVO";
-
     try {
-      const payload = await apiRequest(
-        `/estudiantes/${encodeURIComponent(userId)}/estado`,
-        {
-          method: "PATCH",
-          body: { estado: nextState },
+      const response = await apiRequest(`/estudiantes/${user.id}/estado`, {
+        method: "PATCH",
+        body: {
+          estado: user.estado === "Activo" ? "INACTIVO" : "ACTIVO",
         },
-        "No fue posible actualizar el estado del usuario."
-      );
+      });
 
-      if (!payload) {
+      if (!response) {
         return;
       }
 
-      user.estado = toUiStatus(payload?.estado || nextState);
+      const normalized = mapStudentFromApi(response);
+      state.users = state.users.map((item) => (item.id === normalized.id ? normalized : item));
       renderTable();
     } catch (error) {
       alert(error instanceof Error ? error.message : "No fue posible actualizar el estado del usuario.");
@@ -876,6 +930,148 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     return await response.json();
   }
 
+  function buildEquipmentQuery(filters) {
+    const query = new URLSearchParams();
+
+    if (filters.q) {
+      query.set("q", filters.q);
+    }
+    if (filters.tipo) {
+      query.set("tipo", filters.tipo);
+    }
+    if (filters.estado) {
+      query.set("estado", filters.estado);
+    }
+
+    query.set("skip", String(filters.skip));
+    query.set("limit", String(filters.limit));
+    return query;
+  }
+
+  async function fetchEquipmentListFromApi(filters) {
+    const token = getAuthToken();
+    if (!token) {
+      handleUnauthorized();
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/equipos?${buildEquipmentQuery(filters).toString()}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      const payload = await response.json().catch(() => ({}));
+      handleUnauthorized(typeof payload?.detail === "string" ? payload.detail : undefined);
+      return null;
+    }
+
+    if (!response.ok) {
+      const payloadError = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof payloadError?.detail === "string" && payloadError.detail.trim()
+          ? payloadError.detail
+          : "No fue posible consultar equipos."
+      );
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    return {
+      data: Array.isArray(payload?.data) ? payload.data : [],
+      meta: payload?.meta && typeof payload.meta === "object"
+        ? {
+            total: Number(payload.meta.total ?? 0),
+            skip: Number(payload.meta.skip ?? 0),
+            limit: Number(payload.meta.limit ?? filters.limit),
+            has_next: Boolean(payload.meta.has_next ?? false),
+          }
+        : {
+            total: 0,
+            skip: filters.skip,
+            limit: filters.limit,
+            has_next: false,
+          },
+    };
+  }
+
+  async function fetchAllEquipmentFromApi(filters) {
+    const allData = [];
+    let skip = 0;
+    let total = 0;
+
+    while (true) {
+      const response = await fetchEquipmentListFromApi({
+        ...filters,
+        skip,
+        limit: EQUIPMENT_PAGE_LIMIT,
+      });
+
+      if (!response) {
+        return null;
+      }
+
+      const pageData = Array.isArray(response.data) ? response.data : [];
+      allData.push(...pageData);
+      total = Number(response.meta?.total ?? total ?? allData.length);
+
+      if (!response.meta?.has_next || !pageData.length) {
+        break;
+      }
+
+      skip += Number(response.meta?.limit || EQUIPMENT_PAGE_LIMIT);
+    }
+
+    return {
+      data: allData,
+      meta: {
+        total,
+        skip: 0,
+        limit: allData.length || EQUIPMENT_PAGE_LIMIT,
+        has_next: false,
+      },
+    };
+  }
+
+  async function loadEquipmentTable() {
+    const requestId = ++state.equipmentRequestId;
+    state.equipmentLoading = true;
+    state.equipmentErrorMessage = "";
+    renderEquipmentTable();
+
+    try {
+      const filters = getEquipmentFilters();
+      const response = await fetchAllEquipmentFromApi(filters);
+
+      if (!response || requestId !== state.equipmentRequestId) {
+        return;
+      }
+
+      state.equipments = response.data.map(mapEquipmentItemFromApi);
+      state.equipmentMeta = response.meta;
+    } catch (error) {
+      if (requestId !== state.equipmentRequestId) {
+        return;
+      }
+
+      state.equipments = [];
+      state.equipmentMeta = {
+        total: 0,
+        skip: 0,
+        limit: EQUIPMENT_PAGE_LIMIT,
+        has_next: false,
+      };
+      state.equipmentErrorMessage =
+        error instanceof Error ? error.message : "No fue posible cargar la tabla de equipos.";
+    } finally {
+      if (requestId === state.equipmentRequestId) {
+        state.equipmentLoading = false;
+        renderEquipmentTable();
+      }
+    }
+  }
+
   async function detectEquipmentUser() {
     if (!(equipmentUserLookup instanceof HTMLInputElement)) {
       return;
@@ -980,50 +1176,37 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
-    const nombre = newUserFields.nombre.value.trim();
-    const apellido = newUserFields.apellido.value.trim();
-    const documento = newUserFields.cedula.value.trim();
-    const carnet = newUserFields.carnet.value.trim();
-    const email = newUserFields.email.value.trim();
-    const telefono = newUserFields.telefono.value.trim();
-    const rol = newUserFields.rol.value;
-
     try {
       createUserButton?.setAttribute("disabled", "true");
 
-      const payload = await apiRequest(
-        "/estudiantes",
+      const payload = buildStudentPayloadFromUserInput(
         {
-          method: "POST",
-          body: {
-            nombre: [nombre, apellido].filter(Boolean).join(" ").trim(),
-            documento,
-            codigo_barras: carnet,
-            email,
-            rol,
-            celular: telefono || null,
-            estado: "ACTIVO",
-          },
+          nombre: newUserFields.nombre.value.trim(),
+          apellido: newUserFields.apellido.value.trim(),
+          cedula: newUserFields.cedula.value.trim(),
+          carnet: newUserFields.carnet.value.trim(),
+          email: newUserFields.email.value.trim(),
+          telefono: newUserFields.telefono.value.trim(),
+          rol: newUserFields.rol.value,
+          estado: "Activo",
         },
-        "No fue posible crear el usuario."
+        true
       );
 
-      if (!payload) {
+      const response = await apiRequest("/estudiantes", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!response) {
         return;
       }
 
-      const nuevo = mapEstudianteToUser(payload);
-      state.users.unshift(nuevo);
+      state.users.unshift(mapStudentFromApi(response));
       renderTable();
       closeCreateModal();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No fue posible crear el usuario.";
-      if (scanStatusMessage) {
-        scanStatusMessage.textContent = message;
-        scanStatusMessage.className = "new-user-scan-card__status is-error";
-      } else {
-        alert(message);
-      }
+      alert(error instanceof Error ? error.message : "No fue posible crear el usuario.");
     } finally {
       createUserButton?.removeAttribute("disabled");
     }
@@ -1105,7 +1288,8 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
         return;
       }
 
-      await hydrateUsersAndEquipments();
+      await loadUsersFromApi();
+      await loadEquipmentTable();
       closeEquipmentModal();
     } catch (error) {
       if (equipmentLookupError) {
@@ -1131,6 +1315,22 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   statusFilter?.addEventListener("change", renderTable);
   dateFilter?.addEventListener("change", renderTable);
 
+  equipmentSearchInput?.addEventListener("input", () => {
+    if (equipmentSearchDebounce !== null) {
+      window.clearTimeout(equipmentSearchDebounce);
+    }
+
+    equipmentSearchDebounce = window.setTimeout(() => {
+      loadEquipmentTable();
+    }, 300);
+  });
+  equipmentTypeFilter?.addEventListener("change", () => {
+    loadEquipmentTable();
+  });
+  equipmentStatusFilter?.addEventListener("change", () => {
+    loadEquipmentTable();
+  });
+
   clearFiltersButton?.addEventListener("click", () => {
     if (searchInput) searchInput.value = "";
     if (roleFilter) roleFilter.value = "";
@@ -1139,13 +1339,20 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     renderTable();
   });
 
+  clearEquipmentFiltersButton?.addEventListener("click", () => {
+    if (equipmentSearchInput) equipmentSearchInput.value = "";
+    if (equipmentTypeFilter) equipmentTypeFilter.value = "";
+    if (equipmentStatusFilter) equipmentStatusFilter.value = "";
+    loadEquipmentTable();
+  });
+
   exportCsvButton?.addEventListener("click", exportCsv);
   exportPdfButton?.addEventListener("click", () => {
     alert("La exportacion PDF queda lista para implementar.");
   });
 
   tableBody?.addEventListener("click", (event) => {
-    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+    const target = event.target instanceof Element ? event.target.closest("button") : null;
 
     if (!(target instanceof HTMLButtonElement)) {
       return;
@@ -1173,7 +1380,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   });
 
   equipmentList?.addEventListener("click", (event) => {
-    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+    const target = event.target instanceof Element ? event.target.closest("button") : null;
 
     if (!(target instanceof HTMLButtonElement)) {
       return;
@@ -1188,7 +1395,9 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
   closeUserModal?.addEventListener("click", closeModal);
   cancelUserModal?.addEventListener("click", closeModal);
-  saveUserButton?.addEventListener("click", saveModalChanges);
+  saveUserButton?.addEventListener("click", () => {
+    void saveModalChanges();
+  });
 
   modalBackdrop?.addEventListener("click", (event) => {
     if (event.target === modalBackdrop) {
@@ -1200,7 +1409,9 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   openRegisterEquipmentButton?.addEventListener("click", openRegisterEquipmentFlow);
   closeNewUserModal?.addEventListener("click", closeCreateModal);
   cancelNewUserModal?.addEventListener("click", closeCreateModal);
-  createUserButton?.addEventListener("click", createUser);
+  createUserButton?.addEventListener("click", () => {
+    void createUser();
+  });
   scanCarnetButton?.addEventListener("click", simulateCarnetScan);
   closeNewEquipmentModal?.addEventListener("click", closeEquipmentModal);
   cancelNewEquipmentModal?.addEventListener("click", closeEquipmentModal);
@@ -1259,9 +1470,8 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
   });
 
-  hydrateUsersAndEquipments().catch((error) => {
-    alert(error instanceof Error ? error.message : "No fue posible cargar los usuarios.");
-  });
+  void loadUsersFromApi();
+  loadEquipmentTable();
 
   const routeParams = new URLSearchParams(window.location.search);
 
