@@ -82,6 +82,8 @@ import CajaInformacion from "./CajaInformacion.astro";
   const equiposSeleccionados = new Set<string>();
 
   const barcodeInput = document.getElementById("barcodeUser") as HTMLInputElement;
+  const scanReaderButton = document.getElementById("scanReaderButton") as HTMLButtonElement | null;
+  const scanReaderStatus = document.getElementById("scanReaderStatus") as HTMLElement | null;
   const userSuccess = document.getElementById("userSuccess") as HTMLElement;
   const userError = document.getElementById("userError") as HTMLElement;
   const loadingUser = document.getElementById("loadingUser") as HTMLElement;
@@ -111,6 +113,35 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   function getSelectedEquipments() {
     return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
+  }
+
+  function notifyScannerActivation() {
+    if (scanReaderStatus) {
+      scanReaderStatus.textContent =
+        "Lector de codigo de barras activado. Escanea el carnet o usa el campo manual.";
+      scanReaderStatus.classList.remove("oculto");
+    }
+
+    barcodeInput.focus();
+    barcodeInput.select();
+
+    window.dispatchEvent(
+      new CustomEvent("scise:barcode-scanner-activate", {
+        detail: {
+          module: "salida",
+          targetInputId: "barcodeUser",
+        },
+      })
+    );
+  }
+
+  function triggerUserLookup() {
+    const identificador = barcodeInput.value.trim();
+    if (!identificador) {
+      return;
+    }
+
+    obtenerUsuario(identificador);
   }
 
   function renderEquipmentList() {
@@ -181,14 +212,14 @@ import CajaInformacion from "./CajaInformacion.astro";
     btnRegistrar.disabled = false;
   }
 
-  async function buscarEstudiantePorDocumento(documento: string): Promise<SalidaUser> {
+  async function buscarEstudiantePorIdentificador(identificador: string): Promise<SalidaUser> {
     const token = localStorage.getItem("scise-auth-token");
     if (!token) {
       throw new Error("Sesion no valida. Inicia sesion nuevamente.");
     }
 
     const response = await fetch(
-      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(documento)}`,
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(identificador)}`,
       {
         method: "GET",
         headers: {
@@ -210,7 +241,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     return {
       id: String(estudiante.id),
       nombre: String(estudiante.nombre || ""),
-      documento: String(estudiante.documento || documento),
+      documento: String(estudiante.documento || identificador),
       rol: "Aprendiz",
     };
   }
@@ -288,13 +319,13 @@ import CajaInformacion from "./CajaInformacion.astro";
     return (await response.json()) as MovimientoSalidaBatchResponse;
   }
 
-  async function obtenerUsuario(documento: string): Promise<void> {
+  async function obtenerUsuario(identificador: string): Promise<void> {
     try {
       loadingUser.classList.remove("oculto");
       userError.classList.add("oculto");
       userSuccess.classList.add("oculto");
       userBox.classList.add("oculto");
-      const usuario = await buscarEstudiantePorDocumento(documento);
+      const usuario = await buscarEstudiantePorIdentificador(identificador);
 
       usuarioActual = usuario;
       nombreSpan.textContent = usuario.nombre;
@@ -364,11 +395,12 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   barcodeInput.addEventListener("keypress", (event) => {
     if (event.key === "Enter") {
-      const documento = barcodeInput.value.trim();
-      if (documento) {
-        obtenerUsuario(documento);
-      }
+      triggerUserLookup();
     }
+  });
+
+  scanReaderButton?.addEventListener("click", () => {
+    notifyScannerActivation();
   });
 
   listaEquipos?.addEventListener("change", (event) => {
@@ -398,6 +430,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     loadingEquipo.classList.add("oculto");
     loadingEquipos.classList.add("oculto");
     equipoDetalles.classList.add("oculto");
+    scanReaderStatus?.classList.add("oculto");
     btnRegistrar.disabled = true;
     messageFooter.textContent = "";
     barcodeInput.focus();

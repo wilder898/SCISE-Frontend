@@ -5,19 +5,33 @@
         <path d="M7 4h10v16H7zM9 8h6M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
       </svg>
     </span>
-    <h2>Escanear Carnet</h2>
+    <h2>Escanear Carnet o Documento</h2>
   </header>
 
   <section class="scan-area">
-    <input
-      type="text"
-      id="barcodeUser"
-      class="scan-input"
-      placeholder="Escanear codigo de barras del carnet..."
-      autocomplete="off"
-    />
+    <div class="scan-area__controls">
+      <input
+        type="text"
+        id="barcodeUser"
+        class="scan-input"
+        placeholder="Escanear carnet o escribir documento..."
+        autocomplete="off"
+      />
+      <button
+        id="scanReaderButton"
+        class="scan-reader-button"
+        type="button"
+        aria-label="Activar lector de codigo de barras"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6v12M7 6v12M10 6v12M14 6v12M17 6v12M20 6v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+        <span>Escanear</span>
+      </button>
+    </div>
   </section>
 
+  <p id="scanReaderStatus" class="scan-reader-status oculto"></p>
   <p id="userSuccess" class="success oculto">Usuario detectado correctamente.</p>
   <p id="userError" class="error oculto"></p>
   <p id="loadingUser" class="loading oculto">Cargando usuario...</p>
