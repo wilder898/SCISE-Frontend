@@ -735,34 +735,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
       renderTable();
       renderEquipmentTable();
-    const updatedUser = {
-      ...user,
-      nombre: modalFields.nombre.value.trim(),
-      apellido: modalFields.apellido.value.trim(),
-      email: modalFields.email.value.trim(),
-      telefono: modalFields.telefono.value.trim(),
-      rol: modalFields.rol.value,
-      estado: modalFields.estado.value,
-      cedula: modalFields.cedula.value.trim(),
-      carnet: modalFields.carnet.value.trim(),
-    };
-
-    try {
-      saveUserButton?.setAttribute("disabled", "true");
-
-      const payload = buildStudentPayloadFromUserInput(updatedUser, true);
-      const response = await apiRequest(`/estudiantes/${user.id}`, {
-        method: "PATCH",
-        body: payload,
-      });
-
-      if (!response) {
-        return;
-      }
-
-      const normalized = mapStudentFromApi(response);
-      state.users = state.users.map((item) => (item.id === normalized.id ? normalized : item));
-      renderTable();
       closeModal();
     } catch (error) {
       alert(error instanceof Error ? error.message : "No fue posible actualizar el usuario.");
@@ -1414,6 +1386,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       }
 
       await hydrateUsersAndEquipments();
+      await loadEquipmentTable();
       closeEquipmentModal();
     } catch (error) {
       if (equipmentLookupError) {
@@ -1594,9 +1567,11 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
   });
 
-  hydrateUsersAndEquipments().catch((error) => {
-    alert(error instanceof Error ? error.message : "No fue posible cargar los usuarios.");
-  });
+  hydrateUsersAndEquipments()
+    .then(() => loadEquipmentTable())
+    .catch((error) => {
+      alert(error instanceof Error ? error.message : "No fue posible cargar los usuarios.");
+    });
 
   const routeParams = new URLSearchParams(window.location.search);
 
