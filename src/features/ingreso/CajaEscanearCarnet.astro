@@ -26,17 +26,71 @@
         id="scanReaderButton"
         class="scan-reader-button"
         type="button"
-        aria-label="Activar lector de codigo de barras"
+        aria-label="Usar camara para escanear el carnet"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 6v12M7 6v12M10 6v12M14 6v12M17 6v12M20 6v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.2-1.6h3.6L15 6h2.5A2.5 2.5 0 0 1 20 8.5v7A2.5 2.5 0 0 1 17.5 18h-11A2.5 2.5 0 0 1 4 15.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+          <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
         </svg>
-        <span>Escanear</span>
+        <span id="scanReaderButtonLabel">Usar Camara</span>
       </button>
     </div>
   </section>
 
   <p id="scanReaderStatus" class="scan-reader-status oculto"></p>
+  <section id="cameraScannerBox" class="camera-scanner oculto" aria-live="polite">
+    <div class="camera-scanner__toolbar">
+      <label class="camera-scanner__field">
+        <span class="camera-scanner__label">Camara</span>
+        <select id="cameraDeviceSelect" class="camera-scanner__select">
+          <option value="">Camara predeterminada</option>
+        </select>
+      </label>
+
+      <button
+        id="cameraRefreshButton"
+        class="camera-scanner__secondary-button"
+        type="button"
+      >
+        Actualizar
+      </button>
+    </div>
+
+    <div class="camera-scanner__frame">
+      <video
+        id="cameraScannerVideo"
+        class="camera-scanner__video"
+        playsinline
+        muted
+        autoplay
+      ></video>
+      <div class="camera-scanner__overlay" aria-hidden="true">
+        <span class="camera-scanner__guide"></span>
+      </div>
+    </div>
+
+    <div class="camera-scanner__actions">
+      <p class="camera-scanner__hint">
+        Ubica el codigo de barras del carnet dentro del recuadro para leer el documento.
+      </p>
+      <div class="camera-scanner__buttons">
+        <button
+          id="cameraCaptureButton"
+          class="camera-scanner__capture-button"
+          type="button"
+        >
+          Capturar y Escanear
+        </button>
+        <button
+          id="cameraScannerCloseButton"
+          class="camera-scanner__close-button"
+          type="button"
+        >
+          Cerrar Camara
+        </button>
+      </div>
+    </div>
+  </section>
   <p id="userSuccess" class="success oculto">Usuario detectado correctamente.</p>
   <p id="userError" class="error oculto"></p>
   <p id="loadingUser" class="loading oculto">Cargando usuario...</p>
