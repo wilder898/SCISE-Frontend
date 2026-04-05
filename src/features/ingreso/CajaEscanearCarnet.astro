@@ -54,12 +54,19 @@
       >
         Actualizar
       </button>
+      <button
+        id="cameraMirrorToggleButton"
+        class="camera-scanner__secondary-button is-active"
+        type="button"
+      >
+        <span id="cameraMirrorToggleLabel">Eje Corregido</span>
+      </button>
     </div>
 
     <div class="camera-scanner__frame">
       <video
         id="cameraScannerVideo"
-        class="camera-scanner__video"
+        class="camera-scanner__video is-flipped"
         playsinline
         muted
         autoplay
