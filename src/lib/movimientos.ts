@@ -1,3 +1,5 @@
+import { formatDateTimeInBogota, formatTimeInBogota, parseBackendDate } from "./datetime";
+
 export type MovementType = "Ingreso" | "Salida";
 
 export interface MovementReportRow {
@@ -12,52 +14,16 @@ export interface MovementReportRow {
   estado: string;
 }
 
-function toDate(value: string): Date | null {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  return parsed;
-}
-
 export function formatMovementTime(timestamp: string): string {
-  const parsed = toDate(timestamp);
-  if (!parsed) {
-    return "Sin hora";
-  }
-
-  return parsed.toLocaleTimeString("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return formatTimeInBogota(timestamp);
 }
 
 export function formatMovementDateTime(timestamp: string): string {
-  const parsed = toDate(timestamp);
-  if (!parsed) {
-    return "Sin fecha";
-  }
-
-  return parsed.toLocaleString("es-CO", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return formatDateTimeInBogota(timestamp);
 }
 
 export function formatTimeElapsed(timestamp: string): string {
-  const parsed = toDate(timestamp);
+  const parsed = parseBackendDate(timestamp);
   if (!parsed) {
     return "Sin registro";
   }

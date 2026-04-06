@@ -48,6 +48,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   interface EquipoActivoResponse {
     id: number;
+    nombre: string;
     serial: string;
     tipo: string | null;
     descripcion: string | null;
@@ -126,6 +127,9 @@ import CajaInformacion from "./CajaInformacion.astro";
   ) as HTMLElement;
   const equiposSeleccionadosSeriales = document.getElementById(
     "equiposSeleccionadosSeriales"
+  ) as HTMLElement;
+  const equiposSeleccionadosDescripcion = document.getElementById(
+    "equiposSeleccionadosDescripcion"
   ) as HTMLElement;
   const equipoTiempoCtma = document.getElementById("equipoTiempoCtma") as HTMLElement;
   const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
@@ -372,7 +376,7 @@ import CajaInformacion from "./CajaInformacion.astro";
             <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
               <strong>${equipo.nombre}</strong><br>
               <small>Serial: ${equipo.serial}</small><br>
-              <small>Tipo: ${equipo.tipo} | Ingreso: ${equipo.horaIngreso}</small><br>
+              <small>Tipo: ${equipo.tipo}</small><br>
               <small>Descripcion: ${equipo.descripcion}</small><br>
               <small>Tiempo en CTMA: ${equipo.tiempoEnCtma}</small>
             </label>
@@ -399,6 +403,9 @@ import CajaInformacion from "./CajaInformacion.astro";
     equiposSeleccionadosSeriales.textContent = selected
       .map((equipo) => equipo.serial)
       .join(", ");
+    equiposSeleccionadosDescripcion.textContent = selected
+      .map((equipo) => equipo.descripcion)
+      .join(" | ");
     equipoTiempoCtma.textContent = selected
       .map((equipo) => `${equipo.serial}: ${equipo.tiempoEnCtma}`)
       .join(" | ");
@@ -478,17 +485,18 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
 
     const equipos = (await response.json()) as EquipoActivoResponse[];
-    return (Array.isArray(equipos) ? equipos : []).map((equipo) => {
-      const timestampIngreso = String(equipo.timestamp_ingreso || "");
-      const serial = String(equipo.serial || "");
-      const descripcion = String(equipo.descripcion || "Sin descripcion");
-      return {
-        id: String(equipo.id),
-        nombre: descripcion !== "Sin descripcion" ? descripcion : `Equipo ${serial || "sin serial"}`,
-        serial,
-        tipo: String(equipo.tipo || "Sin tipo"),
-        descripcion,
-        timestampIngreso,
+      return (Array.isArray(equipos) ? equipos : []).map((equipo) => {
+        const timestampIngreso = String(equipo.timestamp_ingreso || "");
+        const serial = String(equipo.serial || "");
+        const nombre = String(equipo.nombre || "").trim();
+        const descripcion = String(equipo.descripcion || "Sin descripcion");
+        return {
+          id: String(equipo.id),
+          nombre: nombre || `Equipo ${serial || "sin serial"}`,
+          serial,
+          tipo: String(equipo.tipo || "Sin tipo"),
+          descripcion,
+          timestampIngreso,
         horaIngreso: formatMovementDateTime(timestampIngreso),
         tiempoEnCtma: formatTimeElapsed(timestampIngreso),
       };

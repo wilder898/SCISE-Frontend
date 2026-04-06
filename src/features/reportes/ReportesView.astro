@@ -176,6 +176,12 @@ import CajaInformacion from "./CajaInformacion.astro";
   const sessionData = readSession();
   const isAdmin = resolveIsAdmin(sessionData);
 
+  if (!isAdmin) {
+    excelButton?.setAttribute("hidden", "true");
+    pdfButton?.setAttribute("hidden", "true");
+    allButton?.setAttribute("hidden", "true");
+  }
+
   function handleUnauthorized(detail?: string): void {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
@@ -621,8 +627,8 @@ import CajaInformacion from "./CajaInformacion.astro";
             <td>${formatDateTime(movement.fechaHora)}</td>
             <td><span class="movement-status">${movement.estado}</span></td>
             <td>
-              <button class="movement-more" type="button" data-movement-id="${movement.id}" aria-label="Mas opciones">
-                ...
+              <button class="movement-more" type="button" data-movement-id="${movement.id}" aria-label="Ver detalle del movimiento">
+                Detalle
               </button>
             </td>
           </tr>
