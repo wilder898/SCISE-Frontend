@@ -21,6 +21,13 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
+  import { ScannerController } from "../../lib/scanner/scanner-controller";
+  import type {
+    ScannerCameraDevice,
+    ScannerErrorPayload,
+    ScannerStatusPayload,
+  } from "../../lib/scanner/scanner-types";
+
   interface IngresoUser {
     id: string;
     nombre: string;
@@ -173,11 +180,12 @@ import CajaInformacion from "./CajaInformacion.astro";
     });
   }
 
-  function notifyScannerActivation() {
-    if (scanReaderStatus) {
-      scanReaderStatus.textContent =
-        "Lector de codigo de barras activado. Escanea el carnet o usa el campo manual.";
-      scanReaderStatus.classList.remove("oculto");
+  function updateScanStatus(
+    message: string,
+    tone: "info" | "error" | "success" = "info"
+  ) {
+    if (!scanReaderStatus) {
+      return;
     }
 
     scanReaderStatus.textContent = message;
