@@ -22,8 +22,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
 <script>
   import {
-    appendMovement,
-    formatMovementTime,
+    formatMovementDateTime,
     formatTimeElapsed,
   } from "../../lib/movimientos";
 
@@ -52,6 +51,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   interface SalidaEquipment {
     id: string;
+    nombre: string;
     serial: string;
     tipo: string;
     descripcion: string;
@@ -110,6 +110,16 @@ import CajaInformacion from "./CajaInformacion.astro";
   const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
   const btnRegistrar = document.getElementById("btnRegistrar") as HTMLButtonElement;
   const messageFooter = document.getElementById("message") as HTMLElement;
+
+  function handleUnauthorized(detail: string) {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    messageFooter.textContent = detail;
+    messageFooter.style.color = "#dc2626";
+    window.setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 1200);
+  }
 
   function getSelectedEquipments() {
     return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
@@ -171,9 +181,10 @@ import CajaInformacion from "./CajaInformacion.astro";
               ${equiposSeleccionados.has(equipo.id) ? "checked" : ""}
             >
             <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
-              <strong>${equipo.descripcion}</strong><br>
-              <small>${equipo.serial}</small><br>
-              <small>${equipo.tipo} | Ingreso ${equipo.horaIngreso}</small><br>
+              <strong>${equipo.nombre}</strong><br>
+              <small>Serial: ${equipo.serial}</small><br>
+              <small>Tipo: ${equipo.tipo} | Ingreso: ${equipo.horaIngreso}</small><br>
+              <small>Descripcion: ${equipo.descripcion}</small><br>
               <small>Tiempo en CTMA: ${equipo.tiempoEnCtma}</small>
             </label>
           </div>
@@ -234,6 +245,9 @@ import CajaInformacion from "./CajaInformacion.astro";
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "No fue posible consultar el estudiante.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
       throw new Error(detail);
     }
 
@@ -268,19 +282,25 @@ import CajaInformacion from "./CajaInformacion.astro";
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "No fue posible consultar equipos activos.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
       throw new Error(detail);
     }
 
     const equipos = (await response.json()) as EquipoActivoResponse[];
     return (Array.isArray(equipos) ? equipos : []).map((equipo) => {
-      const timestampIngreso = String(equipo.timestamp_ingreso || new Date().toISOString());
+      const timestampIngreso = String(equipo.timestamp_ingreso || "");
+      const serial = String(equipo.serial || "");
+      const descripcion = String(equipo.descripcion || "Sin descripcion");
       return {
         id: String(equipo.id),
-        serial: String(equipo.serial || ""),
+        nombre: descripcion !== "Sin descripcion" ? descripcion : `Equipo ${serial || "sin serial"}`,
+        serial,
         tipo: String(equipo.tipo || "Sin tipo"),
-        descripcion: String(equipo.descripcion || "Equipo sin descripcion"),
+        descripcion,
         timestampIngreso,
-        horaIngreso: formatMovementTime(timestampIngreso),
+        horaIngreso: formatMovementDateTime(timestampIngreso),
         tiempoEnCtma: formatTimeElapsed(timestampIngreso),
       };
     });
@@ -313,6 +333,9 @@ import CajaInformacion from "./CajaInformacion.astro";
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "No fue posible registrar las salidas.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
       throw new Error(detail);
     }
 
@@ -457,34 +480,16 @@ import CajaInformacion from "./CajaInformacion.astro";
         selected.map((equipo) => equipo.id),
       );
 
-      const movimientosByEquipoId = new Map<string, MovimientoSalidaItemResponse>(
-        (Array.isArray(payload.movimientos) ? payload.movimientos : []).map((movimiento) => [
-          String(movimiento.equipo_id),
-          movimiento,
-        ])
-      );
-      selected.forEach((equipo) => {
-        const movimiento = movimientosByEquipoId.get(equipo.id);
-        appendMovement({
-          tipo: "Salida",
-          usuarioId: currentUser.id,
-          usuarioNombre: currentUser.nombre,
-          usuarioDocumento: currentUser.documento,
-          usuarioRol: currentUser.rol,
-          equipoId: equipo.id,
-          equipoSerial: equipo.serial,
-          equipoTipo: equipo.tipo,
-          equipoDescripcion: equipo.descripcion,
-          timestamp: movimiento?.fecha_registro || new Date().toISOString(),
-        });
-      });
-
-      const horaRegistro = new Date().toLocaleTimeString("es-CO");
+      window.dispatchEvent(new CustomEvent("scise:movimientos-updated"));
+      const movimientos = Array.isArray(payload.movimientos) ? payload.movimientos : [];
+      const primeraFechaMovimiento = formatMovementDateTime(movimientos[0]?.fecha_registro || "");
       const mensajeApi =
         typeof payload?.detail === "string" && payload.detail.trim()
           ? payload.detail
           : "Salidas registradas correctamente";
-      messageFooter.textContent = `${mensajeApi} - ${horaRegistro}`;
+      messageFooter.textContent = primeraFechaMovimiento
+        ? `${mensajeApi} - ${primeraFechaMovimiento}`
+        : mensajeApi;
       messageFooter.style.color = "#16a34a";
 
       setTimeout(() => {

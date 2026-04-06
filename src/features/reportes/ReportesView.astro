@@ -15,7 +15,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import { type MovementReportRow, type MovementType } from "../../lib/movimientos";
+  import { formatMovementDateTime, type MovementReportRow, type MovementType } from "../../lib/movimientos";
 
   interface ReportesResumenResponse {
     total_equipos?: number;
@@ -154,6 +154,28 @@ import CajaInformacion from "./CajaInformacion.astro";
     return localStorage.getItem("scise-auth-token") || "";
   }
 
+  function readSession(): Record<string, unknown> {
+    try {
+      const raw = localStorage.getItem("scise-session");
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function resolveIsAdmin(session: Record<string, unknown>): boolean {
+    const roleValue = String(session?.role || session?.rol || "").toLowerCase();
+    const backendRole = String(session?.roleBackend || "").toUpperCase();
+    return roleValue === "admin" || roleValue === "administrador" || backendRole === "ADMINISTRADOR";
+  }
+
+  const sessionData = readSession();
+  const isAdmin = resolveIsAdmin(sessionData);
+
   function handleUnauthorized(detail?: string): void {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
@@ -204,7 +226,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     const tipo = normalizeMovementType(item.tipo_movimiento || item.tipo);
     const equipoInfo = item.equipo || {};
     const usuarioInfo = item.usuario || item.estudiante || {};
-    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || new Date().toISOString());
+    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || "");
     const equipoId = String(item.equipo_id || equipoInfo.id || "");
     const serial = String(item.serial || equipoInfo.serial || "");
     const equipo = String(
@@ -300,13 +322,10 @@ import CajaInformacion from "./CajaInformacion.astro";
   }
 
   function formatDateTime(value: string): string {
-    const date = new Date(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+    if (!value) {
+      return "Sin fecha";
+    }
+    return formatMovementDateTime(value);
   }
 
   function escapeHtml(value: string): string {
@@ -482,8 +501,8 @@ import CajaInformacion from "./CajaInformacion.astro";
 
     const query = buildFilterQuery(filters);
     const url = query.toString()
-      ? `${API_BASE_URL}/reportes/movimientos/resumen?${query.toString()}`
-      : `${API_BASE_URL}/reportes/movimientos/resumen`;
+      ? `${API_BASE_URL}/${isAdmin ? "reportes/movimientos/resumen" : "dashboard/resumen"}?${query.toString()}`
+      : `${API_BASE_URL}/${isAdmin ? "reportes/movimientos/resumen" : "dashboard/resumen"}`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -535,13 +554,19 @@ import CajaInformacion from "./CajaInformacion.astro";
     const query = buildFilterQuery(filters);
     const safePage = Math.max(1, page);
     const safePageSize = Math.max(1, pageSize);
-    const skip = (safePage - 1) * safePageSize;
-    query.set("skip", String(skip));
-    query.set("limit", String(safePageSize));
-    query.set("page", String(page));
-    query.set("page_size", String(pageSize));
+    if (isAdmin) {
+      const skip = (safePage - 1) * safePageSize;
+      query.set("skip", String(skip));
+      query.set("limit", String(safePageSize));
+      query.set("page", String(safePage));
+      query.set("page_size", String(safePageSize));
+    } else {
+      query.set("page", String(safePage));
+      query.set("limit", String(safePageSize));
+    }
 
-    const response = await fetch(`${API_BASE_URL}/reportes/movimientos/historial?${query.toString()}`, {
+    const endpoint = isAdmin ? "reportes/movimientos/historial" : "dashboard/historial-reciente";
+    const response = await fetch(`${API_BASE_URL}/${endpoint}?${query.toString()}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
