@@ -97,13 +97,13 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   const closeNewUserModal = document.getElementById("closeNewUserModal");
   const cancelNewUserModal = document.getElementById("cancelNewUserModal");
   const createUserButton = document.getElementById("createUserButton");
-  const scanCarnetButton = document.getElementById("scanCarnetButton");
   const scanStatusMessage = document.getElementById("scanStatusMessage");
   const newEquipmentModalBackdrop = document.getElementById("newEquipmentModalBackdrop");
   const closeNewEquipmentModal = document.getElementById("closeNewEquipmentModal");
   const cancelNewEquipmentModal = document.getElementById("cancelNewEquipmentModal");
   const resetEquipmentUserButton = document.getElementById("resetEquipmentUserButton");
   const createEquipmentButton = document.getElementById("createEquipmentButton");
+  const equipmentScanStatusMessage = document.getElementById("equipmentScanStatusMessage");
   const equipmentUserLookup = document.getElementById("equipmentUserLookup");
   const equipmentLookupError = document.getElementById("equipmentLookupError");
   const equipmentDetectedUser = document.getElementById("equipmentDetectedUser");
@@ -858,9 +858,72 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     });
 
     if (scanStatusMessage) {
-      scanStatusMessage.textContent = "Listo para escanear el carnet.";
-      scanStatusMessage.className = "new-user-scan-card__status";
+      setNewUserScanStatus("Listo para escanear el carnet.");
     }
+  }
+
+  function setNewUserScanStatus(message, tone = "") {
+    if (!scanStatusMessage) {
+      return;
+    }
+
+    scanStatusMessage.textContent = message;
+    scanStatusMessage.className = `new-user-scan-card__status${tone ? ` ${tone}` : ""}`;
+  }
+
+  function setEquipmentScanStatus(message, tone = "") {
+    if (!equipmentScanStatusMessage) {
+      return;
+    }
+
+    equipmentScanStatusMessage.textContent = message;
+    equipmentScanStatusMessage.className = `equipment-scan-card__status${tone ? ` ${tone}` : ""}`;
+  }
+
+  function fillNewUserFormFromExisting(user) {
+    if (!user) {
+      return;
+    }
+
+    newUserFields.nombre.value = String(user.nombre || "");
+    newUserFields.apellido.value = String(user.apellido || "");
+    newUserFields.cedula.value = String(user.cedula || "");
+    newUserFields.carnet.value = String(user.carnet || user.cedula || "");
+    newUserFields.email.value = String(user.email || "");
+    newUserFields.telefono.value = String(user.telefono || "");
+    newUserFields.rol.value = String(user.rol || "Aprendiz");
+  }
+
+  function handleDetectedCarnetForNewUser(documento) {
+    const detectedValue = String(documento || "").trim();
+    if (!detectedValue) {
+      setNewUserScanStatus("No se detecto un documento valido en el carnet.", "is-error");
+      return;
+    }
+
+    newUserFields.carnet.value = detectedValue;
+    newUserFields.cedula.value = detectedValue;
+    newUserFields.carnet.dispatchEvent(new Event("input", { bubbles: true }));
+    newUserFields.cedula.dispatchEvent(new Event("input", { bubbles: true }));
+
+    const existingUser =
+      findUserByCarnet(detectedValue) ||
+      state.users.find((user) => String(user.cedula || "").trim() === detectedValue) ||
+      null;
+
+    if (existingUser) {
+      fillNewUserFormFromExisting(existingUser);
+      setNewUserScanStatus(
+        "Documento detectado. Se cargaron los datos existentes para validacion.",
+        "is-success"
+      );
+      return;
+    }
+
+    setNewUserScanStatus(
+      "Documento detectado. Completa los datos restantes para crear el usuario.",
+      "is-success"
+    );
   }
 
   function openCreateModal() {
@@ -869,6 +932,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
 
     resetNewUserForm();
+    window.dispatchEvent(new CustomEvent("scise:users-modal-scanner-stop", { detail: { target: "new-user" } }));
     newUserModalBackdrop.hidden = false;
     document.body.classList.add("user-modal-open");
   }
@@ -878,6 +942,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
+    window.dispatchEvent(new CustomEvent("scise:users-modal-scanner-stop", { detail: { target: "new-user" } }));
     newUserModalBackdrop.hidden = true;
     document.body.classList.remove("user-modal-open");
   }
@@ -905,6 +970,8 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       equipmentLookupError.textContent = "";
     }
 
+    setEquipmentScanStatus("Listo para escanear o ingresar el documento.");
+
     equipmentDetectedUser?.classList.add("oculto");
     equipmentFormPanel?.classList.add("oculto");
   }
@@ -915,6 +982,9 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
 
     resetEquipmentForm();
+    window.dispatchEvent(
+      new CustomEvent("scise:users-modal-scanner-stop", { detail: { target: "equipment-user" } })
+    );
     newEquipmentModalBackdrop.hidden = false;
     document.body.classList.add("user-modal-open");
     if (equipmentUserLookup instanceof HTMLInputElement) {
@@ -927,6 +997,9 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
+    window.dispatchEvent(
+      new CustomEvent("scise:users-modal-scanner-stop", { detail: { target: "equipment-user" } })
+    );
     newEquipmentModalBackdrop.hidden = true;
     document.body.classList.remove("user-modal-open");
     resetEquipmentForm();
@@ -1167,6 +1240,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
 
     try {
+      setEquipmentScanStatus("Consultando usuario por documento...", "");
       const estudiante = await lookupStudentByDocument(lookupValue);
       if (!estudiante) {
         return;
@@ -1189,11 +1263,13 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       }
       equipmentDetectedUser?.classList.remove("oculto");
       equipmentFormPanel?.classList.remove("oculto");
+      setEquipmentScanStatus("Usuario identificado correctamente.", "is-success");
     } catch (error) {
       state.equipmentModalUserId = null;
       state.equipmentModalUserLookup = null;
       equipmentDetectedUser?.classList.add("oculto");
       equipmentFormPanel?.classList.add("oculto");
+      setEquipmentScanStatus("No se pudo identificar el usuario con ese documento.", "is-error");
       if (equipmentLookupError) {
         equipmentLookupError.textContent =
           error instanceof Error ? error.message : "No encontramos un usuario con ese carnet o documento.";
@@ -1309,21 +1385,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
   }
 
-  function simulateCarnetScan() {
-    if (!scanStatusMessage || !newUserFields.carnet) {
-      return;
-    }
-
-    scanStatusMessage.textContent = "Escaneando carnet...";
-    scanStatusMessage.className = "new-user-scan-card__status is-scanning";
-
-    window.setTimeout(() => {
-      newUserFields.carnet.value = `SENA-${Math.floor(23050 + Math.random() * 200)}`;
-      scanStatusMessage.textContent = "Carnet escaneado exitosamente.";
-      scanStatusMessage.className = "new-user-scan-card__status is-success";
-    }, 900);
-  }
-
   function openRegisterEquipmentFlow() {
     openEquipmentModal();
   }
@@ -1397,6 +1458,29 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       createEquipmentButton?.removeAttribute("disabled");
     }
   }
+
+  window.addEventListener("scise:users-modal-scanner-detected", (event) => {
+    const customEvent = event;
+    const detail = customEvent instanceof CustomEvent ? customEvent.detail : null;
+    const target = String(detail?.target || "");
+    const value = String(detail?.value || "").trim();
+
+    if (!value) {
+      return;
+    }
+
+    if (target === "new-user") {
+      handleDetectedCarnetForNewUser(value);
+      return;
+    }
+
+    if (target === "equipment-user") {
+      if (equipmentUserLookup instanceof HTMLInputElement) {
+        equipmentUserLookup.value = value;
+      }
+      void detectEquipmentUser();
+    }
+  });
 
   if (sessionRoleBadge) {
     const badgeValue = sessionRoleBadge.querySelector("strong");
@@ -1509,7 +1593,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   createUserButton?.addEventListener("click", () => {
     void createUser();
   });
-  scanCarnetButton?.addEventListener("click", simulateCarnetScan);
   closeNewEquipmentModal?.addEventListener("click", closeEquipmentModal);
   cancelNewEquipmentModal?.addEventListener("click", closeEquipmentModal);
   resetEquipmentUserButton?.addEventListener("click", resetEquipmentForm);
@@ -1533,12 +1616,12 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       }
 
       if (key === "carnet" && scanStatusMessage) {
-        scanStatusMessage.textContent = node.value.trim()
-          ? "Carnet escaneado exitosamente."
-          : "Listo para escanear el carnet.";
-        scanStatusMessage.className = node.value.trim()
-          ? "new-user-scan-card__status is-success"
-          : "new-user-scan-card__status";
+        setNewUserScanStatus(
+          node.value.trim()
+            ? "Carnet detectado. Verifica o completa los datos del usuario."
+            : "Listo para escanear el carnet.",
+          node.value.trim() ? "is-success" : ""
+        );
       }
     });
   });
@@ -1582,4 +1665,281 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   if (routeParams.get("equipment") === "true") {
     openRegisterEquipmentFlow();
   }
+</script>
+
+<script>
+  import { ScannerController } from "../../lib/scanner/scanner-controller";
+  import type { ScannerCameraDevice } from "../../lib/scanner/scanner-types";
+
+  interface UsersModalScannerConfig {
+    target: "new-user" | "equipment-user";
+    inputId: string;
+    buttonId: string;
+    buttonLabelId: string;
+    statusId: string;
+    statusClassName: string;
+    boxId: string;
+    videoId: string;
+    deviceSelectId: string;
+    refreshButtonId: string;
+    captureButtonId: string;
+    closeButtonId: string;
+    unsupportedMessage: string;
+    detectedMessage: string;
+  }
+
+  function mountUsersModalScanner(config: UsersModalScannerConfig) {
+    const inputElement = document.getElementById(config.inputId);
+    const buttonElement = document.getElementById(config.buttonId);
+    const buttonLabelElement = document.getElementById(config.buttonLabelId);
+    const statusElement = document.getElementById(config.statusId);
+    const scannerBoxElement = document.getElementById(config.boxId);
+    const videoElement = document.getElementById(config.videoId);
+    const deviceSelectElement = document.getElementById(config.deviceSelectId);
+    const refreshButtonElement = document.getElementById(config.refreshButtonId);
+    const captureButtonElement = document.getElementById(config.captureButtonId);
+    const closeButtonElement = document.getElementById(config.closeButtonId);
+
+    if (!(inputElement instanceof HTMLInputElement) || !(videoElement instanceof HTMLVideoElement)) {
+      return;
+    }
+
+    let isCameraActive = false;
+    let selectedCameraDeviceId = "";
+    let availableCameraDevices: ScannerCameraDevice[] = [];
+
+    const controller = new ScannerController({
+      inputElement,
+      videoElement,
+      facingMode: "environment",
+      onDetected: () => {
+        hideScanner();
+        updateStatus(config.detectedMessage, "success");
+        window.dispatchEvent(
+          new CustomEvent("scise:users-modal-scanner-detected", {
+            detail: {
+              target: config.target,
+              value: inputElement.value.trim(),
+            },
+          })
+        );
+      },
+      onError: (payload) => {
+        hideScanner();
+        updateStatus(payload.message, "error");
+      },
+      onStatusChange: (payload) => {
+        const tone =
+          payload.status === "detected"
+            ? "success"
+            : payload.status === "error"
+              ? "error"
+              : "info";
+        updateStatus(payload.message, tone);
+
+        if (payload.status === "ready" || payload.status === "scanning") {
+          showScanner();
+          return;
+        }
+
+        if (payload.status === "stopped") {
+          hideScanner();
+        }
+      },
+    });
+
+    function updateButtonState() {
+      if (!(buttonElement instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      buttonElement.setAttribute(
+        "aria-label",
+        isCameraActive ? "Cerrar camara del lector" : "Usar camara para escanear el carnet"
+      );
+      if (buttonLabelElement) {
+        buttonLabelElement.textContent = isCameraActive ? "Cerrar Camara" : "Usar Camara";
+      }
+    }
+
+    function updateStatus(message: string, tone: "info" | "error" | "success" = "info") {
+      if (!(statusElement instanceof HTMLElement)) {
+        return;
+      }
+
+      statusElement.textContent = message;
+      statusElement.classList.remove("is-success", "is-error", "is-scanning");
+
+      if (config.statusClassName) {
+        statusElement.className = config.statusClassName;
+      }
+
+      if (tone === "success") {
+        statusElement.classList.add("is-success");
+      } else if (tone === "error") {
+        statusElement.classList.add("is-error");
+      } else if (tone === "info" && isCameraActive) {
+        statusElement.classList.add("is-scanning");
+      }
+    }
+
+    function renderCameraDevices() {
+      if (!(deviceSelectElement instanceof HTMLSelectElement)) {
+        return;
+      }
+
+      const options = [
+        `<option value="">Camara predeterminada</option>`,
+        ...availableCameraDevices.map(
+          (device) =>
+            `<option value="${device.id}" ${device.id === selectedCameraDeviceId ? "selected" : ""}>${device.label}</option>`
+        ),
+      ];
+
+      deviceSelectElement.innerHTML = options.join("");
+      if (!selectedCameraDeviceId) {
+        deviceSelectElement.value = "";
+      }
+    }
+
+    async function refreshCameraDevices() {
+      availableCameraDevices = await ScannerController.listCameraDevices();
+
+      if (
+        selectedCameraDeviceId &&
+        !availableCameraDevices.some((device) => device.id === selectedCameraDeviceId)
+      ) {
+        selectedCameraDeviceId = "";
+        controller.setCameraDevice(null);
+      }
+
+      renderCameraDevices();
+    }
+
+    function showScanner() {
+      scannerBoxElement?.classList.remove("oculto");
+      isCameraActive = true;
+      updateButtonState();
+    }
+
+    function hideScanner() {
+      scannerBoxElement?.classList.add("oculto");
+      isCameraActive = false;
+      updateButtonState();
+    }
+
+    async function startScanner() {
+      if (!ScannerController.isCameraSupported()) {
+        updateStatus(config.unsupportedMessage, "error");
+        return;
+      }
+
+      await refreshCameraDevices();
+      controller.setCameraDevice(selectedCameraDeviceId || null);
+      showScanner();
+      updateStatus("Preparando camara para leer el carnet...", "info");
+      await controller.startCamera();
+      await refreshCameraDevices();
+    }
+
+    function stopScanner(message = "") {
+      controller.stopCamera();
+      hideScanner();
+      if (message) {
+        updateStatus(message, "info");
+        return;
+      }
+    }
+
+    async function restartForDeviceChange() {
+      if (!isCameraActive) {
+        return;
+      }
+
+      updateStatus("Cambiando de camara...", "info");
+      controller.stopCamera();
+      hideScanner();
+      controller.setCameraDevice(selectedCameraDeviceId || null);
+      await startScanner();
+    }
+
+    buttonElement?.addEventListener("click", () => {
+      if (isCameraActive) {
+        stopScanner("Camara cerrada. Puedes seguir con el ingreso manual.");
+        return;
+      }
+
+      void startScanner();
+    });
+
+    closeButtonElement?.addEventListener("click", () => {
+      stopScanner("Camara cerrada. Puedes seguir con el ingreso manual.");
+    });
+
+    refreshButtonElement?.addEventListener("click", () => {
+      void refreshCameraDevices();
+    });
+
+    captureButtonElement?.addEventListener("click", () => {
+      void controller.captureAndDetect();
+    });
+
+    deviceSelectElement?.addEventListener("change", () => {
+      if (!(deviceSelectElement instanceof HTMLSelectElement)) {
+        return;
+      }
+
+      selectedCameraDeviceId = deviceSelectElement.value;
+      controller.setCameraDevice(selectedCameraDeviceId || null);
+      void restartForDeviceChange();
+    });
+
+    window.addEventListener("scise:users-modal-scanner-stop", (event) => {
+      const detail = event instanceof CustomEvent ? event.detail : null;
+      if (!detail?.target || detail.target === config.target) {
+        stopScanner();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      stopScanner();
+    });
+
+    updateButtonState();
+    void refreshCameraDevices();
+  }
+
+  mountUsersModalScanner({
+    target: "new-user",
+    inputId: "newUserCarnet",
+    buttonId: "scanCarnetButton",
+    buttonLabelId: "scanCarnetButtonLabel",
+    statusId: "scanStatusMessage",
+    statusClassName: "new-user-scan-card__status",
+    boxId: "newUserCameraScannerBox",
+    videoId: "newUserCameraScannerVideo",
+    deviceSelectId: "newUserCameraDeviceSelect",
+    refreshButtonId: "newUserCameraRefreshButton",
+    captureButtonId: "newUserCameraCaptureButton",
+    closeButtonId: "newUserCameraScannerCloseButton",
+    unsupportedMessage: "Este navegador no permite usar la camara para leer el carnet.",
+    detectedMessage: "Documento detectado. Verificando datos del usuario...",
+  });
+
+  mountUsersModalScanner({
+    target: "equipment-user",
+    inputId: "equipmentUserLookup",
+    buttonId: "equipmentScanCarnetButton",
+    buttonLabelId: "equipmentScanCarnetButtonLabel",
+    statusId: "equipmentScanStatusMessage",
+    statusClassName: "equipment-scan-card__status",
+    boxId: "equipmentCameraScannerBox",
+    videoId: "equipmentCameraScannerVideo",
+    deviceSelectId: "equipmentCameraDeviceSelect",
+    refreshButtonId: "equipmentCameraRefreshButton",
+    captureButtonId: "equipmentCameraCaptureButton",
+    closeButtonId: "equipmentCameraScannerCloseButton",
+    unsupportedMessage: "Este navegador no permite usar la camara para leer el carnet.",
+    detectedMessage: "Documento detectado. Consultando usuario...",
+  });
 </script>

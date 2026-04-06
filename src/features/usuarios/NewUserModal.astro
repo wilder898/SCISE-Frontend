@@ -35,13 +35,63 @@
           <input id="newUserCarnet" type="text" placeholder="Ej. SENA-23055" />
         </label>
         <button class="user-button user-button--primary" id="scanCarnetButton" type="button">
-          Escanear
+          <span id="scanCarnetButtonLabel">Usar Camara</span>
         </button>
       </div>
 
       <div class="new-user-scan-card__status" id="scanStatusMessage">
         Listo para escanear el carnet.
       </div>
+
+      <section id="newUserCameraScannerBox" class="camera-scanner oculto" aria-live="polite">
+        <div class="camera-scanner__toolbar">
+          <label class="camera-scanner__field">
+            <span class="camera-scanner__label">Camara</span>
+            <select id="newUserCameraDeviceSelect" class="camera-scanner__select">
+              <option value="">Camara predeterminada</option>
+            </select>
+          </label>
+
+          <button id="newUserCameraRefreshButton" class="camera-scanner__secondary-button" type="button">
+            Actualizar
+          </button>
+        </div>
+
+        <div class="camera-scanner__frame">
+          <video
+            id="newUserCameraScannerVideo"
+            class="camera-scanner__video is-flipped"
+            playsinline
+            muted
+            autoplay
+          ></video>
+          <div class="camera-scanner__overlay" aria-hidden="true">
+            <span class="camera-scanner__guide"></span>
+          </div>
+        </div>
+
+        <div class="camera-scanner__actions">
+          <p class="camera-scanner__hint">
+            Enfoca el codigo de barras del carnet dentro del recuadro para detectar el documento.
+          </p>
+          <div class="camera-scanner__buttons">
+            <button
+              id="newUserCameraCaptureButton"
+              class="camera-scanner__capture-button"
+              type="button"
+            >
+              Capturar y Escanear
+            </button>
+            <button
+              id="newUserCameraScannerCloseButton"
+              class="camera-scanner__close-button"
+              type="button"
+            >
+              Cerrar Camara
+            </button>
+          </div>
+        </div>
+      </section>
 
       <ul class="new-user-tips">
         <li>Puedes ingresar los datos manualmente si el lector no responde.</li>

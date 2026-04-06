@@ -38,6 +38,11 @@
   align-items: end;
 }
 
+.new-user-scan-card .camera-scanner {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
 .new-user-scan-card__status {
   margin-top: 1rem;
   padding: 0.8rem 1rem;
