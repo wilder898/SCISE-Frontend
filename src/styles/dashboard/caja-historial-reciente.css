@@ -48,6 +48,7 @@
 .recent-movement__time {
   font-size: 0.75rem;
   color: #64748b;
+  text-align: right;
 }
 
 .recent-movement__details strong {
@@ -71,4 +72,28 @@
   color: #64748b;
   font-style: italic;
   margin: 1rem 0;
+}
+
+.dashboard-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dashboard-page-button {
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 0.7rem;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dashboard-page-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

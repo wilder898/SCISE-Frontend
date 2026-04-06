@@ -9,6 +9,7 @@ import NewUserModal from "./NewUserModal.astro";
 import ModalNuevoEquipo from "./ModalNuevoEquipo.astro";
 
 const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
 ---
 
 <section class="users-page">
@@ -57,6 +58,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     users: [],
     usersLoading: false,
     userErrorMessage: "",
+    userPage: 1,
     equipments: [],
     equipmentMeta: {
       total: 0,
@@ -66,14 +68,17 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     },
     equipmentLoading: false,
     equipmentErrorMessage: "",
+    equipmentPage: 1,
     equipmentRequestId: 0,
     selectedUserId: null,
+    equipmentSearchResults: [],
     equipmentModalUserId: null,
     equipmentModalUserLookup: null,
   };
 
   const tableBody = document.getElementById("usersTableBody");
   const emptyState = document.getElementById("usersEmptyState");
+  const usersPagination = document.getElementById("usersPagination");
   const sessionRoleBadge = document.getElementById("sessionRoleBadge");
   const searchInput = document.getElementById("searchInput");
   const roleFilter = document.getElementById("roleFilter");
@@ -89,6 +94,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   const saveUserButton = document.getElementById("saveUserButton");
   const equipmentForm = document.getElementById("equipmentForm");
   const equipmentList = document.getElementById("equipmentList");
+  const equipmentSearchResults = document.getElementById("equipmentSearchResults");
   const permissionMessage = document.getElementById("userPermissionMessage");
 
   const openNewUserModal = document.getElementById("openNewUserModal");
@@ -113,6 +119,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   const equipmentTableBody = document.getElementById("equipmentTableBody");
   const equipmentTableCount = document.getElementById("equipmentTableCount");
   const equipmentEmptyState = document.getElementById("equipmentEmptyState");
+  const equipmentPagination = document.getElementById("equipmentPagination");
   const equipmentSearchInput = document.getElementById("equipmentSearchInput");
   const equipmentTypeFilter = document.getElementById("equipmentTypeFilter");
   const equipmentStatusFilter = document.getElementById("equipmentStatusFilter");
@@ -128,9 +135,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     cedula: document.getElementById("modalCedula"),
     carnet: document.getElementById("modalCarnet"),
     fechaRegistro: document.getElementById("modalFechaRegistro"),
-    equipmentSerial: document.getElementById("equipmentSerial"),
-    equipmentDescripcion: document.getElementById("equipmentDescripcion"),
-    equipmentTipo: document.getElementById("equipmentTipo"),
+    equipmentSearchQuery: document.getElementById("equipmentSearchQuery"),
   };
 
   const newUserFields = {
@@ -163,6 +168,8 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     serial: document.getElementById("newEquipmentSerialError"),
   };
 
+  const USERS_PAGE_SIZE = 5;
+  const EQUIPMENTS_PAGE_SIZE = 5;
   const editableKeys = ["nombre", "apellido", "email", "telefono", "rol", "estado"];
   const EQUIPMENT_PAGE_LIMIT = 100;
   let equipmentSearchDebounce = null;
@@ -171,27 +178,34 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     return `${user.nombre} ${user.apellido}`.trim();
   }
 
-  function splitFullName(fullName) {
-    const normalized = String(fullName || "").trim();
-    if (!normalized) {
-      return { nombre: "", apellido: "" };
+  function formatDateTime(value) {
+    if (!value) {
+      return "--";
     }
-    const parts = normalized.split(/\s+/);
-    return {
-      nombre: parts.shift() || "",
-      apellido: parts.join(" "),
-    };
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toLocaleString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
-  function formatDate(value) {
-    if (!value || typeof value !== "string" || !value.includes("-")) {
-      return "--";
+  function normalizeDate(value) {
+    if (!value) {
+      return "";
     }
-    const [year, month, day] = value.split("-");
-    if (!year || !month || !day) {
-      return "--";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value).slice(0, 10);
     }
-    return `${day}/${month}/${year}`;
+    return date.toISOString().slice(0, 10);
   }
 
   function toUiStatus(status) {
@@ -225,54 +239,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     return { nombre, apellido };
   }
 
-  function normalizeStudentStatus(value) {
-    return String(value || "").trim().toUpperCase() === "INACTIVO" ? "Inactivo" : "Activo";
-  }
-
-  function normalizeStudentStatusForApi(value) {
-    return String(value || "").trim().toLowerCase() === "inactivo" ? "INACTIVO" : "ACTIVO";
-  }
-
-  function mapStudentFromApi(item) {
-    const nameParts = splitFullName(item?.nombre);
-
-    return {
-      id: Number(item?.id || 0),
-      nombre: nameParts.nombre,
-      apellido: nameParts.apellido,
-      cedula: String(item?.documento || "").trim(),
-      carnet: String(item?.codigo_barras || "").trim(),
-      email: String(item?.email || "").trim(),
-      telefono: String(item?.celular || "").trim(),
-      rol: String(item?.rol || "").trim() || "Sin rol",
-      estado: normalizeStudentStatus(item?.estado),
-      fechaRegistro: "",
-      equipos: [],
-    };
-  }
-
-  function buildStudentPayloadFromUserInput(user, includeStatus = false) {
-    const fullName = [String(user?.nombre || "").trim(), String(user?.apellido || "").trim()]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-
-    const payload = {
-      nombre: fullName,
-      documento: String(user?.cedula || "").trim(),
-      codigo_barras: String(user?.carnet || "").trim(),
-      email: String(user?.email || "").trim() || null,
-      rol: String(user?.rol || "").trim(),
-      celular: String(user?.telefono || "").trim() || null,
-    };
-
-    if (includeStatus) {
-      payload.estado = normalizeStudentStatusForApi(user?.estado);
-    }
-
-    return payload;
-  }
-
   function handleUnauthorized(detail = "Sesion no valida. Inicia sesion nuevamente.") {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
@@ -292,7 +258,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       telefono: String(estudiante?.celular || ""),
       rol: String(estudiante?.rol || "Aprendiz"),
       estado: toUiStatus(estudiante?.estado),
-      fechaRegistro: String(estudiante?.fecha_registro || "").slice(0, 10),
+      fechaRegistro: String(estudiante?.fecha_registro || ""),
       equipos: [],
     };
   }
@@ -391,6 +357,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     });
 
     state.users = users;
+    state.userPage = 1;
     renderTable();
     renderEquipmentTable();
   }
@@ -410,10 +377,45 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
       const matchesRole = !role || user.rol === role;
       const matchesStatus = !status || user.estado === status;
-      const matchesDate = !date || user.fechaRegistro === date;
+      const matchesDate = !date || normalizeDate(user.fechaRegistro) === date;
 
       return matchesSearch && matchesRole && matchesStatus && matchesDate;
     });
+  }
+
+  function renderPagination(container, currentPage, totalPages, key) {
+    if (!container) {
+      return;
+    }
+
+    if (totalPages <= 1) {
+      container.innerHTML = "";
+      return;
+    }
+
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+
+    const buttons = [];
+    buttons.push(
+      `<button class="users-pagination__button" data-page-key="${key}" data-page="${currentPage - 1}" ${
+        currentPage === 1 ? "disabled" : ""
+      }>‹</button>`
+    );
+
+    for (let page = start; page <= end; page += 1) {
+      buttons.push(
+        `<button class="users-pagination__button ${page === currentPage ? "is-active" : ""}" data-page-key="${key}" data-page="${page}">${page}</button>`
+      );
+    }
+
+    buttons.push(
+      `<button class="users-pagination__button" data-page-key="${key}" data-page="${currentPage + 1}" ${
+        currentPage === totalPages ? "disabled" : ""
+      }>›</button>`
+    );
+
+    container.innerHTML = buttons.join("");
   }
 
   function renderTable() {
@@ -427,6 +429,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       tableBody.innerHTML = "";
       emptyState.hidden = false;
       emptyState.textContent = "Cargando usuarios desde la base de datos...";
+      renderPagination(usersPagination, 1, 1, "users");
       return;
     }
 
@@ -434,6 +437,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       tableBody.innerHTML = "";
       emptyState.hidden = false;
       emptyState.textContent = state.userErrorMessage;
+      renderPagination(usersPagination, 1, 1, "users");
       return;
     }
 
@@ -441,11 +445,17 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       tableBody.innerHTML = "";
       emptyState.hidden = false;
       emptyState.textContent = "No hay usuarios que coincidan con los filtros aplicados.";
+      renderPagination(usersPagination, 1, 1, "users");
       return;
     }
 
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PAGE_SIZE));
+    state.userPage = Math.max(1, Math.min(state.userPage, totalPages));
+    const start = (state.userPage - 1) * USERS_PAGE_SIZE;
+    const visibleUsers = filteredUsers.slice(start, start + USERS_PAGE_SIZE);
+
     emptyState.hidden = true;
-    tableBody.innerHTML = filteredUsers
+    tableBody.innerHTML = visibleUsers
       .map(
         (user) => `
           <tr>
@@ -458,7 +468,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
             <td>${user.cedula}</td>
             <td>${user.carnet}</td>
             <td><span class="table-pill">${user.rol}</span></td>
-            <td>${formatDate(user.fechaRegistro)}</td>
+            <td>${formatDateTime(user.fechaRegistro)}</td>
             <td>${user.email}</td>
             <td>
               <div class="users-table__actions">
@@ -468,6 +478,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
                   data-action="toggle-status"
                   data-user-id="${user.id}"
                   aria-label="Cambiar estado"
+                  ${sessionRole !== "admin" ? "disabled" : ""}
                 >
                   <span class="status-toggle__track">
                     <span class="status-toggle__thumb"></span>
@@ -476,15 +487,14 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
                 <button class="table-action" type="button" data-action="edit" data-user-id="${user.id}">
                   Editar
                 </button>
-                <button class="table-action table-action--icon" type="button" data-action="more" data-user-id="${user.id}" aria-label="Mas opciones">
-                  ...
-                </button>
               </div>
             </td>
           </tr>
         `
       )
       .join("");
+
+    renderPagination(usersPagination, state.userPage, totalPages, "users");
   }
 
   function escapeHtml(value) {
@@ -527,6 +537,8 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       usuarioNombre: String(item?.estudiante_nombre || "").trim() || "Sin asignar",
       usuarioDocumento: String(item?.estudiante_documento || "").trim() || "Sin documento",
       codigoBarras: String(item?.codigo_barras_equipo || "").trim(),
+      fechaRegistro: String(item?.fecha_registro || ""),
+      estudianteId: Number(item?.estudiante_id || 0),
     };
   }
 
@@ -535,13 +547,14 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
-    const total = Number(state.equipmentMeta?.total ?? 0);
+    const total = Number(state.equipmentMeta?.total ?? state.equipments.length ?? 0);
     equipmentTableCount.textContent = String(total);
 
     if (state.equipmentLoading && !state.equipments.length) {
       equipmentTableBody.innerHTML = "";
       equipmentEmptyState.hidden = false;
       equipmentEmptyState.textContent = "Cargando equipos...";
+      renderPagination(equipmentPagination, 1, 1, "equipments");
       return;
     }
 
@@ -549,6 +562,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       equipmentTableBody.innerHTML = "";
       equipmentEmptyState.hidden = false;
       equipmentEmptyState.textContent = state.equipmentErrorMessage;
+      renderPagination(equipmentPagination, 1, 1, "equipments");
       return;
     }
 
@@ -556,11 +570,17 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       equipmentTableBody.innerHTML = "";
       equipmentEmptyState.hidden = false;
       equipmentEmptyState.textContent = "No hay equipos que coincidan con los filtros aplicados.";
+      renderPagination(equipmentPagination, 1, 1, "equipments");
       return;
     }
 
+    const totalPages = Math.max(1, Math.ceil(state.equipments.length / EQUIPMENTS_PAGE_SIZE));
+    state.equipmentPage = Math.max(1, Math.min(state.equipmentPage, totalPages));
+    const start = (state.equipmentPage - 1) * EQUIPMENTS_PAGE_SIZE;
+    const visibleEquipments = state.equipments.slice(start, start + EQUIPMENTS_PAGE_SIZE);
+
     equipmentEmptyState.hidden = true;
-    equipmentTableBody.innerHTML = state.equipments
+    equipmentTableBody.innerHTML = visibleEquipments
       .map(
         (equipo) => `
           <tr>
@@ -579,40 +599,52 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
               </div>
             </td>
             <td><span class="table-pill table-pill--status">${escapeHtml(formatEquipmentStatus(equipo.estado))}</span></td>
+            <td>${escapeHtml(formatDateTime(equipo.fechaRegistro))}</td>
           </tr>
         `
       )
       .join("");
+
+    renderPagination(equipmentPagination, state.equipmentPage, totalPages, "equipments");
   }
 
   function getSelectedUser() {
     return state.users.find((user) => user.id === state.selectedUserId) || null;
   }
 
-  function setModalEditable(isEditable) {
+  function setModalEditable() {
+    const isAdmin = sessionRole === "admin";
+
     editableKeys.forEach((key) => {
-      if (modalFields[key]) {
-        modalFields[key].disabled = !isEditable;
+      if (!modalFields[key]) {
+        return;
       }
+
+      if (key === "rol" || key === "estado") {
+        modalFields[key].disabled = !isAdmin;
+        return;
+      }
+
+      modalFields[key].disabled = false;
     });
 
     if (equipmentForm instanceof HTMLFormElement) {
       Array.from(equipmentForm.elements).forEach((element) => {
-        element.disabled = !isEditable;
+        element.disabled = false;
       });
     }
 
     if (saveUserButton) {
-      saveUserButton.disabled = !isEditable;
+      saveUserButton.disabled = false;
     }
 
     if (permissionMessage) {
-      permissionMessage.textContent = isEditable
+      permissionMessage.textContent = isAdmin
         ? "Modo administrador: puedes editar datos y gestionar equipos."
-        : "Modo lectura: esta sesion solo puede consultar la informacion.";
-      permissionMessage.className = isEditable
+        : "Modo usuario: puedes editar datos del estudiante y gestionar equipos.";
+      permissionMessage.className = isAdmin
         ? "user-modal__permissions is-admin"
-        : "user-modal__permissions is-readonly";
+        : "user-modal__permissions is-admin";
     }
   }
 
@@ -630,24 +662,147 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
     equipmentList.innerHTML = selectedUser.equipos
       .map(
-        (equipo, index) => `
+        (equipo) => `
           <article class="equipment-item">
             <div>
               <strong>${equipo.serial}</strong>
-              <p>${equipo.descripcion}</p>
-              <span>${equipo.tipo}</span>
+              <p>${equipo.nombre || equipo.descripcion || "Equipo"}</p>
+              <span>${equipo.tipo} | ${formatEquipmentStatus(equipo.estado)}</span>
             </div>
-            ${
-              sessionRole === "admin"
-                ? `<button class="table-action" type="button" data-action="remove-equipment" data-equipment-index="${index}">
-                    Eliminar
-                  </button>`
-                : ""
-            }
+            <button class="table-action" type="button" data-action="remove-equipment" data-equipo-id="${equipo.id}">
+              Eliminar
+            </button>
           </article>
         `
       )
       .join("");
+  }
+
+  async function cargarEquiposAsociadosEnModal(estudianteId) {
+    try {
+      if (equipmentList) {
+        equipmentList.innerHTML = `<p class="equipment-empty">Cargando equipos asociados...</p>`;
+      }
+
+      const payload = await apiRequest(
+        `/estudiantes/${encodeURIComponent(estudianteId)}/equipos?solo_disponibles_ingreso=false`,
+        {},
+        "No fue posible cargar equipos asociados."
+      );
+
+      if (!payload) {
+        return;
+      }
+
+      const user = getSelectedUser();
+      if (!user) {
+        return;
+      }
+
+      user.equipos = (Array.isArray(payload) ? payload : []).map((equipo) => ({
+        id: Number(equipo?.id || 0),
+        serial: String(equipo?.serial || ""),
+        nombre: String(equipo?.nombre || ""),
+        descripcion: String(equipo?.descripcion || ""),
+        tipo: String(equipo?.tipo || "Sin tipo"),
+        estado: String(equipo?.estado || ""),
+      }));
+
+      renderEquipmentList();
+    } catch (error) {
+      if (equipmentList) {
+        equipmentList.innerHTML = `<p class="equipment-empty">${
+          error instanceof Error ? escapeHtml(error.message) : "No fue posible cargar equipos asociados."
+        }</p>`;
+      }
+    }
+  }
+
+  function renderResultadosBusquedaEquipos(items, message = "") {
+    if (!equipmentSearchResults) {
+      return;
+    }
+
+    if (!items.length) {
+      equipmentSearchResults.innerHTML = `<p class="equipment-empty">${escapeHtml(message || "No hay resultados.")}</p>`;
+      return;
+    }
+
+    const selectedUser = getSelectedUser();
+    equipmentSearchResults.innerHTML = items
+      .map((equipo) => {
+        const alreadyAssigned = Number(equipo?.estudiante_id || 0) === Number(selectedUser?.id || 0);
+        return `
+          <article class="equipment-search-item">
+            <div>
+              <strong>${escapeHtml(equipo?.serial || "Sin serial")}</strong>
+              <span>${escapeHtml(equipo?.nombre || "Equipo")} | ${escapeHtml(equipo?.tipo_equipo || "Sin tipo")} | ${escapeHtml(formatEquipmentStatus(equipo?.estado || ""))}</span>
+            </div>
+            <button class="table-action" type="button" data-action="associate-equipment" data-equipo-id="${Number(equipo?.id || 0)}" ${alreadyAssigned ? "disabled" : ""}>
+              ${alreadyAssigned ? "Asignado" : "Asociar"}
+            </button>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  async function buscarEquiposParaAsociar() {
+    const selectedUser = getSelectedUser();
+    if (!selectedUser) {
+      return;
+    }
+
+    const query = String(modalFields.equipmentSearchQuery?.value || "").trim();
+    if (!query) {
+      renderResultadosBusquedaEquipos([], "Ingresa un criterio de búsqueda.");
+      return;
+    }
+
+    renderResultadosBusquedaEquipos([], "Buscando equipos...");
+    try {
+      const payload = await apiRequest(
+        `/equipos?q=${encodeURIComponent(query)}&skip=0&limit=5`,
+        {},
+        "No fue posible buscar equipos."
+      );
+
+      if (!payload) {
+        return;
+      }
+
+      const items = Array.isArray(payload?.data) ? payload.data : [];
+      state.equipmentSearchResults = items;
+      renderResultadosBusquedaEquipos(items, "No se encontraron equipos.");
+    } catch (error) {
+      renderResultadosBusquedaEquipos([], error instanceof Error ? error.message : "No fue posible buscar equipos.");
+    }
+  }
+
+  async function asociarEquipoAEstudiante(equipoId) {
+    const selectedUser = getSelectedUser();
+    if (!selectedUser) {
+      return;
+    }
+
+    try {
+      await apiRequest(
+        `/equipos/${encodeURIComponent(equipoId)}`,
+        {
+          method: "PATCH",
+          body: {
+            estudiante_id: selectedUser.id,
+          },
+        },
+        "No fue posible asociar el equipo."
+      );
+
+      await cargarEquiposAsociadosEnModal(selectedUser.id);
+      await loadEquipmentTable();
+      renderResultadosBusquedaEquipos([], "Equipo asociado correctamente.");
+    } catch (error) {
+      renderResultadosBusquedaEquipos([], error instanceof Error ? error.message : "No fue posible asociar el equipo.");
+    }
   }
 
   function openModal(userId) {
@@ -666,16 +821,17 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     modalFields.estado.value = user.estado;
     modalFields.cedula.value = user.cedula;
     modalFields.carnet.value = user.carnet;
-    modalFields.fechaRegistro.value = formatDate(user.fechaRegistro);
-    modalFields.equipmentSerial.value = "";
-    modalFields.equipmentDescripcion.value = "";
-    modalFields.equipmentTipo.value = "";
+    modalFields.fechaRegistro.value = formatDateTime(user.fechaRegistro);
+    if (modalFields.equipmentSearchQuery) {
+      modalFields.equipmentSearchQuery.value = "";
+    }
 
-    setModalEditable(sessionRole === "admin");
-    renderEquipmentList();
+    setModalEditable();
+    renderResultadosBusquedaEquipos([], "Usa Buscar equipo para asociar un registro existente.");
 
     modalBackdrop.hidden = false;
     document.body.classList.add("user-modal-open");
+    void cargarEquiposAsociadosEnModal(user.id);
   }
 
   function closeModal() {
@@ -689,10 +845,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   }
 
   async function saveModalChanges() {
-    if (sessionRole !== "admin") {
-      return;
-    }
-
     const user = getSelectedUser();
 
     if (!user) {
@@ -701,6 +853,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
     try {
       saveUserButton?.setAttribute("disabled", "true");
+      const isAdmin = sessionRole === "admin";
 
       const payload = await apiRequest(
         `/estudiantes/${encodeURIComponent(user.id)}`,
@@ -714,12 +867,12 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
             documento: modalFields.cedula.value.trim(),
             codigo_barras: modalFields.carnet.value.trim(),
             email: modalFields.email.value.trim() || null,
-            rol: modalFields.rol.value,
             celular: modalFields.telefono.value.trim() || null,
-            estado: toBackendStatus(modalFields.estado.value),
+            ...(isAdmin ? { rol: modalFields.rol.value } : {}),
+            ...(isAdmin ? { estado: toBackendStatus(modalFields.estado.value) } : {}),
           },
         },
-        "No fue posible actualizar el usuario."
+        "No fue posible actualizar el estudiante."
       );
 
       if (!payload) {
@@ -743,42 +896,21 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
   }
 
-  function addEquipment() {
-    if (sessionRole !== "admin") {
-      return;
+  async function removeEquipment(equipoId) {
+    try {
+      await apiRequest(
+        `/equipos/${encodeURIComponent(equipoId)}`,
+        { method: "DELETE" },
+        "No fue posible eliminar el equipo."
+      );
+      const user = getSelectedUser();
+      if (user) {
+        await cargarEquiposAsociadosEnModal(user.id);
+      }
+      await loadEquipmentTable();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No fue posible eliminar el equipo.");
     }
-
-    const user = getSelectedUser();
-    const serial = modalFields.equipmentSerial.value.trim();
-    const descripcion = modalFields.equipmentDescripcion.value.trim();
-    const tipo = modalFields.equipmentTipo.value.trim();
-
-    if (!user || !serial || !descripcion || !tipo) {
-      return;
-    }
-
-    user.equipos.push({ serial, descripcion, tipo });
-
-    modalFields.equipmentSerial.value = "";
-    modalFields.equipmentDescripcion.value = "";
-    modalFields.equipmentTipo.value = "";
-
-    renderEquipmentList();
-  }
-
-  function removeEquipment(index) {
-    if (sessionRole !== "admin") {
-      return;
-    }
-
-    const user = getSelectedUser();
-
-    if (!user) {
-      return;
-    }
-
-    user.equipos.splice(index, 1);
-    renderEquipmentList();
   }
 
   function toggleStatus(userId) {
@@ -786,6 +918,11 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   }
 
   async function toggleStatusAsync(userId) {
+    if (sessionRole !== "admin") {
+      alert("Solo un administrador puede cambiar el estado.");
+      return;
+    }
+
     const user = state.users.find((item) => item.id === userId);
 
     if (!user) {
@@ -817,7 +954,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
   function exportCsv() {
     const filteredUsers = getFilteredUsers();
-    const header = ["Nombre", "Apellido", "Cedula", "Carnet", "Email", "Telefono", "Rol", "Estado", "FechaRegistro"];
+    const header = ["Nombre", "Apellido", "Cedula", "Carnet", "Email", "Telefono", "Rol", "Estado", "FechaHoraRegistro"];
     const rows = filteredUsers.map((user) => [
       user.nombre,
       user.apellido,
@@ -827,7 +964,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       user.telefono,
       user.rol,
       user.estado,
-      user.fechaRegistro,
+      formatDateTime(user.fechaRegistro),
     ]);
 
     const csvContent = [header, ...rows]
@@ -1370,6 +1507,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
       const nuevo = mapEstudianteToUser(payload);
       state.users.unshift(nuevo);
+      state.userPage = 1;
       renderTable();
       closeCreateModal();
     } catch (error) {
@@ -1487,14 +1625,26 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
     if (badgeValue) {
       badgeValue.textContent =
-        sessionRole === "admin" ? "Administrador" : "Solo lectura";
+        sessionRole === "admin" ? "Administrador" : "Usuario";
     }
   }
 
-  searchInput?.addEventListener("input", renderTable);
-  roleFilter?.addEventListener("change", renderTable);
-  statusFilter?.addEventListener("change", renderTable);
-  dateFilter?.addEventListener("change", renderTable);
+  searchInput?.addEventListener("input", () => {
+    state.userPage = 1;
+    renderTable();
+  });
+  roleFilter?.addEventListener("change", () => {
+    state.userPage = 1;
+    renderTable();
+  });
+  statusFilter?.addEventListener("change", () => {
+    state.userPage = 1;
+    renderTable();
+  });
+  dateFilter?.addEventListener("change", () => {
+    state.userPage = 1;
+    renderTable();
+  });
 
   equipmentSearchInput?.addEventListener("input", () => {
     if (equipmentSearchDebounce !== null) {
@@ -1502,13 +1652,16 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
 
     equipmentSearchDebounce = window.setTimeout(() => {
+      state.equipmentPage = 1;
       loadEquipmentTable();
     }, 300);
   });
   equipmentTypeFilter?.addEventListener("change", () => {
+    state.equipmentPage = 1;
     loadEquipmentTable();
   });
   equipmentStatusFilter?.addEventListener("change", () => {
+    state.equipmentPage = 1;
     loadEquipmentTable();
   });
 
@@ -1517,6 +1670,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     if (roleFilter) roleFilter.value = "";
     if (statusFilter) statusFilter.value = "";
     if (dateFilter) dateFilter.value = "";
+    state.userPage = 1;
     renderTable();
   });
 
@@ -1524,6 +1678,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     if (equipmentSearchInput) equipmentSearchInput.value = "";
     if (equipmentTypeFilter) equipmentTypeFilter.value = "";
     if (equipmentStatusFilter) equipmentStatusFilter.value = "";
+    state.equipmentPage = 1;
     loadEquipmentTable();
   });
 
@@ -1550,14 +1705,30 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       toggleStatus(userId);
     }
 
-    if (action === "more") {
-      alert("Mas opciones listas para la siguiente iteracion.");
-    }
   });
 
   equipmentForm?.addEventListener("submit", (event) => {
     event.preventDefault();
-    addEquipment();
+    void buscarEquiposParaAsociar();
+  });
+
+  equipmentSearchResults?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    if (target.dataset.action !== "associate-equipment") {
+      return;
+    }
+
+    const equipoId = Number(target.dataset.equipoId || 0);
+    if (!equipoId) {
+      return;
+    }
+
+    void asociarEquipoAEstudiante(equipoId);
   });
 
   equipmentList?.addEventListener("click", (event) => {
@@ -1567,11 +1738,37 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       return;
     }
 
-    const index = Number(target.dataset.equipmentIndex || -1);
+    const equipoId = Number(target.dataset.equipoId || 0);
 
-    if (target.dataset.action === "remove-equipment" && index >= 0) {
-      removeEquipment(index);
+    if (target.dataset.action === "remove-equipment" && equipoId > 0) {
+      void removeEquipment(equipoId);
     }
+  });
+
+  usersPagination?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement) || target.dataset.pageKey !== "users") {
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(getFilteredUsers().length / USERS_PAGE_SIZE));
+    const nextPage = Number(target.dataset.page || state.userPage);
+    state.userPage = Math.max(1, Math.min(nextPage, totalPages));
+    renderTable();
+  });
+
+  equipmentPagination?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("button") : null;
+
+    if (!(target instanceof HTMLButtonElement) || target.dataset.pageKey !== "equipments") {
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(state.equipments.length / EQUIPMENTS_PAGE_SIZE));
+    const nextPage = Number(target.dataset.page || state.equipmentPage);
+    state.equipmentPage = Math.max(1, Math.min(nextPage, totalPages));
+    renderEquipmentTable();
   });
 
   closeUserModal?.addEventListener("click", closeModal);

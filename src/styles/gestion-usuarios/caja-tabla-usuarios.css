@@ -140,3 +140,35 @@
   padding: 1rem 0.3rem 0.2rem;
   color: #64748b;
 }
+
+.users-pagination {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.users-pagination__button {
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 0.7rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.users-pagination__button.is-active {
+  background: #e8f5eb;
+  border-color: #17863a;
+  color: #166534;
+  font-weight: 700;
+}
+
+.users-pagination__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
