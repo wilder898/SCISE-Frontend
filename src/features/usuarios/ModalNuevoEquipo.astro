@@ -17,24 +17,84 @@
 
     <section class="equipment-scan-card">
       <div class="equipment-scan-card__intro">
-        <span class="equipment-scan-card__emoji" aria-hidden="true">📦</span>
+        <span class="equipment-scan-card__emoji" aria-hidden="true">[+]</span>
         <div>
           <h3>Escanear Carnet</h3>
-          <p>Primero, escanea el carnet del usuario al que se asignará el equipo.</p>
+          <p>Primero, escanea el carnet del usuario al que se asignara el equipo.</p>
         </div>
       </div>
 
-      <label class="user-field">
-        <span>Carnet o documento</span>
-        <input
-          id="equipmentUserLookup"
-          type="text"
-          placeholder="Escanea el carnet aquí"
-          autocomplete="off"
-        />
-      </label>
+      <div class="equipment-scan-card__actions">
+        <label class="user-field">
+          <span>Carnet o documento</span>
+          <input
+            id="equipmentUserLookup"
+            type="text"
+            placeholder="Escanea el carnet aqui"
+            autocomplete="off"
+          />
+        </label>
 
-      <p class="equipment-scan-card__hint">Presiona Enter después de escanear.</p>
+        <button class="user-button user-button--primary" id="equipmentScanCarnetButton" type="button">
+          <span id="equipmentScanCarnetButtonLabel">Usar Camara</span>
+        </button>
+      </div>
+
+      <p id="equipmentScanStatusMessage" class="equipment-scan-card__status">
+        Listo para escanear o ingresar el documento.
+      </p>
+      <p class="equipment-scan-card__hint">Tambien puedes escribir el documento y presionar Enter.</p>
+
+      <section id="equipmentCameraScannerBox" class="camera-scanner oculto" aria-live="polite">
+        <div class="camera-scanner__toolbar">
+          <label class="camera-scanner__field">
+            <span class="camera-scanner__label">Camara</span>
+            <select id="equipmentCameraDeviceSelect" class="camera-scanner__select">
+              <option value="">Camara predeterminada</option>
+            </select>
+          </label>
+
+          <button id="equipmentCameraRefreshButton" class="camera-scanner__secondary-button" type="button">
+            Actualizar
+          </button>
+        </div>
+
+        <div class="camera-scanner__frame">
+          <video
+            id="equipmentCameraScannerVideo"
+            class="camera-scanner__video is-flipped"
+            playsinline
+            muted
+            autoplay
+          ></video>
+          <div class="camera-scanner__overlay" aria-hidden="true">
+            <span class="camera-scanner__guide"></span>
+          </div>
+        </div>
+
+        <div class="camera-scanner__actions">
+          <p class="camera-scanner__hint">
+            Enfoca el codigo de barras del carnet para identificar al usuario y habilitar el formulario.
+          </p>
+          <div class="camera-scanner__buttons">
+            <button
+              id="equipmentCameraCaptureButton"
+              class="camera-scanner__capture-button"
+              type="button"
+            >
+              Capturar y Escanear
+            </button>
+            <button
+              id="equipmentCameraScannerCloseButton"
+              class="camera-scanner__close-button"
+              type="button"
+            >
+              Cerrar Camara
+            </button>
+          </div>
+        </div>
+      </section>
+
       <p class="field-error equipment-scan-card__error" id="equipmentLookupError"></p>
 
       <div class="equipment-detected-user oculto" id="equipmentDetectedUser">
@@ -54,12 +114,12 @@
         <label class="user-field">
           <span>Tipo</span>
           <select id="newEquipmentTipo">
-            <option value="Portátil">Portátil</option>
+            <option value="Portatil">Portatil</option>
             <option value="Monitor">Monitor</option>
             <option value="Teclado">Teclado</option>
             <option value="Mouse">Mouse</option>
             <option value="Impresora">Impresora</option>
-            <option value="Escáner">Escáner</option>
+            <option value="Escaner">Escaner</option>
             <option value="Proyector">Proyector</option>
             <option value="Otro">Otro</option>
           </select>
@@ -77,7 +137,7 @@
       </div>
 
       <label class="user-field">
-        <span>Descripción</span>
+        <span>Descripcion</span>
         <textarea id="newEquipmentDescripcion" rows="4" placeholder="Detalles adicionales del equipo"></textarea>
       </label>
     </section>
