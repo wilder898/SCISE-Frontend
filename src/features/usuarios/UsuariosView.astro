@@ -685,9 +685,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
               <p>${equipo.nombre || equipo.descripcion || "Equipo"}</p>
               <span>${equipo.tipo} | ${formatEquipmentStatus(equipo.estado)}</span>
             </div>
-            <button class="table-action" type="button" data-action="remove-equipment" data-equipo-id="${equipo.id}">
-              Eliminar
-            </button>
           </article>
         `
       )
@@ -909,23 +906,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       alert(error instanceof Error ? error.message : "No fue posible actualizar el usuario.");
     } finally {
       saveUserButton?.removeAttribute("disabled");
-    }
-  }
-
-  async function removeEquipment(equipoId) {
-    try {
-      await apiRequest(
-        `/equipos/${encodeURIComponent(equipoId)}`,
-        { method: "DELETE" },
-        "No fue posible eliminar el equipo."
-      );
-      const user = getSelectedUser();
-      if (user) {
-        await cargarEquiposAsociadosEnModal(user.id);
-      }
-      await loadEquipmentTable();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "No fue posible eliminar el equipo.");
     }
   }
 
@@ -1745,20 +1725,6 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
 
     void asociarEquipoAEstudiante(equipoId);
-  });
-
-  equipmentList?.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target.closest("button") : null;
-
-    if (!(target instanceof HTMLButtonElement)) {
-      return;
-    }
-
-    const equipoId = Number(target.dataset.equipoId || 0);
-
-    if (target.dataset.action === "remove-equipment" && equipoId > 0) {
-      void removeEquipment(equipoId);
-    }
   });
 
   usersPagination?.addEventListener("click", (event) => {
