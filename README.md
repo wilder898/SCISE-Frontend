@@ -1,6 +1,6 @@
 # SCISE-Frontend
 
-Frontend de SCISE construido con Astro para autenticacion, ingreso/salida de equipos, gestion de usuarios y consulta de reportes.
+Frontend de SCISE construido con Astro para autenticacion, ingreso/salida de equipos, gestión de usuarios y consulta de reportes.
 
 ## Estado actual
 
@@ -57,7 +57,7 @@ npm run dev
 | `/dashboard` | Panel inicial |
 | `/ingreso` | Registro de ingresos |
 | `/salida` | Registro de salidas |
-| `/usuarios` | Gestion de usuarios y equipos |
+| `/usuarios` | Gestión de usuarios y equipos |
 | `/reportes` | Historial y exportaciones |
 | `/configuracion` | Configuracion de usuarios de sistema |
 
@@ -102,11 +102,11 @@ Base URL: `PUBLIC_API_BASE_URL`
 - `GET /reportes/movimientos/historial`
 - Exportacion: variantes `xlsx/csv/pdf` en `/reportes/movimientos/*`
 
-## Sesion en frontend
+## Sesión en frontend
 
 - Token: `localStorage["scise-auth-token"]`
-- Datos de sesion: `localStorage["scise-session"]`
-- En `401` se limpia sesion y se redirige a `/auth/login`.
+- Datos de Sesión: `localStorage["scise-session"]`
+- En `401` se limpia Sesión y se redirige a `/auth/login`.
 
 ## Estructura del proyecto
 
@@ -147,5 +147,5 @@ src/
 ## Notas operativas
 
 - El frontend asume CORS habilitado en backend para el origen de desarrollo.
-- Usar la misma base (`localhost` o `127.0.0.1`) en frontend/backend evita errores de sesion y CORS.
+- Usar la misma base (`localhost` o `127.0.0.1`) en frontend/backend evita errores de Sesión y CORS.
 - Para cambios de contrato API, actualizar primero este README y luego el modulo afectado.

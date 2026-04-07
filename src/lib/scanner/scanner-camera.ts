@@ -120,12 +120,12 @@ export class CameraScanner {
       return;
     }
 
-    this.emitStatus("checking-support", "Validando soporte del lector de camara...");
+    this.emitStatus("checking-support", "Validando soporte del lector de cámara...");
 
     if (!hasCameraAccessSupport()) {
       this.emitError(
         "not_supported",
-        "El navegador no permite acceder a la camara desde esta pagina."
+        "El navegador no permite acceder a la cámara desde esta página."
       );
       return;
     }
@@ -176,7 +176,7 @@ export class CameraScanner {
     if (!this.videoElement.videoWidth || !this.videoElement.videoHeight) {
       this.emitError(
         "detection_error",
-        "La camara aun no tiene una imagen lista para capturar."
+        "La cámara aún no tiene una imagen lista para capturar."
       );
       return null;
     }
@@ -213,7 +213,7 @@ export class CameraScanner {
       if (!value) {
         this.emitError(
           "detection_error",
-          "No se detecto un codigo legible en la captura."
+          "No se detectó un código legible en la captura."
         );
         return null;
       }
@@ -228,7 +228,7 @@ export class CameraScanner {
       if (error instanceof NotFoundException) {
         this.emitError(
           "detection_error",
-          "No se detecto un codigo legible en la captura."
+          "No se detectó un código legible en la captura."
         );
         return null;
       }
@@ -243,7 +243,7 @@ export class CameraScanner {
   }
 
   private async startNativeScanner() {
-    this.emitStatus("requesting-permission", "Solicitando permiso para usar la camara...");
+    this.emitStatus("requesting-permission", "Solicitando permiso para usar la cámara...");
 
     try {
       const navigatorWithMedia = navigator as NavigatorWithMediaDevices;
@@ -266,19 +266,19 @@ export class CameraScanner {
       await this.videoElement.play();
     } catch (error) {
       this.stopStream();
-      this.emitError("playback_error", "No fue posible reproducir la camara.", error);
+      this.emitError("playback_error", "No fue posible reproducir la cámara.", error);
       return;
     }
 
     this.isRunning = true;
-    this.emitStatus("ready", "Camara activa. Ubica el codigo del carnet frente al lente.");
+    this.emitStatus("ready", "Cámara activa. Ubica el código del carnet frente al lente.");
     void this.scanLoop();
   }
 
   private async startZxingScanner() {
     this.emitStatus(
       "requesting-permission",
-      "Solicitando permiso para usar la camara con lector compatible..."
+      "Solicitando permiso para usar la cámara con lector compatible..."
     );
 
     this.zxingReader = this.getOrCreateZxingReader();
@@ -309,13 +309,13 @@ export class CameraScanner {
           }
 
           if (!error || error instanceof NotFoundException) {
-            this.emitStatus("scanning", "Leyendo codigo de barras del carnet...");
+            this.emitStatus("scanning", "Leyendo código de barras del carnet...");
             return;
           }
 
           this.emitError(
             "detection_error",
-            "Se produjo un error al analizar la imagen de la camara.",
+            "Se produjo un error al analizar la imagen de la cámara.",
             error
           );
           this.stop();
@@ -328,7 +328,7 @@ export class CameraScanner {
       return;
     }
 
-    this.emitStatus("ready", "Camara activa. Ubica el codigo del carnet frente al lente.");
+    this.emitStatus("ready", "Cámara activa. Ubica el código del carnet frente al lente.");
     await this.enhanceVideoTrack(this.getCurrentVideoTrack());
   }
 
@@ -337,7 +337,7 @@ export class CameraScanner {
       return;
     }
 
-    this.emitStatus("scanning", "Leyendo codigo de barras del carnet...");
+    this.emitStatus("scanning", "Leyendo código de barras del carnet...");
 
     try {
       const barcodes = await this.detector.detect(this.videoElement);
@@ -358,7 +358,7 @@ export class CameraScanner {
     } catch (error) {
       this.emitError(
         "detection_error",
-        "Se produjo un error al analizar la imagen de la camara.",
+        "Se produjo un error al analizar la imagen de la cámara.",
         error
       );
       this.stop();
@@ -381,10 +381,10 @@ export class CameraScanner {
 
     const message =
       code === "permission_denied"
-        ? "Permiso de camara denegado por el usuario."
+        ? "Permiso de cámara denegado por el usuario."
         : code === "no_camera"
-          ? "No se encontro una camara disponible en el dispositivo."
-          : "No fue posible iniciar la camara.";
+          ? "No se encontró una cámara disponible en el dispositivo."
+          : "No fue posible iniciar la cámara.";
 
     this.emitError(code, message, error);
   }

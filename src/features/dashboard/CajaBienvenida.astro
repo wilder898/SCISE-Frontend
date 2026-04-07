@@ -6,13 +6,13 @@
 
   <section class="dashboard-metrics" aria-label="Indicadores de equipos">
     <article class="dashboard-metric dashboard-metric--ingreso">
-      <p>Equipos en instalacion</p>
+      <p>Equipos en instalación</p>
       <strong id="dashboardInsidePct">0%</strong>
       <span id="dashboardInsideMeta">0 equipos dentro</span>
     </article>
 
     <article class="dashboard-metric dashboard-metric--salida">
-      <p>Equipos fuera de instalacion</p>
+      <p>Equipos fuera de instalación</p>
       <strong id="dashboardOutsidePct">0%</strong>
       <span id="dashboardOutsideMeta">0 equipos fuera</span>
     </article>
@@ -69,7 +69,7 @@
     });
 
     if (response.status === 401) {
-      const detail = await getResponseDetail(response, "Sesion no autorizada.");
+      const detail = await getResponseDetail(response, "Sesión no autorizada.");
       handleUnauthorized(detail);
       return;
     }

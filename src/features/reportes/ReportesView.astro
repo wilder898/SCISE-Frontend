@@ -185,7 +185,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   function handleUnauthorized(detail?: string): void {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
-    state.errorMessage = detail || "Sesion vencida. Inicia sesion nuevamente.";
+    state.errorMessage = detail || "Sesión vencida. Inicia sesión nuevamente.";
     renderTable();
     window.setTimeout(() => {
       window.location.href = "/auth/login";
@@ -209,7 +209,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   async function handleAuthStatus(response: Response): Promise<void> {
     if (response.status === 401) {
-      const detail = await getResponseDetail(response, "Sesion no autorizada.");
+      const detail = await getResponseDetail(response, "Sesión no autorizada.");
       handleUnauthorized(detail);
       throw new Error(detail);
     }
@@ -355,7 +355,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       serial: "Serial",
       nombre_equipo: "Equipo",
       equipo_nombre: "Equipo",
-      equipo_descripcion: "Descripcion Equipo",
+      equipo_descripcion: "Descripción Equipo",
       nombre_usuario: "Usuario",
       usuario_nombre: "Usuario",
       documento: "Documento",
@@ -432,7 +432,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       detailModalContent.innerHTML = `
         <article class="reportes-detail-item">
           <strong>Detalle</strong>
-          <span>No hay informacion disponible para este movimiento.</span>
+          <span>No hay información disponible para este movimiento.</span>
         </article>
       `;
     } else {
@@ -502,7 +502,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function fetchResumenFromApi(filters: ReportFilters): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
@@ -554,7 +554,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   ): Promise<{ rows: MovementReportRow[]; totalItems: number; page: number; totalPages: number }> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
@@ -595,7 +595,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
 
     const totalPages = state.pagination.totalPages;
-    pageInfo.textContent = `Pagina ${state.pagination.page} de ${totalPages}`;
+    pageInfo.textContent = `Página ${state.pagination.page} de ${totalPages}`;
     prevButton.disabled = state.pagination.page <= 1;
     nextButton.disabled = state.pagination.page >= totalPages;
 
@@ -659,7 +659,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function downloadExcelWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
@@ -717,7 +717,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function downloadPdfWithFilters(filters: ReportFilters): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
@@ -773,7 +773,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function fetchMovimientoDetalleById(movimientoId: string): Promise<Record<string, unknown>> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const endpoints = [
@@ -928,7 +928,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     if (target.classList.contains("movement-more")) {
       const movementId = String(target.dataset.movementId || "");
       if (!movementId) {
-        state.errorMessage = "No se encontro el ID del movimiento.";
+        state.errorMessage = "No se encontró el ID del movimiento.";
         renderTable();
         return;
       }

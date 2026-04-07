@@ -255,7 +255,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     return { nombre, apellido };
   }
 
-  function handleUnauthorized(detail = "Sesion no valida. Inicia sesion nuevamente.") {
+  function handleUnauthorized(detail = "Sesión no válida. Inicia sesión nuevamente.") {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
     alert(detail);
@@ -309,7 +309,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     const response = await fetch(`${API_BASE_URL}${path}`, requestOptions);
     if (response.status === 401) {
       const payload = await response.json().catch(() => ({}));
-      handleUnauthorized(getErrorDetail(payload, "Sesion no valida. Inicia sesion nuevamente."));
+      handleUnauthorized(getErrorDetail(payload, "Sesión no válida. Inicia sesión nuevamente."));
       return null;
     }
 
@@ -416,7 +416,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     buttons.push(
       `<button class="users-pagination__button" data-page-key="${key}" data-page="${currentPage - 1}" ${
         currentPage === 1 ? "disabled" : ""
-      }>‹</button>`
+      }>&lsaquo;</button>`
     );
 
     for (let page = start; page <= end; page += 1) {
@@ -428,7 +428,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     buttons.push(
       `<button class="users-pagination__button" data-page-key="${key}" data-page="${currentPage + 1}" ${
         currentPage === totalPages ? "disabled" : ""
-      }>›</button>`
+      }>&rsaquo;</button>`
     );
 
     container.innerHTML = buttons.join("");
@@ -1030,7 +1030,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
   function handleDetectedCarnetForNewUser(documento) {
     const detectedValue = String(documento || "").trim();
     if (!detectedValue) {
-      setNewUserScanStatus("No se detecto un documento valido en el carnet.", "is-error");
+      setNewUserScanStatus("No se detectó un documento válido en el carnet.", "is-error");
       return;
     }
 
@@ -1934,10 +1934,10 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
 
       buttonElement.setAttribute(
         "aria-label",
-        isCameraActive ? "Cerrar camara del lector" : "Usar camara para escanear el carnet"
+        isCameraActive ? "Cerrar cámara del lector" : "Usar cámara para escanear el carnet"
       );
       if (buttonLabelElement) {
-        buttonLabelElement.textContent = isCameraActive ? "Cerrar Camara" : "Usar Camara";
+        buttonLabelElement.textContent = isCameraActive ? "Cerrar Cámara" : "Usar Cámara";
       }
     }
 
@@ -2016,7 +2016,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
       await refreshCameraDevices();
       controller.setCameraDevice(selectedCameraDeviceId || null);
       showScanner();
-      updateStatus("Preparando camara para leer el carnet...", "info");
+      updateStatus("Preparando cámara para leer el carnet...", "info");
       await controller.startCamera();
       await refreshCameraDevices();
     }
@@ -2035,7 +2035,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
         return;
       }
 
-      updateStatus("Cambiando de camara...", "info");
+      updateStatus("Cambiando de cámara...", "info");
       controller.stopCamera();
       hideScanner();
       controller.setCameraDevice(selectedCameraDeviceId || null);
@@ -2101,7 +2101,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     refreshButtonId: "newUserCameraRefreshButton",
     captureButtonId: "newUserCameraCaptureButton",
     closeButtonId: "newUserCameraScannerCloseButton",
-    unsupportedMessage: "Este navegador no permite usar la camara para leer el carnet.",
+    unsupportedMessage: "Este navegador no permite usar la cámara para leer el carnet.",
     detectedMessage: "Documento detectado. Verificando datos del usuario...",
   });
 
@@ -2118,7 +2118,7 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     refreshButtonId: "equipmentCameraRefreshButton",
     captureButtonId: "equipmentCameraCaptureButton",
     closeButtonId: "equipmentCameraScannerCloseButton",
-    unsupportedMessage: "Este navegador no permite usar la camara para leer el carnet.",
+    unsupportedMessage: "Este navegador no permite usar la cámara para leer el carnet.",
     detectedMessage: "Documento detectado. Consultando usuario...",
   });
 </script>

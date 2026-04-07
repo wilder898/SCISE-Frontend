@@ -21,7 +21,7 @@
     <button class="dashboard-page-button" id="dashboardRecentPrevButton" type="button">
       Anterior
     </button>
-    <span id="dashboardRecentPageInfo">Pagina 1 de 1</span>
+    <span id="dashboardRecentPageInfo">Página 1 de 1</span>
     <button class="dashboard-page-button" id="dashboardRecentNextButton" type="button">
       Siguiente
     </button>
@@ -195,7 +195,7 @@
     });
 
     if (response.status === 401) {
-      const detail = await getResponseDetail(response, "Sesion no autorizada.");
+      const detail = await getResponseDetail(response, "Sesión no autorizada.");
       handleUnauthorized(detail);
       return;
     }
@@ -224,7 +224,7 @@
     }
 
     if (pageInfo instanceof HTMLElement) {
-      pageInfo.textContent = `Pagina ${state.page} de ${state.totalPages}`;
+      pageInfo.textContent = `Página ${state.page} de ${state.totalPages}`;
     }
 
     if (prevButton instanceof HTMLButtonElement) {

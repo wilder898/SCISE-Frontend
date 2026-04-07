@@ -198,10 +198,10 @@ import CajaInformacion from "./CajaInformacion.astro";
 
     scanReaderButton.setAttribute(
       "aria-label",
-      isCameraActive ? "Cerrar camara del lector" : "Usar camara para escanear el carnet"
+      isCameraActive ? "Cerrar cámara del lector" : "Usar cámara para escanear el carnet"
     );
     if (scanReaderButtonLabel) {
-      scanReaderButtonLabel.textContent = isCameraActive ? "Cerrar Camara" : "Usar Camara";
+      scanReaderButtonLabel.textContent = isCameraActive ? "Cerrar Cámara" : "Usar Cámara";
     }
   }
 
@@ -292,7 +292,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function startCameraScanner() {
     if (!scannerController) {
       updateScanStatus(
-        "No fue posible inicializar el lector de camara en esta vista.",
+        "No fue posible inicializar el lector de cámara en esta vista.",
         "error"
       );
       return;
@@ -300,7 +300,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
     if (!ScannerController.isCameraSupported()) {
       updateScanStatus(
-        "Este navegador no soporta lectura nativa de codigo de barras. Usa el campo manual.",
+        "Este navegador no soporta lectura nativa de código de barras. Usa el campo manual.",
         "error"
       );
       return;
@@ -309,7 +309,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     await refreshCameraDevices();
     scannerController.setCameraDevice(selectedCameraDeviceId || null);
     showCameraScanner();
-    updateScanStatus("Preparando camara para leer el carnet...", "info");
+    updateScanStatus("Preparando cámara para leer el carnet...", "info");
     await scannerController.startCamera();
     await refreshCameraDevices();
   }
@@ -330,7 +330,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       return;
     }
 
-    updateScanStatus("Cambiando de camara...", "info");
+    updateScanStatus("Cambiando de cámara...", "info");
     scannerController.stopCamera();
     hideCameraScanner();
     scannerController.setCameraDevice(selectedCameraDeviceId || null);
@@ -339,7 +339,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   async function captureCurrentFrame() {
     if (!scannerController || !isCameraActive) {
-      updateScanStatus("Primero abre la camara para capturar el carnet.", "error");
+      updateScanStatus("Primero abre la cámara para capturar el carnet.", "error");
       return;
     }
 
@@ -365,7 +365,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       listaEquipos.innerHTML = "";
       listaEquipos.classList.add("oculto");
       equiposError.textContent =
-        "No hay equipos disponibles para ingreso. Los asociados ya se encuentran registrados dentro de la instalacion.";
+        "No hay equipos disponibles para ingreso. Los asociados ya se encuentran registrados dentro de la instalación.";
       equiposError.classList.remove("oculto");
       return;
     }
@@ -386,7 +386,7 @@ import CajaInformacion from "./CajaInformacion.astro";
               <strong>${equipo.nombre}</strong><br>
               <small>Serial: ${equipo.serial}</small><br>
               <small>Tipo: ${equipo.tipo} | Estado: ${equipo.estado}</small><br>
-              <small>Descripcion: ${equipo.descripcion}</small>
+              <small>Descripción: ${equipo.descripcion}</small>
             </label>
           </div>
         `
@@ -427,7 +427,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function buscarEstudiantePorIdentificador(identificador: string): Promise<IngresoUser> {
     const token = localStorage.getItem("scise-auth-token");
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const response = await fetch(
@@ -464,7 +464,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function listarEquiposAsociados(estudianteId: string): Promise<IngresoEquipment[]> {
     const token = localStorage.getItem("scise-auth-token");
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const response = await fetch(
@@ -496,7 +496,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       serial: String(equipo.serial || ""),
       tipo: String(equipo.tipo || "Sin tipo"),
       estado: String(equipo.estado || "Sin estado"),
-      descripcion: String(equipo.descripcion || equipo.nombre || "Equipo sin descripcion"),
+      descripcion: String(equipo.descripcion || equipo.nombre || "Equipo sin descripción"),
     }));
   }
 
@@ -506,7 +506,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   ): Promise<MovimientoIngresoBatchResponse> {
     const token = localStorage.getItem("scise-auth-token");
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const response = await fetch(`${API_BASE_URL}/movimientos/ingresos`, {
@@ -757,3 +757,4 @@ import CajaInformacion from "./CajaInformacion.astro";
     stopCameraScanner();
   });
 </script>
+

@@ -46,7 +46,7 @@ export function initializeDocumentScanner(
 
   const initializationErrorMessage =
     options.initializationErrorMessage ||
-    "No fue posible inicializar el lector de camara en esta vista.";
+    "No fue posible inicializar el lector de cámara en esta vista.";
   const manualCloseMessage =
     options.manualCloseMessage || "Camara cerrada. Puedes escribir el documento manualmente.";
   const detectedMessage =
@@ -86,10 +86,10 @@ export function initializeDocumentScanner(
 
     scanReaderButton.setAttribute(
       "aria-label",
-      isCameraActive ? "Cerrar camara del lector" : "Usar camara para escanear el carnet"
+      isCameraActive ? "Cerrar cámara del lector" : "Usar cámara para escanear el carnet"
     );
     if (scanReaderButtonLabel) {
-      scanReaderButtonLabel.textContent = isCameraActive ? "Cerrar Camara" : "Usar Camara";
+      scanReaderButtonLabel.textContent = isCameraActive ? "Cerrar Cámara" : "Usar Cámara";
     }
   }
 
@@ -191,7 +191,7 @@ export function initializeDocumentScanner(
     await refreshCameraDevices();
     scannerController.setCameraDevice(selectedCameraDeviceId || null);
     showCameraScanner();
-    updateScanStatus("Preparando camara para leer el carnet...", "info");
+    updateScanStatus("Preparando cámara para leer el carnet...", "info");
     await scannerController.startCamera();
     await refreshCameraDevices();
   }
@@ -212,7 +212,7 @@ export function initializeDocumentScanner(
       return;
     }
 
-    updateScanStatus("Cambiando de camara...", "info");
+    updateScanStatus("Cambiando de cámara...", "info");
     scannerController.stopCamera();
     hideCameraScanner();
     scannerController.setCameraDevice(selectedCameraDeviceId || null);
@@ -221,7 +221,7 @@ export function initializeDocumentScanner(
 
   async function captureCurrentFrame() {
     if (!scannerController || !isCameraActive) {
-      updateScanStatus("Primero abre la camara para capturar el carnet.", "error");
+      updateScanStatus("Primero abre la cámara para capturar el carnet.", "error");
       return;
     }
 
@@ -297,3 +297,4 @@ export function initializeDocumentScanner(
     },
   };
 }
+

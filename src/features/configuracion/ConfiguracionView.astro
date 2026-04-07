@@ -184,7 +184,7 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
       const token = localStorage.getItem("scise-auth-token");
 
       if (!token) {
-        const authError = new Error("Tu sesion expiro. Inicia sesion nuevamente.");
+        const authError = new Error("Tu sesión expiró. Inicia sesión nuevamente.");
         authError.status = 401;
         throw authError;
       }
@@ -233,7 +233,7 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
       const status = Number(error?.status || 0);
 
       if (status === 401) {
-        alert(`${message} Debes iniciar sesion nuevamente.`);
+        alert(`${message} Debes iniciar sesión nuevamente.`);
         window.location.href = "/auth/login";
         return;
       }
@@ -294,11 +294,11 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
 
     function formatAuditType(type) {
       const map = {
-        crear: "Creacion",
-        editar: "Edicion",
-        activar: "Activacion",
-        desactivar: "Desactivacion",
-        contrasena: "Contrasena",
+        crear: "Creación",
+        editar: "edicion",
+        activar: "Activación",
+        desactivar: "Desactivación",
+        contrasena: "Contraseña",
         eliminar: "Eliminacion",
       };
 
@@ -372,7 +372,7 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
               <small>${escapeHtml(item.fecha)}</small>
             </div>
             <p>${escapeHtml(item.detalle)}</p>
-            <span class="config-audit-item__actor">Accion realizada por ${escapeHtml(item.actor)}</span>
+            <span class="config-audit-item__actor">Acción realizada por ${escapeHtml(item.actor)}</span>
           </article>
         `)
         .join("");
@@ -440,7 +440,7 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
                       <span class="config-state-toggle__thumb"></span>
                     </span>
                   </button>
-                  <button class="config-icon-button is-password" type="button" title="Cambiar contrasena" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
+                  <button class="config-icon-button is-password" type="button" title="Cambiar contraseña" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
                   <button class="config-icon-button is-edit" type="button" title="Editar usuario" data-action="edit" data-access-id="${access.id}">${editIcon}</button>
                   <button class="config-icon-button is-danger" type="button" title="Eliminar usuario" data-action="delete" data-access-id="${access.id}">${deleteIcon}</button>
                 </div>
@@ -542,7 +542,7 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
       }
 
       if (contrasena.length < 6) {
-        alert("La contrasena inicial debe tener al menos 6 caracteres.");
+        alert("La contraseña inicial debe tener al menos 6 caracteres.");
         return;
       }
 
@@ -650,7 +650,7 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
         state.accesses = state.accesses.map((item) => (item.id === access.id ? updatedAccess : item));
 
         renderTable();
-        addAuditEntry("editar", updatedAccess.nombre, `Se actualizo la informacion del perfil ${updatedAccess.rol}.`);
+        addAuditEntry("editar", updatedAccess.nombre, `Se actualizó la información del perfil ${updatedAccess.rol}.`);
         closeModal(editUserModal);
       } catch (error) {
         handleRequestError(error, "No fue posible actualizar el usuario.");
@@ -727,13 +727,13 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
       const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
 
       if (passwordTargetName instanceof HTMLElement) {
-        passwordTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningun usuario seleccionado";
+        passwordTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningún usuario seleccionado";
       }
 
       if (passwordTargetMeta instanceof HTMLElement) {
         passwordTargetMeta.textContent = access
           ? `Documento ${access.documento}. Estado ${access.estado}.`
-          : "Usa la tabla de usuarios para elegir a quien deseas cambiar la contrasena.";
+          : "Usa la tabla de usuarios para elegir a quien deseas cambiar la contraseña.";
       }
 
       if (applyPasswordChange instanceof HTMLButtonElement) {
@@ -742,8 +742,8 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
 
       if (passwordResetFeedback instanceof HTMLElement) {
         passwordResetFeedback.textContent = access
-          ? "Ingresa una nueva contrasena segura y confirmala antes de aplicar."
-          : "La nueva contrasena debe tener al menos 6 caracteres.";
+          ? "Ingresa una nueva contraseña segura y confírmala antes de aplicar."
+          : "La nueva contraseña debe tener al menos 6 caracteres.";
       }
     }
 
@@ -781,17 +781,17 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
       const confirmPassword = passwordConfirmacion.value.trim();
 
       if (!newPassword || !confirmPassword) {
-        passwordResetFeedback.textContent = "Completa ambos campos de contrasena.";
+        passwordResetFeedback.textContent = "Completa ambos campos de contraseña.";
         return;
       }
 
       if (newPassword.length < 6) {
-        passwordResetFeedback.textContent = "La contrasena debe tener al menos 6 caracteres.";
+        passwordResetFeedback.textContent = "La contraseña debe tener al menos 6 caracteres.";
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        passwordResetFeedback.textContent = "Las contrasenas no coinciden.";
+        passwordResetFeedback.textContent = "Las contraseñas no coinciden.";
         return;
       }
 
@@ -806,12 +806,12 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
 
         passwordNueva.value = "";
         passwordConfirmacion.value = "";
-        addAuditEntry("contrasena", access.nombre, "Se realizo un cambio de contrasena desde configuracion.");
-        passwordResetFeedback.textContent = `Contrasena actualizada para ${access.nombre}.`;
+        addAuditEntry("contrasena", access.nombre, "Se realizó un cambio de contraseña desde configuración.");
+        passwordResetFeedback.textContent = `Contraseña actualizada para ${access.nombre}.`;
         closeModal(passwordModal);
       } catch (error) {
         passwordResetFeedback.textContent =
-          error instanceof Error && error.message ? error.message : "No fue posible actualizar la contrasena.";
+          error instanceof Error && error.message ? error.message : "No fue posible actualizar la contraseña.";
       }
     }
 
@@ -899,8 +899,9 @@ const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida",
       try {
         await refreshAudit();
       } catch (error) {
-        handleRequestError(error, "No fue posible cargar la auditoria.");
+        handleRequestError(error, "No fue posible cargar la auditoría.");
       }
     })();
   }
 </script>
+
