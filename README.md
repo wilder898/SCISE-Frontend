@@ -1,22 +1,33 @@
 # SCISE-Frontend
 
-Frontend de SCISE construido con Astro para autenticacion, ingreso/salida de equipos, gestión de usuarios y consulta de reportes.
+Frontend de SCISE construido con Astro para autenticación, ingreso/salida de equipos, gestión de usuarios y consulta de reportes.
 
 ## Estado actual
 
 - Login/logout conectados a backend real (`/auth/login`, `/auth/logout`).
-- Modulo Ingreso conectado a API (buscar estudiante, cargar equipos, registrar ingresos).
-- Modulo Salida conectado a API (buscar estudiante, consultar movimientos activos, registrar salidas).
-- Modulo Usuarios conectado a API para CRUD operativo de estudiantes/equipos (sin mocks locales).
+- Módulo `Ingreso` conectado a API:
+  - buscar estudiante por documento/carnet
+  - cargar equipos asociados
+  - registrar ingresos
+- Módulo `Salida` conectado a API:
+  - buscar estudiante por documento/carnet
+  - consultar equipos con ingreso activo
+  - registrar salidas
+- Módulo `Usuarios` conectado a API para CRUD operativo de estudiantes/equipos, sin mocks locales.
 - Dashboard y Reportes conectados a endpoints de resumen, historial y exportaciones.
+- Escaneo por cámara habilitado para:
+  - ingreso
+  - salida
+  - modal de nuevo usuario
+  - modal de nuevo equipo
 
 ## Requisitos
 
-- Node.js 20+ recomendado.
-- npm 10+ recomendado.
-- Backend SCISE corriendo (por defecto en `http://localhost:8000`).
+- Node.js 20+ recomendado
+- npm 10+ recomendado
+- Backend SCISE corriendo, por defecto en `http://localhost:8000`
 
-## Configuracion local
+## Configuración local
 
 1. Instalar dependencias:
 
@@ -24,7 +35,13 @@ Frontend de SCISE construido con Astro para autenticacion, ingreso/salida de equ
 npm install
 ```
 
-2. Levanta entorno local de desarrollo  con:
+2. Configurar variable pública del frontend si se requiere un backend distinto:
+
+```env
+PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+3. Levantar entorno local de desarrollo:
 
 ```bash
 npm run dev
@@ -32,26 +49,26 @@ npm run dev
 
 ## Comandos
 
-| Comando | Descripcion |
+| Comando | Descripción |
 | --- | --- |
 | `npm install` | Instala dependencias |
 | `npm run dev` | Levanta entorno local de desarrollo |
-| `npm run build` | Genera build de produccion |
+| `npm run build` | Genera build de producción |
 | `npm run preview` | Previsualiza el build generado |
-
+| `npm run astro check` | Valida Astro/TypeScript |
 
 ## Stack y dependencias principales
 
 - `astro` `^5.17.1`
 - `tailwindcss` `^4.2.1`
 - `@tailwindcss/vite` `^4.2.1`
-- `@zxing/browser` `^0.1.5` (scanner de codigos de barras/carnet)
+- `@zxing/browser` `^0.1.5` para lectura de código de barras por cámara
 - `typescript` `^5.9.3` (dev)
 - `@astrojs/check` `^0.9.8` (dev)
 
 ## Rutas principales
 
-| Ruta | Modulo |
+| Ruta | Módulo |
 | --- | --- |
 | `/auth/login` | Login |
 | `/dashboard` | Panel inicial |
@@ -59,11 +76,11 @@ npm run dev
 | `/salida` | Registro de salidas |
 | `/usuarios` | Gestión de usuarios y equipos |
 | `/reportes` | Historial y exportaciones |
-| `/configuracion` | Configuracion de usuarios de sistema |
+| `/configuracion` | Configuración de usuarios del sistema |
 
-## Integracion API (contratos consumidos)
+## Integración API
 
-Base URL: `PUBLIC_API_BASE_URL`
+Base URL consumida por frontend: `PUBLIC_API_BASE_URL`
 
 ### Auth
 
@@ -72,17 +89,18 @@ Base URL: `PUBLIC_API_BASE_URL`
 
 ### Ingreso
 
-- `GET /estudiantes/by-documento/{identificador}` (documento o carnet)
+- `GET /estudiantes/by-documento/{identificador}`  
+  Nota: el frontend usa documento/carnet; backend resuelve documento o código de barras.
 - `GET /estudiantes/{estudiante_id}/equipos?solo_disponibles_ingreso=true`
 - `POST /movimientos/ingresos`
 
 ### Salida
 
-- `GET /estudiantes/by-documento/{identificador}` (documento o carnet)
+- `GET /estudiantes/by-documento/{identificador}`
 - `GET /movimientos/activos/estudiante/{estudiante_id}`
 - `POST /movimientos/salidas`
 
-### Usuarios + Equipos
+### Usuarios y Equipos
 
 - `GET /estudiantes?skip=0&limit=500`
 - `POST /estudiantes`
@@ -92,7 +110,9 @@ Base URL: `PUBLIC_API_BASE_URL`
 - `GET /equipos?skip=0&limit=100`
 - `GET /equipos?q={texto}&skip=0&limit=5`
 - `POST /equipos`
-- `PATCH /equipos/{equipo_id}` (incluye asociar equipo a estudiante)
+- `PATCH /equipos/{equipo_id}`  
+  Incluye actualización y asociación de equipo a estudiante.
+- `DELETE /equipos/{equipo_id}`
 
 ### Dashboard y Reportes
 
@@ -100,13 +120,26 @@ Base URL: `PUBLIC_API_BASE_URL`
 - `GET /dashboard/historial-reciente`
 - `GET /reportes/movimientos/resumen`
 - `GET /reportes/movimientos/historial`
-- Exportacion: variantes `xlsx/csv/pdf` en `/reportes/movimientos/*`
+- `GET /reportes/movimientos/export.csv`
+- `GET /reportes/movimientos/export.xlsx`
+- `GET /reportes/movimientos/export.pdf`
 
 ## Sesión en frontend
 
 - Token: `localStorage["scise-auth-token"]`
-- Datos de Sesión: `localStorage["scise-session"]`
-- En `401` se limpia Sesión y se redirige a `/auth/login`.
+- Datos de sesión: `localStorage["scise-session"]`
+- En `401` se limpia la sesión y se redirige a `/auth/login`
+
+## Cámara y escaneo
+
+- El escaneo usa `@zxing/browser` como fallback cuando `BarcodeDetector` no está disponible.
+- Para probar la cámara:
+  - usar `localhost` o un origen permitido por el navegador
+  - conceder permisos de cámara
+  - verificar que el backend permita el origen vía CORS
+- Si una webcam no enfoca bien, el flujo permite:
+  - cambiar de cámara
+  - capturar un frame y escanearlo
 
 ## Estructura del proyecto
 
@@ -147,5 +180,5 @@ src/
 ## Notas operativas
 
 - El frontend asume CORS habilitado en backend para el origen de desarrollo.
-- Usar la misma base (`localhost` o `127.0.0.1`) en frontend/backend evita errores de Sesión y CORS.
-- Para cambios de contrato API, actualizar primero este README y luego el modulo afectado.
+- Usar la misma base (`localhost` o `127.0.0.1`) en frontend y backend evita errores de sesión y CORS.
+- Si cambia un contrato de API, actualizar primero el contrato backend y luego este README.
