@@ -1836,13 +1836,21 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     });
 
   const routeParams = new URLSearchParams(window.location.search);
+  let shouldCleanRouteParams = false;
 
   if (routeParams.get("new") === "true") {
     openCreateModal();
+    shouldCleanRouteParams = true;
   }
 
   if (routeParams.get("equipment") === "true") {
     openRegisterEquipmentFlow();
+    shouldCleanRouteParams = true;
+  }
+
+  if (shouldCleanRouteParams) {
+    const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+    window.history.replaceState({}, "", cleanUrl);
   }
 </script>
 
@@ -2008,8 +2016,9 @@ const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:800
     }
 
     async function startScanner() {
-      if (!ScannerController.isCameraSupported()) {
-        updateStatus(config.unsupportedMessage, "error");
+      const availability = await ScannerController.getCameraAvailability();
+      if (!availability.supported) {
+        updateStatus(availability.message || config.unsupportedMessage, "error");
         return;
       }
 

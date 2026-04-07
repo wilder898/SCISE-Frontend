@@ -6,6 +6,7 @@ import {
 } from "@zxing/browser";
 import { DecodeHintType, NotFoundException } from "@zxing/library";
 import type {
+  ScannerCameraAvailability,
   CameraScannerOptions,
   ScannerCameraDevice,
   ScannerDetectedPayload,
@@ -30,6 +31,7 @@ interface BarcodeDetectorConstructorLike {
 
 type NavigatorWithMediaDevices = Navigator & {
   mediaDevices?: MediaDevices;
+  permissions?: Permissions;
 };
 
 type ScannerEngine = "native" | "zxing";
@@ -64,6 +66,32 @@ function hasCameraAccessSupport() {
   return Boolean(navigatorWithMedia.mediaDevices?.getUserMedia);
 }
 
+function hasSecureCameraContext() {
+  if (window.isSecureContext) {
+    return true;
+  }
+
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1" || host === "::1";
+}
+
+async function getCameraPermissionState(): Promise<PermissionState | "unknown"> {
+  const navigatorWithPermissions = navigator as NavigatorWithMediaDevices;
+
+  if (!navigatorWithPermissions.permissions?.query) {
+    return "unknown";
+  }
+
+  try {
+    const status = await navigatorWithPermissions.permissions.query({
+      name: "camera" as PermissionName,
+    });
+    return status.state;
+  } catch {
+    return "unknown";
+  }
+}
+
 export class CameraScanner {
   private readonly videoElement: HTMLVideoElement;
   private readonly nativeFormats: string[];
@@ -93,6 +121,51 @@ export class CameraScanner {
 
   static isSupported() {
     return hasCameraAccessSupport();
+  }
+
+  static async getAvailability(): Promise<ScannerCameraAvailability> {
+    const secureContext = hasSecureCameraContext();
+
+    if (!secureContext) {
+      return {
+        supported: false,
+        secureContext: false,
+        permission: "unknown",
+        message:
+          "La cámara solo puede usarse en un contexto seguro. Abre la aplicación en localhost o HTTPS.",
+      };
+    }
+
+    if (!hasCameraAccessSupport()) {
+      return {
+        supported: false,
+        secureContext: true,
+        permission: "unknown",
+        message: "Este navegador no expone acceso a la cámara desde esta página.",
+      };
+    }
+
+    const permission = await getCameraPermissionState();
+
+    if (permission === "denied") {
+      return {
+        supported: false,
+        secureContext: true,
+        permission,
+        message:
+          "El permiso de cámara está bloqueado en el navegador. Habilítalo en la configuración del sitio.",
+      };
+    }
+
+    return {
+      supported: true,
+      secureContext: true,
+      permission,
+      message:
+        permission === "prompt"
+          ? "La cámara solicitará permiso al iniciar el lector."
+          : "La cámara está disponible para el escaneo.",
+    };
   }
 
   static async listVideoDevices(): Promise<ScannerCameraDevice[]> {
@@ -125,7 +198,15 @@ export class CameraScanner {
     if (!hasCameraAccessSupport()) {
       this.emitError(
         "not_supported",
-        "El navegador no permite acceder a la cámara desde esta página."
+        "El navegador no permite acceder a la camara desde esta pagina."
+      );
+      return;
+    }
+
+    if (!hasSecureCameraContext()) {
+      this.emitError(
+        "insecure_context",
+        "La camara solo puede usarse en localhost o HTTPS."
       );
       return;
     }

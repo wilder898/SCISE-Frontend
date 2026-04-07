@@ -31,10 +31,10 @@ const {
     </span>
     <h2>{title}</h2>
     {showRegisterButton && (
-      <button
+      <a
         id="registerUserButton"
         class="register-user-button"
-        type="button"
+        href="/usuarios?new=true"
         aria-label="Registrar nuevo usuario"
       >
         <svg viewBox="0 0 24 24" width="20" height="20">
@@ -46,7 +46,7 @@ const {
             stroke-linecap="round"
           ></path>
         </svg>
-      </button>
+      </a>
     )}
   </header>
 

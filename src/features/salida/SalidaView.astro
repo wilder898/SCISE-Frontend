@@ -289,11 +289,9 @@ import CajaInformacion from "./CajaInformacion.astro";
       return;
     }
 
-    if (!ScannerController.isCameraSupported()) {
-      updateScanStatus(
-        "Este navegador no permite acceder a la cámara. Usa el campo manual.",
-        "error"
-      );
+    const availability = await ScannerController.getCameraAvailability();
+    if (!availability.supported) {
+      updateScanStatus(availability.message, "error");
       return;
     }
 

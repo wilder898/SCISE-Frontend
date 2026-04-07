@@ -1,5 +1,6 @@
 import { CameraScanner } from "./scanner-camera";
 import type {
+  ScannerCameraAvailability,
   ScannerCameraDevice,
   ScannerControllerOptions,
   ScannerDetectedPayload,
@@ -43,6 +44,10 @@ export class ScannerController {
 
   static listCameraDevices(): Promise<ScannerCameraDevice[]> {
     return CameraScanner.listVideoDevices();
+  }
+
+  static getCameraAvailability(): Promise<ScannerCameraAvailability> {
+    return CameraScanner.getAvailability();
   }
 
   startCamera() {

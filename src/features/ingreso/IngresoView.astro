@@ -112,17 +112,10 @@ import CajaInformacion from "./CajaInformacion.astro";
   const textoInicial = document.getElementById("textoInicial") as HTMLElement;
   const equiposError = document.getElementById("equiposError") as HTMLElement;
 
-  const registerUserButton = document.getElementById("registerUserButton") as HTMLButtonElement;
+  const registerUserButton = document.getElementById("registerUserButton") as HTMLAnchorElement | null;
   const registerEquipmentRedirectButton = document.getElementById(
     "registerEquipmentRedirectButton"
-  ) as HTMLButtonElement;
-
-  registerUserButton?.addEventListener("click", () => {
-    window.location.href = "/usuarios?new=true";
-  });
-  registerEquipmentRedirectButton?.addEventListener("click", () => {
-    window.location.href = "/usuarios?equipment=true";
-  });
+  ) as HTMLAnchorElement | null;
   const listaEquipos = document.getElementById("listaEquipos") as HTMLElement;
   const equipoSuccess = document.getElementById("equipoSuccess") as HTMLElement;
   const equipoError = document.getElementById("equipoError") as HTMLElement;
@@ -298,11 +291,9 @@ import CajaInformacion from "./CajaInformacion.astro";
       return;
     }
 
-    if (!ScannerController.isCameraSupported()) {
-      updateScanStatus(
-        "Este navegador no soporta lectura nativa de código de barras. Usa el campo manual.",
-        "error"
-      );
+    const availability = await ScannerController.getCameraAvailability();
+    if (!availability.supported) {
+      updateScanStatus(availability.message, "error");
       return;
     }
 
@@ -619,8 +610,9 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
   }
 
-  barcodeInput.addEventListener("keypress", (event) => {
+  barcodeInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+      event.preventDefault();
       triggerUserLookup();
     }
   });
@@ -647,6 +639,16 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
 
     void startCameraScanner();
+  });
+
+  registerUserButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    window.location.href = registerUserButton.href;
+  });
+
+  registerEquipmentRedirectButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    window.location.href = registerEquipmentRedirectButton.href;
   });
 
   cameraScannerCloseButton?.addEventListener("click", () => {

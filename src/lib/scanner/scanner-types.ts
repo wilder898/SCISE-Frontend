@@ -12,6 +12,7 @@ export type ScannerStatus =
 
 export type ScannerErrorCode =
   | "not_supported"
+  | "insecure_context"
   | "invalid_target"
   | "permission_denied"
   | "no_camera"
@@ -29,6 +30,13 @@ export interface ScannerDetectedPayload {
 export interface ScannerCameraDevice {
   id: string;
   label: string;
+}
+
+export interface ScannerCameraAvailability {
+  supported: boolean;
+  secureContext: boolean;
+  permission: PermissionState | "unknown";
+  message: string;
 }
 
 export interface ScannerErrorPayload {
