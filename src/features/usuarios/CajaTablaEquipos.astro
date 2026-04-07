@@ -1,0 +1,96 @@
+<section class="users-table-card users-equipment-card">
+  <div class="users-table-header">
+    <div>
+      <h3>Equipos Registrados</h3>
+      <p>Equipos asignados a usuarios operativos dentro del sistema.</p>
+    </div>
+    <div class="users-equipment-total">
+      Total: <strong id="equipmentTableCount">0</strong>
+    </div>
+  </div>
+
+  <div class="users-equipment-filters">
+    <label class="user-field user-field--icon">
+      <span>Buscar equipo</span>
+      <div class="user-input-wrap">
+        <span class="input-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle>
+            <path d="m20 20-3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+        </span>
+        <input
+          id="equipmentSearchInput"
+          type="search"
+          placeholder="Serial, nombre, tipo, documento o código de barras"
+        />
+      </div>
+    </label>
+
+    <label class="user-field user-field--icon">
+      <span>Tipo</span>
+      <div class="user-input-wrap">
+        <span class="input-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+        </span>
+        <select id="equipmentTypeFilter">
+          <option value="">Todos</option>
+          <option value="PortÃ¡til">PortÃ¡til</option>
+          <option value="Monitor">Monitor</option>
+          <option value="Teclado">Teclado</option>
+          <option value="Mouse">Mouse</option>
+          <option value="Impresora">Impresora</option>
+          <option value="EscÃ¡ner">EscÃ¡ner</option>
+          <option value="Proyector">Proyector</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+    </label>
+
+    <label class="user-field user-field--icon">
+      <span>Estado</span>
+      <div class="user-input-wrap">
+        <span class="input-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+        </span>
+        <select id="equipmentStatusFilter">
+          <option value="">Todos</option>
+          <option value="DISPONIBLE">Disponible</option>
+          <option value="INGRESADO">Ingresado</option>
+          <option value="RETIRADO">Retirado</option>
+        </select>
+      </div>
+    </label>
+
+    <button class="user-button user-button--ghost user-button--fit" id="clearEquipmentFiltersButton" type="button">
+      Limpiar filtros
+    </button>
+  </div>
+
+  <div class="users-table-wrap">
+    <table class="users-table users-equipment-table">
+      <thead>
+        <tr>
+          <th>Serial</th>
+          <th>Equipo</th>
+          <th>Tipo</th>
+          <th>Usuario asignado</th>
+          <th>Estado actual</th>
+          <th>Fecha y hora</th>
+        </tr>
+      </thead>
+      <tbody id="equipmentTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="users-pagination" id="equipmentPagination"></div>
+
+  <div class="users-empty-state" id="equipmentEmptyState">
+    AÃºn no hay equipos registrados desde este mÃ³dulo.
+  </div>
+</section>
+

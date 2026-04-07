@@ -1,0 +1,27 @@
+.password-target-card {
+  margin-bottom: 1rem;
+  padding: 1rem 1.05rem;
+  border-radius: 1.15rem;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+  border: 1px solid #dbeafe;
+}
+
+.password-target-card__eyebrow {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.password-target-card strong {
+  display: block;
+  color: #0f172a;
+}
+
+.password-target-card p {
+  margin: 0.4rem 0 0;
+  color: #64748b;
+}

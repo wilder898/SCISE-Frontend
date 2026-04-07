@@ -1,0 +1,115 @@
+<div class="user-modal-backdrop" id="userModalBackdrop" hidden>
+  <section
+    class="user-modal"
+    id="userEditModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="userModalTitle"
+  >
+    <header class="user-modal__header">
+      <div>
+        <p class="user-modal__eyebrow">edicion de usuario</p>
+        <h2 id="userModalTitle">Detalle del usuario</h2>
+      </div>
+      <button class="user-modal__close" id="closeUserModal" type="button" aria-label="Cerrar modal">
+        x
+      </button>
+    </header>
+
+    <div class="user-modal__permissions" id="userPermissionMessage"></div>
+
+    <div class="user-modal__grid">
+      <section class="user-modal__panel user-modal__panel--locked">
+        <h3>Datos personales</h3>
+
+        <label class="user-field">
+          <span>Cedula</span>
+          <input id="modalCedula" type="text" disabled />
+        </label>
+
+        <label class="user-field">
+          <span>Carnet</span>
+          <input id="modalCarnet" type="text" disabled />
+        </label>
+
+        <label class="user-field">
+          <span>Fecha de registro</span>
+          <input id="modalFechaRegistro" type="text" disabled />
+        </label>
+      </section>
+
+      <section class="user-modal__panel">
+        <h3>Campos editables</h3>
+
+        <label class="user-field">
+          <span>Nombre</span>
+          <input id="modalNombre" type="text" />
+        </label>
+
+        <label class="user-field">
+          <span>Apellido</span>
+          <input id="modalApellido" type="text" />
+        </label>
+
+        <label class="user-field">
+          <span>Correo electronico</span>
+          <input id="modalEmail" type="email" />
+        </label>
+
+        <label class="user-field">
+          <span>Telefono</span>
+          <input id="modalTelefono" type="text" />
+        </label>
+
+        <label class="user-field">
+          <span>Rol</span>
+          <select id="modalRol">
+            <option value="Aprendiz">Aprendiz</option>
+            <option value="Instructor">Instructor</option>
+            <option value="Coordinador">Coordinador</option>
+          </select>
+        </label>
+
+        <label class="user-field">
+          <span>Estado</span>
+          <select id="modalEstado">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </label>
+      </section>
+    </div>
+
+    <section class="user-modal__panel user-modal__panel--equipment">
+      <div class="user-modal__section-title">
+        <div>
+          <h3>Gestión de equipos</h3>
+          <p>Busca equipos existentes y asocialos al estudiante.</p>
+        </div>
+      </div>
+
+      <form class="equipment-form" id="equipmentForm">
+        <label class="user-field">
+          <span>Buscar equipo</span>
+          <input id="equipmentSearchQuery" type="text" placeholder="Serial, nombre, tipo o documento" />
+        </label>
+
+        <button class="user-button user-button--primary" id="searchEquipmentButton" type="submit">
+          Buscar equipo
+        </button>
+      </form>
+
+      <div class="equipment-search-results" id="equipmentSearchResults"></div>
+      <div class="equipment-list" id="equipmentList"></div>
+    </section>
+
+    <footer class="user-modal__footer">
+      <button class="user-button user-button--ghost" id="cancelUserModal" type="button">
+        Cerrar
+      </button>
+      <button class="user-button user-button--primary" id="saveUserButton" type="button">
+        Guardar cambios
+      </button>
+    </footer>
+  </section>
+</div>

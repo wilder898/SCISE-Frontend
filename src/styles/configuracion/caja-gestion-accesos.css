@@ -1,0 +1,39 @@
+.config-permissions-reference-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.config-permission-reference-card {
+  min-height: 9.5rem;
+  padding: 1rem 1.05rem;
+  border-radius: 1.1rem;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+}
+
+.config-permission-reference-card strong {
+  color: #0f172a;
+  font-size: 1.03rem;
+}
+
+.config-permission-reference-card p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.config-permission-reference-card code {
+  font-family: Consolas, "Courier New", monospace;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 1300px) {
+  .config-permissions-reference-grid {
+    grid-template-columns: 1fr;
+  }
+}

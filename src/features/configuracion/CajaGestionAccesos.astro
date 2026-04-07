@@ -1,0 +1,32 @@
+---
+interface PermissionItem {
+  id: string;
+  label: string;
+  description: string;
+}
+
+interface Props {
+  permissions?: PermissionItem[];
+}
+
+const { permissions = [] }: Props = Astro.props;
+---
+
+<section class="config-card">
+  <div class="config-card__header">
+    <div>
+      <h2>Permisos Disponibles</h2>
+      <p>Referencia rapida de los permisos que se pueden asignar a cada usuario.</p>
+    </div>
+  </div>
+
+  <div class="config-permissions-reference-grid">
+    {permissions.map((permission) => (
+      <article class="config-permission-reference-card">
+        <strong>{permission.label}</strong>
+        <p>{permission.description}</p>
+        <code>{permission.id}</code>
+      </article>
+    ))}
+  </div>
+</section>

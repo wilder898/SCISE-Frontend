@@ -1,0 +1,10 @@
+@import "./base.css";
+@import "../shared/scanner-card.css";
+@import "./caja-panel-inicial.css";
+@import "./caja-filtros.css";
+@import "./caja-tabla-usuarios.css";
+@import "./caja-tabla-equipos.css";
+@import "./caja-informacion.css";
+@import "./modal-edicion-usuario.css";
+@import "./modal-nuevo-usuario.css";
+@import "./modal-nuevo-equipo.css";

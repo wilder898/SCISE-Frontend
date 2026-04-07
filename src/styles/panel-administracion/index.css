@@ -1,0 +1,6 @@
+@import "./base.css";
+@import "./caja-panel-inicial.css";
+@import "./caja-estadisticas.css";
+@import "./caja-filtros.css";
+@import "./caja-historial-movimientos.css";
+@import "./caja-informacion.css";

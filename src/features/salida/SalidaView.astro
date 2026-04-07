@@ -1,68 +1,760 @@
-<section class="layout">
-    <aside class="sidebar"></aside>
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaEscanearCarnet from "./CajaEscanearCarnet.astro";
+import CajaSeleccionarEquipos from "./CajaSeleccionarEquipos.astro";
+import CajaAcciones from "./CajaAcciones.astro";
+import CajaInformacion from "./CajaInformacion.astro";
+---
 
-    <main class="main">
-        <header class="topbar">
-            <section class="title">
-                <h1>Registro de Salida de Equipo</h1>
-            </section>
-        </header>
+<section class="salida-page">
+  <CajaPanelInicial />
 
-        <section class="cards">
-            <article class="card">
-                <header class="card-header">
-                    <span class="icon">👤</span>
-                    <h2>Escaneo Carnet</h2>
-                </header>
+  <section class="salida-cards">
+    <CajaEscanearCarnet />
+    <CajaSeleccionarEquipos />
+  </section>
 
-                <section class="scan-area">
-                    <input
-                        type="text"
-                        id="barcodeUser"
-                        placeholder="Escanear codigo de barras del carnet..."
-                    />
-                </section>
-            </article>
-            <article class="card">
-                <header class="card-header">
-                    <span class="icon">💻</span>
-                    <h2>Escaneo Equipo</h2>
-                </header>
-            </article>
-        </section>
+  <CajaAcciones />
+  <CajaInformacion />
 
-        <section class="actions">
-            <button class="btn-cancelar" onclick="cancelar()">Cancelar</button>
-            <button class="btn-registrar" id="btnSalida" disabled>
-                Registrar ingreso
-            </button>
-        </section>
-
-        <section class="info-panel">
-            <h3>ℹ️ Instrucciones:</h3>
-            <ul>
-                <li>Escanea el código de barras del carnet del usuario.</li>
-                <li>Se mostrarán los equipos disponibles del usuario.</li>
-            </ul>
-        </section>
-
-        <footer id="message" class="message"></footer>
-    </main>
+  <footer id="message" class="salida-message"></footer>
 </section>
 
 <script>
-    // Guard de seguridad: solo accesible para usuarios autenticados
-    const raw = localStorage.getItem("scise-session");
-    if (!raw) {
-        window.location.replace("/auth/login");
-    } else {
-        try {
-            const session = JSON.parse(raw);
-            if (session.role !== "admin" && session.role !== "user") {
-                window.location.replace("/auth/login");
-            }
-        } catch {
-            window.location.replace("/auth/login");
-        }
+  import {
+    formatMovementDateTime,
+    formatTimeElapsed,
+  } from "../../lib/movimientos";
+  import { ScannerController } from "../../lib/scanner/scanner-controller";
+  import type {
+    ScannerCameraDevice,
+    ScannerErrorPayload,
+    ScannerStatusPayload,
+  } from "../../lib/scanner/scanner-types";
+
+  interface SalidaUser {
+    id: string;
+    nombre: string;
+    documento: string;
+    rol: string;
+  }
+
+  interface EstudianteLookupResponse {
+    id: number;
+    nombre: string;
+    documento: string;
+    estado: string;
+  }
+
+  interface EquipoActivoResponse {
+    id: number;
+    nombre: string;
+    serial: string;
+    tipo: string | null;
+    descripcion: string | null;
+    estado: string;
+    timestamp_ingreso: string;
+  }
+
+  interface SalidaEquipment {
+    id: string;
+    nombre: string;
+    serial: string;
+    tipo: string;
+    descripcion: string;
+    timestampIngreso: string;
+    horaIngreso: string;
+    tiempoEnCtma: string;
+  }
+
+  interface MovimientoSalidaItemResponse {
+    movimiento_id: number;
+    equipo_id: number;
+    serial: string;
+    fecha_registro: string;
+    tipo_movimiento: string;
+  }
+
+  interface MovimientoSalidaBatchResponse {
+    estudiante_id: number;
+    total_registrados: number;
+    movimientos: MovimientoSalidaItemResponse[];
+    detail: string;
+  }
+
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+  let usuarioActual: SalidaUser | null = null;
+  let equiposDisponibles: SalidaEquipment[] = [];
+  const equiposSeleccionados = new Set<string>();
+
+  const barcodeInput = document.getElementById("barcodeUser") as HTMLInputElement;
+  const scanReaderButton = document.getElementById("scanReaderButton") as HTMLButtonElement | null;
+  const scanReaderButtonLabel = document.getElementById("scanReaderButtonLabel") as HTMLElement | null;
+  const scanReaderStatus = document.getElementById("scanReaderStatus") as HTMLElement | null;
+  const cameraScannerBox = document.getElementById("cameraScannerBox") as HTMLElement | null;
+  const cameraScannerVideo = document.getElementById("cameraScannerVideo") as HTMLVideoElement | null;
+  const cameraDeviceSelect = document.getElementById("cameraDeviceSelect") as HTMLSelectElement | null;
+  const cameraRefreshButton = document.getElementById("cameraRefreshButton") as HTMLButtonElement | null;
+  const cameraMirrorToggleButton = document.getElementById(
+    "cameraMirrorToggleButton"
+  ) as HTMLButtonElement | null;
+  const cameraMirrorToggleLabel = document.getElementById(
+    "cameraMirrorToggleLabel"
+  ) as HTMLElement | null;
+  const cameraCaptureButton = document.getElementById("cameraCaptureButton") as HTMLButtonElement | null;
+  const cameraScannerCloseButton = document.getElementById(
+    "cameraScannerCloseButton"
+  ) as HTMLButtonElement | null;
+  const userSuccess = document.getElementById("userSuccess") as HTMLElement;
+  const userError = document.getElementById("userError") as HTMLElement;
+  const loadingUser = document.getElementById("loadingUser") as HTMLElement;
+  const userBox = document.getElementById("userBox") as HTMLElement;
+  const nombreSpan = document.getElementById("nombre") as HTMLElement;
+  const documentoSpan = document.getElementById("documento") as HTMLElement;
+  const rolSpan = document.getElementById("rol") as HTMLElement;
+
+  const loadingEquipos = document.getElementById("loadingEquipos") as HTMLElement;
+  const textoInicial = document.getElementById("textoInicial") as HTMLElement;
+  const equiposError = document.getElementById("equiposError") as HTMLElement;
+  const listaEquipos = document.getElementById("listaEquipos") as HTMLElement;
+  const equipoSuccess = document.getElementById("equipoSuccess") as HTMLElement;
+  const equipoError = document.getElementById("equipoError") as HTMLElement;
+  const loadingEquipo = document.getElementById("loadingEquipo") as HTMLElement;
+  const equipoDetalles = document.getElementById("equipoDetalles") as HTMLElement;
+  const equiposSeleccionadosCantidad = document.getElementById(
+    "equiposSeleccionadosCantidad"
+  ) as HTMLElement;
+  const equiposSeleccionadosSeriales = document.getElementById(
+    "equiposSeleccionadosSeriales"
+  ) as HTMLElement;
+  const equiposSeleccionadosDescripcion = document.getElementById(
+    "equiposSeleccionadosDescripcion"
+  ) as HTMLElement;
+  const equipoTiempoCtma = document.getElementById("equipoTiempoCtma") as HTMLElement;
+  const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
+  const btnRegistrar = document.getElementById("btnRegistrar") as HTMLButtonElement;
+  const messageFooter = document.getElementById("message") as HTMLElement;
+  let scannerController: ScannerController | null = null;
+  let isCameraActive = false;
+  let availableCameraDevices: ScannerCameraDevice[] = [];
+  let selectedCameraDeviceId = "";
+  let isPreviewCorrected = true;
+
+  function handleUnauthorized(detail: string) {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    messageFooter.textContent = detail;
+    messageFooter.style.color = "#dc2626";
+    window.setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 1200);
+  }
+
+  function getSelectedEquipments() {
+    return equiposDisponibles.filter((equipo) => equiposSeleccionados.has(equipo.id));
+  }
+
+  function updateScanStatus(
+    message: string,
+    tone: "info" | "error" | "success" = "info"
+  ) {
+    if (!scanReaderStatus) {
+      return;
     }
+
+    scanReaderStatus.textContent = message;
+    scanReaderStatus.classList.remove("oculto", "is-error", "is-success");
+    if (tone === "error") {
+      scanReaderStatus.classList.add("is-error");
+    } else if (tone === "success") {
+      scanReaderStatus.classList.add("is-success");
+    }
+  }
+
+  function hideScanStatus() {
+    if (!scanReaderStatus) {
+      return;
+    }
+
+    scanReaderStatus.textContent = "";
+    scanReaderStatus.classList.add("oculto");
+    scanReaderStatus.classList.remove("is-error", "is-success");
+  }
+
+  function updateScanButtonState() {
+    if (!scanReaderButton) {
+      return;
+    }
+
+    scanReaderButton.setAttribute(
+      "aria-label",
+      isCameraActive ? "Cerrar cámara del lector" : "Usar cámara para escanear el carnet"
+    );
+    if (scanReaderButtonLabel) {
+      scanReaderButtonLabel.textContent = isCameraActive ? "Cerrar Cámara" : "Usar Cámara";
+    }
+  }
+
+  function showCameraScanner() {
+    cameraScannerBox?.classList.remove("oculto");
+    isCameraActive = true;
+    updateScanButtonState();
+  }
+
+  function hideCameraScanner() {
+    cameraScannerBox?.classList.add("oculto");
+    isCameraActive = false;
+    updateScanButtonState();
+  }
+
+  function renderCameraDevices() {
+    if (!cameraDeviceSelect) {
+      return;
+    }
+
+    const currentValue = selectedCameraDeviceId;
+    const options = [
+      `<option value="">Camara predeterminada</option>`,
+      ...availableCameraDevices.map(
+        (device) =>
+          `<option value="${device.id}" ${device.id === currentValue ? "selected" : ""}>${device.label}</option>`
+      ),
+    ];
+
+    cameraDeviceSelect.innerHTML = options.join("");
+    if (!currentValue) {
+      cameraDeviceSelect.value = "";
+    }
+  }
+
+  async function refreshCameraDevices() {
+    availableCameraDevices = await ScannerController.listCameraDevices();
+
+    if (
+      selectedCameraDeviceId &&
+      !availableCameraDevices.some((device) => device.id === selectedCameraDeviceId)
+    ) {
+      selectedCameraDeviceId = "";
+      scannerController?.setCameraDevice(null);
+    }
+
+    renderCameraDevices();
+  }
+
+  function handleScannerStatus(payload: ScannerStatusPayload) {
+    const tone =
+      payload.status === "detected"
+        ? "success"
+        : payload.status === "error"
+          ? "error"
+          : "info";
+    updateScanStatus(payload.message, tone);
+
+    if (payload.status === "ready" || payload.status === "scanning") {
+      showCameraScanner();
+      return;
+    }
+
+    if (payload.status === "stopped") {
+      hideCameraScanner();
+    }
+  }
+
+  function handleScannerError(payload: ScannerErrorPayload) {
+    updateScanStatus(payload.message, "error");
+    hideCameraScanner();
+  }
+
+  function updateMirrorPreviewState() {
+    if (!cameraScannerVideo) {
+      return;
+    }
+
+    cameraScannerVideo.classList.toggle("is-flipped", isPreviewCorrected);
+    cameraMirrorToggleButton?.classList.toggle("is-active", isPreviewCorrected);
+    if (cameraMirrorToggleLabel) {
+      cameraMirrorToggleLabel.textContent = isPreviewCorrected
+        ? "Eje Corregido"
+        : "Corregir Eje";
+    }
+  }
+
+  async function startCameraScanner() {
+    if (!scannerController) {
+      updateScanStatus(
+        "No fue posible inicializar el lector de cámara en esta vista.",
+        "error"
+      );
+      return;
+    }
+
+    if (!ScannerController.isCameraSupported()) {
+      updateScanStatus(
+        "Este navegador no permite acceder a la cámara. Usa el campo manual.",
+        "error"
+      );
+      return;
+    }
+
+    await refreshCameraDevices();
+    scannerController.setCameraDevice(selectedCameraDeviceId || null);
+    showCameraScanner();
+    updateScanStatus("Preparando cámara para leer el carnet...", "info");
+    await scannerController.startCamera();
+    await refreshCameraDevices();
+  }
+
+  function stopCameraScanner(message?: string) {
+    scannerController?.stopCamera();
+    hideCameraScanner();
+    if (message) {
+      updateScanStatus(message, "info");
+      return;
+    }
+
+    hideScanStatus();
+  }
+
+  async function restartCameraScannerForDeviceChange() {
+    if (!isCameraActive || !scannerController) {
+      return;
+    }
+
+    updateScanStatus("Cambiando de cámara...", "info");
+    scannerController.stopCamera();
+    hideCameraScanner();
+    scannerController.setCameraDevice(selectedCameraDeviceId || null);
+    await startCameraScanner();
+  }
+
+  async function captureCurrentFrame() {
+    if (!scannerController || !isCameraActive) {
+      updateScanStatus("Primero abre la cámara para capturar el carnet.", "error");
+      return;
+    }
+
+    updateScanStatus("Capturando imagen del carnet...", "info");
+    await scannerController.captureAndDetect();
+  }
+
+  function triggerUserLookup() {
+    const identificador = barcodeInput.value.trim();
+    if (!identificador) {
+      return;
+    }
+
+    obtenerUsuario(identificador);
+  }
+
+  function renderEquipmentList() {
+    if (!listaEquipos) {
+      return;
+    }
+
+    if (!equiposDisponibles.length) {
+      listaEquipos.innerHTML = "";
+      listaEquipos.classList.add("oculto");
+      equiposError.textContent =
+        "No hay equipos con ingreso activo para este usuario.";
+      equiposError.classList.remove("oculto");
+      return;
+    }
+
+    equiposError.classList.add("oculto");
+    listaEquipos.innerHTML = equiposDisponibles
+      .map(
+        (equipo) => `
+          <div class="equipo-item ${equiposSeleccionados.has(equipo.id) ? "is-selected" : ""}">
+            <input
+              type="checkbox"
+              name="equipo"
+              value="${equipo.id}"
+              id="equipo-${equipo.id}"
+              ${equiposSeleccionados.has(equipo.id) ? "checked" : ""}
+            >
+            <label for="equipo-${equipo.id}" style="flex: 1; cursor: pointer;">
+              <strong>${equipo.nombre}</strong><br>
+              <small>Serial: ${equipo.serial}</small><br>
+              <small>Tipo: ${equipo.tipo}</small><br>
+              <small>Descripción: ${equipo.descripcion}</small><br>
+              <small>Tiempo en CTMA: ${equipo.tiempoEnCtma}</small>
+            </label>
+          </div>
+        `
+      )
+      .join("");
+    listaEquipos.classList.remove("oculto");
+  }
+
+  function updateSelectedSummary() {
+    const selected = getSelectedEquipments();
+
+    if (!selected.length) {
+      equipoSuccess.classList.add("oculto");
+      equipoDetalles.classList.add("oculto");
+      loadingEquipo.classList.add("oculto");
+      equipoError.classList.add("oculto");
+      btnRegistrar.disabled = true;
+      return;
+    }
+
+    equiposSeleccionadosCantidad.textContent = `${selected.length} equipo(s) listos para salida`;
+    equiposSeleccionadosSeriales.textContent = selected
+      .map((equipo) => equipo.serial)
+      .join(", ");
+    equiposSeleccionadosDescripcion.textContent = selected
+      .map((equipo) => equipo.descripcion)
+      .join(" | ");
+    equipoTiempoCtma.textContent = selected
+      .map((equipo) => `${equipo.serial}: ${equipo.tiempoEnCtma}`)
+      .join(" | ");
+
+    equipoSuccess.textContent =
+      selected.length === 1
+        ? "1 equipo seleccionado para salida."
+        : `${selected.length} equipos seleccionados para salida.`;
+    equipoSuccess.classList.remove("oculto");
+    equipoDetalles.classList.remove("oculto");
+    btnRegistrar.disabled = false;
+  }
+
+  async function buscarEstudiantePorIdentificador(identificador: string): Promise<SalidaUser> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/estudiantes/by-documento/${encodeURIComponent(identificador)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible consultar el estudiante.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
+      throw new Error(detail);
+    }
+
+    const estudiante = (await response.json()) as EstudianteLookupResponse;
+    return {
+      id: String(estudiante.id),
+      nombre: String(estudiante.nombre || ""),
+      documento: String(estudiante.documento || identificador),
+      rol: "Aprendiz",
+    };
+  }
+
+  async function listarEquiposActivos(estudianteId: string): Promise<SalidaEquipment[]> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/movimientos/activos/estudiante/${encodeURIComponent(estudianteId)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible consultar equipos activos.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
+      throw new Error(detail);
+    }
+
+    const equipos = (await response.json()) as EquipoActivoResponse[];
+      return (Array.isArray(equipos) ? equipos : []).map((equipo) => {
+        const timestampIngreso = String(equipo.timestamp_ingreso || "");
+        const serial = String(equipo.serial || "");
+        const nombre = String(equipo.nombre || "").trim();
+        const descripcion = String(equipo.descripcion || "Sin descripcion");
+        return {
+          id: String(equipo.id),
+          nombre: nombre || `Equipo ${serial || "sin serial"}`,
+          serial,
+          tipo: String(equipo.tipo || "Sin tipo"),
+          descripcion,
+          timestampIngreso,
+        horaIngreso: formatMovementDateTime(timestampIngreso),
+        tiempoEnCtma: formatTimeElapsed(timestampIngreso),
+      };
+    });
+  }
+
+  async function registrarSalidasBatch(
+    estudianteId: string,
+    equiposIds: string[],
+  ): Promise<MovimientoSalidaBatchResponse> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/movimientos/salidas`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        estudiante_id: Number(estudianteId),
+        equipos: equiposIds.map((equipoId) => Number(equipoId)),
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "No fue posible registrar las salidas.";
+      if (response.status === 401) {
+        handleUnauthorized(detail);
+      }
+      throw new Error(detail);
+    }
+
+    return (await response.json()) as MovimientoSalidaBatchResponse;
+  }
+
+  async function obtenerUsuario(identificador: string): Promise<void> {
+    try {
+      loadingUser.classList.remove("oculto");
+      userError.classList.add("oculto");
+      userSuccess.classList.add("oculto");
+      userBox.classList.add("oculto");
+      const usuario = await buscarEstudiantePorIdentificador(identificador);
+
+      usuarioActual = usuario;
+      nombreSpan.textContent = usuario.nombre;
+      documentoSpan.textContent = usuario.documento;
+      rolSpan.textContent = usuario.rol;
+
+      loadingUser.classList.add("oculto");
+      userSuccess.classList.remove("oculto");
+      userBox.classList.remove("oculto");
+      barcodeInput.value = "";
+
+      await cargarEquiposUsuario(usuario.id);
+    } catch (error) {
+      loadingUser.classList.add("oculto");
+      userError.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      userError.classList.remove("oculto");
+      barcodeInput.value = "";
+    }
+  }
+
+  async function cargarEquiposUsuario(usuarioId: string): Promise<void> {
+    try {
+      loadingEquipos.classList.remove("oculto");
+      textoInicial.classList.add("oculto");
+      equiposError.classList.add("oculto");
+      listaEquipos.classList.add("oculto");
+      equipoSuccess.classList.add("oculto");
+      equipoError.classList.add("oculto");
+      equipoDetalles.classList.add("oculto");
+      loadingEquipo.classList.add("oculto");
+      equiposSeleccionados.clear();
+      btnRegistrar.disabled = true;
+
+      equiposDisponibles = await listarEquiposActivos(usuarioId);
+      loadingEquipos.classList.add("oculto");
+      renderEquipmentList();
+      updateSelectedSummary();
+    } catch (error) {
+      loadingEquipos.classList.add("oculto");
+      equiposError.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      equiposError.classList.remove("oculto");
+    }
+  }
+
+  function toggleEquipo(equipoId: string) {
+    if (!equipoId) {
+      return;
+    }
+
+    loadingEquipo.classList.remove("oculto");
+
+    if (equiposSeleccionados.has(equipoId)) {
+      equiposSeleccionados.delete(equipoId);
+    } else {
+      equiposSeleccionados.add(equipoId);
+    }
+
+    renderEquipmentList();
+
+    setTimeout(() => {
+      loadingEquipo.classList.add("oculto");
+      updateSelectedSummary();
+    }, 150);
+  }
+
+  barcodeInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      triggerUserLookup();
+    }
+  });
+
+  if (barcodeInput && cameraScannerVideo) {
+    scannerController = new ScannerController({
+      inputElement: barcodeInput,
+      videoElement: cameraScannerVideo,
+      facingMode: "environment",
+      onDetected: () => {
+        hideCameraScanner();
+        updateScanStatus("Documento detectado. Consultando usuario...", "success");
+        triggerUserLookup();
+      },
+      onError: handleScannerError,
+      onStatusChange: handleScannerStatus,
+    });
+  }
+
+  scanReaderButton?.addEventListener("click", () => {
+    if (isCameraActive) {
+      stopCameraScanner("Camara cerrada. Puedes escribir el documento manualmente.");
+      return;
+    }
+
+    void startCameraScanner();
+  });
+
+  cameraScannerCloseButton?.addEventListener("click", () => {
+    stopCameraScanner("Camara cerrada. Puedes escribir el documento manualmente.");
+  });
+
+  cameraRefreshButton?.addEventListener("click", () => {
+    void refreshCameraDevices();
+  });
+
+  cameraMirrorToggleButton?.addEventListener("click", () => {
+    isPreviewCorrected = !isPreviewCorrected;
+    updateMirrorPreviewState();
+  });
+
+  cameraDeviceSelect?.addEventListener("change", () => {
+    selectedCameraDeviceId = cameraDeviceSelect.value;
+    scannerController?.setCameraDevice(selectedCameraDeviceId || null);
+    void restartCameraScannerForDeviceChange();
+  });
+
+  cameraCaptureButton?.addEventListener("click", () => {
+    void captureCurrentFrame();
+  });
+
+  listaEquipos?.addEventListener("change", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
+      return;
+    }
+
+    toggleEquipo(target.value);
+  });
+
+  btnCancelar.addEventListener("click", () => {
+    stopCameraScanner();
+    usuarioActual = null;
+    equiposDisponibles = [];
+    equiposSeleccionados.clear();
+    barcodeInput.value = "";
+    userBox.classList.add("oculto");
+    userSuccess.classList.add("oculto");
+    userError.classList.add("oculto");
+    loadingUser.classList.add("oculto");
+    listaEquipos.classList.add("oculto");
+    textoInicial.classList.remove("oculto");
+    equiposError.classList.add("oculto");
+    equipoSuccess.classList.add("oculto");
+    equipoError.classList.add("oculto");
+    loadingEquipo.classList.add("oculto");
+    loadingEquipos.classList.add("oculto");
+    equipoDetalles.classList.add("oculto");
+    btnRegistrar.disabled = true;
+    messageFooter.textContent = "";
+    barcodeInput.focus();
+  });
+
+  btnRegistrar.addEventListener("click", async () => {
+    const selected = getSelectedEquipments();
+    const currentUser = usuarioActual;
+
+    if (!currentUser || !selected.length) {
+      messageFooter.textContent =
+        "Por favor selecciona un usuario y al menos un equipo.";
+      messageFooter.style.color = "#dc2626";
+      return;
+    }
+
+    try {
+      messageFooter.textContent = "Registrando salida...";
+      messageFooter.style.color = "#64748b";
+      btnRegistrar.disabled = true;
+
+      const payload = await registrarSalidasBatch(
+        currentUser.id,
+        selected.map((equipo) => equipo.id),
+      );
+
+      window.dispatchEvent(new CustomEvent("scise:movimientos-updated"));
+      const movimientos = Array.isArray(payload.movimientos) ? payload.movimientos : [];
+      const primeraFechaMovimiento = formatMovementDateTime(movimientos[0]?.fecha_registro || "");
+      const mensajeApi =
+        typeof payload?.detail === "string" && payload.detail.trim()
+          ? payload.detail
+          : "Salidas registradas correctamente";
+      messageFooter.textContent = primeraFechaMovimiento
+        ? `${mensajeApi} - ${primeraFechaMovimiento}`
+        : mensajeApi;
+      messageFooter.style.color = "#16a34a";
+
+      setTimeout(() => {
+        btnCancelar.click();
+      }, 2000);
+    } catch (error) {
+      messageFooter.textContent =
+        error instanceof Error ? error.message : "Error desconocido";
+      messageFooter.style.color = "#dc2626";
+      btnRegistrar.disabled = false;
+    }
+  });
+
+  window.addEventListener("scise:movimientos-updated", () => {
+    if (usuarioActual) {
+      cargarEquiposUsuario(usuarioActual.id);
+    }
+  });
+
+  barcodeInput.focus();
+  updateScanButtonState();
+  updateMirrorPreviewState();
+  void refreshCameraDevices();
+  window.addEventListener("pagehide", () => {
+    stopCameraScanner();
+  });
 </script>
+

@@ -1,0 +1,46 @@
+.scan-area__controls {
+  gap: 0.85rem;
+}
+
+.scan-input {
+  text-align: left;
+  padding: 1rem 1.1rem;
+  border-color: #7db3ff;
+  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+}
+
+.scan-reader-button {
+  min-width: 9rem;
+  padding: 0 1.35rem;
+  box-shadow: 0 14px 26px rgba(37, 99, 235, 0.2);
+}
+
+.scan-reader-button:hover {
+  box-shadow: 0 18px 32px rgba(37, 99, 235, 0.28);
+  filter: brightness(1.04);
+}
+
+.scan-reader-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.25);
+  outline-offset: 2px;
+}
+
+.scan-reader-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.scan-reader-status {
+  margin: 0.85rem 0 0;
+}
+
+.camera-scanner {
+  margin-top: 0.95rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .scan-reader-button {
+    min-height: 3.5rem;
+  }
+}

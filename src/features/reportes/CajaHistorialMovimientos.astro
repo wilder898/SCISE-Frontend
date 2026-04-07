@@ -1,0 +1,69 @@
+<section class="reportes-table-card">
+  <div class="reportes-table-header">
+    <div>
+      <h2>Historial de Movimientos</h2>
+      <p>Últimos ingresos y salidas registrados en el sistema.</p>
+    </div>
+    <button class="reportes-button reportes-button--outline" id="reportesAllButton" type="button">
+      Descargar Todo
+    </button>
+  </div>
+
+  <div class="reportes-table-wrap">
+    <table class="reportes-table">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Usuario</th>
+          <th>Equipo</th>
+          <th>Serial</th>
+          <th>Fecha y Hora</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="reportesTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="reportes-empty-state" id="reportesEmptyState" hidden>
+    No hay movimientos que coincidan con los filtros aplicados.
+  </div>
+
+  <div class="reportes-pagination">
+    <button class="reportes-button reportes-button--outline" id="reportesPrevButton" type="button">
+      Anterior
+    </button>
+    <span id="reportesPageInfo">Página 1 de 1</span>
+    <button class="reportes-button reportes-button--outline" id="reportesNextButton" type="button">
+      Siguiente
+    </button>
+  </div>
+
+  <div class="reportes-detail-modal" id="reportesDetailModal" hidden>
+    <div class="reportes-detail-modal__backdrop" data-close-reportes-modal></div>
+    <div
+      class="reportes-detail-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reportesDetailTitle"
+    >
+      <header class="reportes-detail-modal__header">
+        <h3 id="reportesDetailTitle">Detalle del Movimiento</h3>
+        <button class="reportes-detail-modal__close" id="reportesDetailCloseButton" type="button" aria-label="Cerrar">
+          x
+        </button>
+      </header>
+      <div class="reportes-detail-modal__content" id="reportesDetailContent"></div>
+      <footer class="reportes-detail-modal__footer">
+        <button class="reportes-button reportes-button--outline" id="reportesDetailFooterCloseButton" type="button">
+          Cerrar
+        </button>
+        <button class="reportes-button reportes-button--ghost" id="reportesDetailPrintButton" type="button">
+          Imprimir Comprobante
+        </button>
+      </footer>
+    </div>
+  </div>
+</section>
+

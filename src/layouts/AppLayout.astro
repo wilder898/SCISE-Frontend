@@ -1,4 +1,4 @@
-﻿---
+---
 import BaseLayout from "./BaseLayout.astro";
 import AppNavbar from "../components/navigation/AppNavbar.astro";
 
@@ -13,13 +13,6 @@ const { title = "SCISE - App" } = Astro.props;
   <div class="app-shell">
     <AppNavbar />
     <main class="app-content">
-      <div class="app-content-top">
-        <div class="app-user-avatar" aria-hidden="true"></div>
-        <div class="app-user-lines" aria-hidden="true">
-          <span></span>
-          <span></span>
-        </div>
-      </div>
       <slot />
     </main>
   </div>

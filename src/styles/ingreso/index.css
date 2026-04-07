@@ -1,0 +1,7 @@
+@import "./base.css";
+@import "../shared/scanner-card.css";
+@import "./caja-panel-inicial.css";
+@import "./caja-escanear-carnet.css";
+@import "./caja-seleccionar-equipo.css";
+@import "./caja-acciones.css";
+@import "./caja-informacion.css";

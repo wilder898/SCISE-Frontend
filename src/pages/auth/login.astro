@@ -10,3 +10,73 @@ import "../../styles/login.css";
   </div>
 </AuthLayout>
 
+<script>
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+  const form = document.getElementById("loginForm") as HTMLFormElement | null;
+  const usernameInput = document.getElementById("username") as HTMLInputElement | null;
+  const passwordInput = document.getElementById("password") as HTMLInputElement | null;
+  const loading = document.getElementById("loading") as HTMLElement | null;
+  const error = document.getElementById("error") as HTMLElement | null;
+
+  if (form && usernameInput && passwordInput && loading && error) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      error.textContent = "";
+      loading.textContent = "Validando credenciales...";
+
+      const correo = String(usernameInput.value || "").trim();
+      const contrasena = String(passwordInput.value || "");
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ correo, contrasena }),
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const detail =
+            typeof payload?.detail === "string" && payload.detail.trim()
+              ? payload.detail
+              : "Credenciales invalidas.";
+          throw new Error(detail);
+        }
+
+        const payload = await response.json();
+        const usuario = payload?.usuario || {};
+        const rolBackend = String(usuario?.rol || "").toUpperCase();
+        const role = ["ADMINISTRADOR", "ADMIN", "ADMINISTRADOR_SCISE"].includes(rolBackend)
+          ? "admin"
+          : "user";
+
+        localStorage.setItem("scise-auth-token", String(payload?.access_token || ""));
+        localStorage.setItem(
+          "scise-session",
+          JSON.stringify({
+            id: usuario?.id ?? null,
+            username: usuario?.nombre || correo,
+            email: usuario?.correo || correo,
+            role,
+            roleBackend: rolBackend || "USUARIO",
+            tokenType: String(payload?.token_type || "bearer"),
+            loginAt: new Date().toISOString(),
+          })
+        );
+
+        loading.textContent = "";
+        window.location.href = "/dashboard";
+      } catch (loginError) {
+        loading.textContent = "";
+        error.textContent =
+          loginError instanceof Error && loginError.message
+            ? loginError.message
+            : "No fue posible iniciar sesión. Verifica el backend y vuelve a intentar.";
+      }
+    });
+  }
+</script>
+

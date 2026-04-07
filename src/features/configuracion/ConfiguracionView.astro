@@ -1,0 +1,907 @@
+---
+import CajaPanelInicial from "./CajaPanelInicial.astro";
+import CajaTablaAccesos from "./CajaTablaAccesos.astro";
+import CajaInformacion from "./CajaInformacion.astro";
+import CajaAccesoDenegado from "./CajaAccesoDenegado.astro";
+import CajaCambioContrasena from "./CajaCambioContrasena.astro";
+import CajaAuditoriaAccesos from "./CajaAuditoriaAccesos.astro";
+import ModalNuevoUsuario from "./ModalNuevoUsuario.astro";
+import ModalEditarUsuario from "./ModalEditarUsuario.astro";
+
+const apiBaseUrl = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+const roleCatalog = ["Administrador", "Usuario"];
+
+const adminPermissions = [
+  "ver_equipos",
+  "registrar_ingreso",
+  "registrar_salida",
+  "ver_reportes",
+  "gestionar_usuarios",
+  "gestionar_permisos",
+];
+
+const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"];
+
+---
+
+<section class="config-page">
+  <CajaPanelInicial />
+
+  <div id="configAdminContent" hidden>
+    <CajaTablaAccesos />
+    <CajaAuditoriaAccesos />
+    <CajaInformacion />
+    <ModalNuevoUsuario />
+    <ModalEditarUsuario />
+    <CajaCambioContrasena />
+  </div>
+
+  <div id="configDeniedContent" hidden>
+    <CajaAccesoDenegado />
+  </div>
+</section>
+
+<script define:vars={{ roleCatalog, adminPermissions, userPermissions, apiBaseUrl }}>
+  const API_BASE_URL = String(apiBaseUrl || "http://localhost:8000/api/v1").replace(/\/$/, "");
+  const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
+  const isAdmin = sessionData.role === "admin";
+  const actorName = sessionData.username === "admin" ? "Admin SENA" : sessionData.username || "Administrador";
+  const roleIdByName = { Administrador: 1, Usuario: 2 };
+  const COLOMBIA_TIME_ZONE = "America/Bogota";
+
+  const adminContent = document.getElementById("configAdminContent");
+  const deniedContent = document.getElementById("configDeniedContent");
+
+  if (adminContent && deniedContent) {
+    adminContent.hidden = !isAdmin;
+    deniedContent.hidden = isAdmin;
+  }
+
+  if (isAdmin) {
+    function getDefaultPermissions(role) {
+      return role === "Administrador" ? [...adminPermissions] : [...userPermissions];
+    }
+
+    function normalizeRoleForUi(role) {
+      const value = String(role || "").trim();
+      const normalized = value.toUpperCase();
+
+      if (normalized === "ADMINISTRADOR") return "Administrador";
+      if (normalized === "USUARIO") return "Usuario";
+
+      return roleCatalog.includes(value) ? value : "Usuario";
+    }
+
+    function normalizeEstadoForUi(estado) {
+      const value = String(estado || "").trim().toUpperCase();
+      return value === "INACTIVO" ? "Inactivo" : "Activo";
+    }
+
+    function normalizeEstadoForApi(estado) {
+      return String(estado || "").trim().toLowerCase() === "inactivo" ? "INACTIVO" : "ACTIVO";
+    }
+
+    function registerRoleId(roleName, roleId) {
+      const parsedRoleId = Number(roleId);
+      if (!Number.isInteger(parsedRoleId) || parsedRoleId <= 0) {
+        return;
+      }
+
+      roleIdByName[normalizeRoleForUi(roleName)] = parsedRoleId;
+    }
+
+    function resolveRoleId(roleName, fallbackRoleId = null) {
+      const key = normalizeRoleForUi(roleName);
+      const mapped = Number(roleIdByName[key]);
+      if (Number.isInteger(mapped) && mapped > 0) {
+        return mapped;
+      }
+
+      const parsedFallback = Number(fallbackRoleId);
+      if (Number.isInteger(parsedFallback) && parsedFallback > 0) {
+        return parsedFallback;
+      }
+
+      throw new Error(`No fue posible resolver el rol para ${key}.`);
+    }
+
+    function normalizeUser(user) {
+      const normalizedRole = normalizeRoleForUi(user?.rol);
+      const roleId = Number(user?.rol_id);
+      if (Number.isInteger(roleId) && roleId > 0) {
+        registerRoleId(normalizedRole, roleId);
+      }
+
+      return {
+        id: Number(user?.id) || Date.now(),
+        nombre: String(user?.nombre || "Usuario sin nombre"),
+        documento: String(user?.documento || "Sin documento"),
+        email: String(user?.correo || user?.email || ""),
+        rol: normalizedRole,
+        rolId: Number.isInteger(roleId) && roleId > 0 ? roleId : Number(roleIdByName[normalizedRole] || 0),
+        departamento: String(user?.area || user?.departamento || ""),
+        estado: normalizeEstadoForUi(user?.estado),
+        permisos: getDefaultPermissions(normalizedRole),
+      };
+    }
+
+    function formatAuditDate(value) {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return "Sin fecha";
+      }
+
+      return parsed.toLocaleString("es-CO", {
+        timeZone: COLOMBIA_TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    }
+
+    function inferAuditType(evento, tipoAuditoria) {
+      const base = `${String(tipoAuditoria || "")} ${String(evento || "")}`.toLowerCase();
+
+      if (base.includes("delete") || base.includes("elimin")) return "eliminar";
+      if (base.includes("insert") || base.includes("crea")) return "crear";
+      if (base.includes("password") || base.includes("contras")) return "contrasena";
+      if (base.includes("inactiv") || base.includes("desactiv")) return "desactivar";
+      if (base.includes("activ")) return "activar";
+      if (base.includes("update") || base.includes("edit")) return "editar";
+
+      return "editar";
+    }
+
+    function normalizeAuditItem(item) {
+      const actor = String(item?.actor_nombre || (item?.usuario_id ? `Usuario ${item.usuario_id}` : "Sistema"));
+      const evento = String(item?.evento || "Movimiento").trim();
+      const tipoAuditoria = String(item?.tipo_auditoria || "").trim();
+
+      const detailParts = [];
+      if (evento) detailParts.push(`Evento: ${evento}.`);
+      if (tipoAuditoria) detailParts.push(`Tipo: ${tipoAuditoria}.`);
+      if (item?.url) detailParts.push(`Ruta: ${item.url}.`);
+      if (item?.tabla_id) detailParts.push(`Registro: ${item.tabla_id}.`);
+
+      return {
+        id: Number(item?.id) || Date.now(),
+        tipo: inferAuditType(evento, tipoAuditoria),
+        usuario: actor,
+        actor,
+        detalle: detailParts.join(" ") || "Registro de auditoria del sistema.",
+        fecha: formatAuditDate(item?.fecha_novedad),
+      };
+    }
+
+    async function apiRequest(path, options = {}) {
+      const method = options.method || "GET";
+      const query = options.query || null;
+      const body = options.body;
+      const token = localStorage.getItem("scise-auth-token");
+
+      if (!token) {
+        const authError = new Error("Tu sesión expiró. Inicia sesión nuevamente.");
+        authError.status = 401;
+        throw authError;
+      }
+
+      const url = new URL(`${API_BASE_URL}${path}`);
+      if (query && typeof query === "object") {
+        Object.entries(query).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== "") {
+            url.searchParams.set(key, String(value));
+          }
+        });
+      }
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const response = await fetch(url.toString(), {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const detail =
+          typeof payload?.detail === "string" && payload.detail.trim()
+            ? payload.detail
+            : "No fue posible completar la solicitud.";
+
+        const requestError = new Error(detail);
+        requestError.status = response.status;
+        throw requestError;
+      }
+
+      return payload;
+    }
+
+    function handleRequestError(error, fallbackMessage) {
+      const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+      const status = Number(error?.status || 0);
+
+      if (status === 401) {
+        alert(`${message} Debes iniciar sesión nuevamente.`);
+        window.location.href = "/auth/login";
+        return;
+      }
+
+      alert(message || fallbackMessage);
+    }
+
+    const state = {
+      accesses: [],
+      auditLog: [],
+      passwordTargetId: null,
+    };
+
+    const tableBody = document.getElementById("configUsersTableBody");
+    const emptyState = document.getElementById("configUsersEmpty");
+    const totalUsers = document.getElementById("configTotalUsers");
+    const activeUsers = document.getElementById("configActiveUsers");
+    const auditList = document.getElementById("configAuditList");
+    const auditEmpty = document.getElementById("configAuditEmpty");
+    const openCreateUserModalButton = document.getElementById("openCreateUserModal");
+
+    const newUserModal = document.getElementById("configNewUserModal");
+    const newUserForm = document.getElementById("newUserForm");
+    const newUserNombre = document.getElementById("newUserNombre");
+    const newUserEmail = document.getElementById("newUserEmail");
+    const newUserDocumento = document.getElementById("newUserDocumento");
+    const newUserRol = document.getElementById("newUserRol");
+    const newUserDepartamento = document.getElementById("newUserDepartamento");
+    const newUserPassword = document.getElementById("newUserPassword");
+
+    const editUserModal = document.getElementById("configEditUserModal");
+    const editUserForm = document.getElementById("editUserForm");
+    const editUserId = document.getElementById("editUserId");
+    const editUserNombre = document.getElementById("editUserNombre");
+    const editUserEmail = document.getElementById("editUserEmail");
+    const editUserDocumento = document.getElementById("editUserDocumento");
+    const editUserRol = document.getElementById("editUserRol");
+    const editUserDepartamento = document.getElementById("editUserDepartamento");
+
+    const passwordModal = document.getElementById("configPasswordModal");
+    const passwordTargetName = document.getElementById("passwordTargetName");
+    const passwordTargetMeta = document.getElementById("passwordTargetMeta");
+    const passwordResetForm = document.getElementById("passwordResetForm");
+    const passwordNueva = document.getElementById("passwordNueva");
+    const passwordConfirmacion = document.getElementById("passwordConfirmacion");
+    const passwordResetFeedback = document.getElementById("passwordResetFeedback");
+    const applyPasswordChange = document.getElementById("applyPasswordChange");
+    const togglePasswordVisibility = document.getElementById("togglePasswordVisibility");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function formatAuditType(type) {
+      const map = {
+        crear: "Creación",
+        editar: "edicion",
+        activar: "Activación",
+        desactivar: "Desactivación",
+        contrasena: "Contraseña",
+        eliminar: "Eliminacion",
+      };
+
+      return map[type] || "Movimiento";
+    }
+
+    function getAuditTone(type) {
+      const toneMap = {
+        crear: "is-success",
+        editar: "is-info",
+        activar: "is-success",
+        desactivar: "is-warning",
+        contrasena: "is-orange",
+        eliminar: "is-danger",
+      };
+
+      return toneMap[type] || "is-info";
+    }
+
+    function addAuditEntry(type, userName, detail) {
+      state.auditLog.unshift({
+        id: Date.now(),
+        tipo: type,
+        usuario: userName,
+        actor: actorName,
+        detalle: detail,
+        fecha: new Date().toLocaleString("es-CO", {
+          timeZone: COLOMBIA_TIME_ZONE,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
+      });
+
+      renderAudit();
+    }
+
+    function findAccessById(accessIdValue) {
+      return state.accesses.find((access) => access.id === accessIdValue) || null;
+    }
+
+    function updateCounters() {
+      const total = state.accesses.length;
+      const active = state.accesses.filter((access) => access.estado === "Activo").length;
+
+      if (totalUsers instanceof HTMLElement) totalUsers.textContent = String(total);
+      if (activeUsers instanceof HTMLElement) activeUsers.textContent = String(active);
+    }
+
+    function renderAudit() {
+      if (!(auditList instanceof HTMLElement) || !(auditEmpty instanceof HTMLElement)) {
+        return;
+      }
+
+      if (!state.auditLog.length) {
+        auditList.innerHTML = "";
+        auditEmpty.hidden = false;
+        return;
+      }
+
+      auditEmpty.hidden = true;
+      auditList.innerHTML = state.auditLog
+        .map((item) => `
+          <article class="config-audit-item">
+            <div class="config-audit-item__meta">
+              <span class="config-audit-badge ${getAuditTone(item.tipo)}">${escapeHtml(formatAuditType(item.tipo))}</span>
+              <strong>${escapeHtml(item.usuario)}</strong>
+              <small>${escapeHtml(item.fecha)}</small>
+            </div>
+            <p>${escapeHtml(item.detalle)}</p>
+            <span class="config-audit-item__actor">Acción realizada por ${escapeHtml(item.actor)}</span>
+          </article>
+        `)
+        .join("");
+    }
+
+    function renderTable() {
+      if (!(tableBody instanceof HTMLElement) || !(emptyState instanceof HTMLElement)) {
+        return;
+      }
+
+      if (!state.accesses.length) {
+        tableBody.innerHTML = "";
+        emptyState.hidden = false;
+        updateCounters();
+        return;
+      }
+
+      const keyIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 0h6m-2 0v3m-2-3v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      const editIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20h4l10-10-4-4L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="m12 6 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      `;
+      const deleteIcon = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 7h14M9 7V5h6v2m-7 3v7m4-7v7m4-7v7M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+
+      emptyState.hidden = true;
+      tableBody.innerHTML = state.accesses
+        .map((access) => {
+          const statusClass = access.estado === "Activo" ? "is-active" : "is-inactive";
+          const toggleLabel = access.estado === "Activo" ? "Desactivar usuario" : "Activar usuario";
+
+          return `
+            <tr>
+              <td>
+                <div class="config-user-cell">
+                  <strong>${escapeHtml(access.nombre)}</strong>
+                  <small>${escapeHtml(access.documento)}</small>
+                </div>
+              </td>
+              <td>${escapeHtml(access.email)}</td>
+              <td><span class="config-role-pill">${escapeHtml(access.rol)}</span></td>
+              <td>${escapeHtml(access.departamento)}</td>
+              <td><span class="config-state-pill ${statusClass}">${escapeHtml(access.estado)}</span></td>
+              <td>
+                <div class="config-table-actions" aria-label="Acciones de usuario">
+                  <button
+                    class="config-state-toggle ${statusClass}"
+                    type="button"
+                    title="${toggleLabel}"
+                    aria-label="${toggleLabel}"
+                    aria-pressed="${access.estado === "Activo" ? "true" : "false"}"
+                    data-action="toggle"
+                    data-access-id="${access.id}"
+                  >
+                    <span class="config-state-toggle__track">
+                      <span class="config-state-toggle__thumb"></span>
+                    </span>
+                  </button>
+                  <button class="config-icon-button is-password" type="button" title="Cambiar contraseña" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
+                  <button class="config-icon-button is-edit" type="button" title="Editar usuario" data-action="edit" data-access-id="${access.id}">${editIcon}</button>
+                  <button class="config-icon-button is-danger" type="button" title="Eliminar usuario" data-action="delete" data-access-id="${access.id}">${deleteIcon}</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      updateCounters();
+    }
+
+    function openModal(modal) {
+      if (modal instanceof HTMLElement) {
+        modal.hidden = false;
+        document.body.classList.add("config-modal-open");
+      }
+    }
+
+    function closeModal(modal) {
+      if (modal instanceof HTMLElement) {
+        modal.hidden = true;
+      }
+
+      const hasOpenModal = Array.from(document.querySelectorAll(".config-modal")).some(
+        (element) => element instanceof HTMLElement && !element.hidden
+      );
+
+      if (!hasOpenModal) {
+        document.body.classList.remove("config-modal-open");
+      }
+    }
+
+    function resetNewUserForm() {
+      if (newUserForm instanceof HTMLFormElement) {
+        newUserForm.reset();
+      }
+
+      if (newUserRol instanceof HTMLSelectElement) {
+        newUserRol.value = "Usuario";
+      }
+    }
+
+    function openCreateUser() {
+      resetNewUserForm();
+      openModal(newUserModal);
+    }
+
+    async function refreshUsers() {
+      const payload = await apiRequest("/usuarios", {
+        query: { skip: 0, limit: 100 },
+      });
+
+      const users = Array.isArray(payload?.data) ? payload.data : [];
+      state.accesses = users.map((user) => normalizeUser(user));
+
+      if (state.passwordTargetId && !findAccessById(state.passwordTargetId)) {
+        state.passwordTargetId = null;
+      }
+
+      renderTable();
+      updatePasswordTarget();
+    }
+
+    async function refreshAudit() {
+      const payload = await apiRequest("/auditoria", {
+        query: { skip: 0, limit: 50 },
+      });
+
+      const logs = Array.isArray(payload?.data) ? payload.data : [];
+      state.auditLog = logs.map((item) => normalizeAuditItem(item));
+      renderAudit();
+    }
+
+    async function createUser(event) {
+      event.preventDefault();
+
+      if (
+        !(newUserNombre instanceof HTMLInputElement) ||
+        !(newUserEmail instanceof HTMLInputElement) ||
+        !(newUserDocumento instanceof HTMLInputElement) ||
+        !(newUserRol instanceof HTMLSelectElement) ||
+        !(newUserDepartamento instanceof HTMLInputElement) ||
+        !(newUserPassword instanceof HTMLInputElement)
+      ) {
+        return;
+      }
+
+      const nombre = newUserNombre.value.trim();
+      const email = newUserEmail.value.trim();
+      const documento = newUserDocumento.value.trim();
+      const rol = newUserRol.value;
+      const departamento = newUserDepartamento.value.trim();
+      const contrasena = newUserPassword.value.trim();
+
+      if (!nombre || !email || !documento || !departamento || !contrasena) {
+        alert("Completa todos los campos requeridos del nuevo usuario.");
+        return;
+      }
+
+      if (contrasena.length < 6) {
+        alert("La contraseña inicial debe tener al menos 6 caracteres.");
+        return;
+      }
+
+      let roleId;
+      try {
+        roleId = resolveRoleId(rol);
+      } catch (error) {
+        handleRequestError(error, "No fue posible determinar el rol seleccionado.");
+        return;
+      }
+
+      try {
+        const createdUser = await apiRequest("/usuarios", {
+          method: "POST",
+          body: {
+            documento,
+            nombre,
+            correo: email,
+            area: departamento,
+            contrasena,
+            rol_id: roleId,
+            estado: "ACTIVO",
+          },
+        });
+
+        state.accesses.unshift(normalizeUser(createdUser));
+        renderTable();
+        addAuditEntry("crear", nombre, `Se creo una nueva cuenta con perfil ${rol}.`);
+        closeModal(newUserModal);
+        resetNewUserForm();
+      } catch (error) {
+        handleRequestError(error, "No fue posible crear el usuario.");
+      }
+    }
+
+    function openEdit(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      if (editUserId instanceof HTMLInputElement) editUserId.value = String(access.id);
+      if (editUserNombre instanceof HTMLInputElement) editUserNombre.value = access.nombre;
+      if (editUserEmail instanceof HTMLInputElement) editUserEmail.value = access.email;
+      if (editUserDocumento instanceof HTMLInputElement) editUserDocumento.value = access.documento;
+      if (editUserRol instanceof HTMLSelectElement) editUserRol.value = roleCatalog.includes(access.rol) ? access.rol : "Usuario";
+      if (editUserDepartamento instanceof HTMLInputElement) editUserDepartamento.value = access.departamento;
+
+      openModal(editUserModal);
+    }
+
+    async function saveEdit(event) {
+      event.preventDefault();
+
+      if (
+        !(editUserId instanceof HTMLInputElement) ||
+        !(editUserNombre instanceof HTMLInputElement) ||
+        !(editUserEmail instanceof HTMLInputElement) ||
+        !(editUserDocumento instanceof HTMLInputElement) ||
+        !(editUserRol instanceof HTMLSelectElement) ||
+        !(editUserDepartamento instanceof HTMLInputElement)
+      ) {
+        return;
+      }
+
+      const access = findAccessById(Number(editUserId.value || 0));
+
+      if (!access) {
+        return;
+      }
+
+      const nombre = editUserNombre.value.trim();
+      const email = editUserEmail.value.trim();
+      const documento = editUserDocumento.value.trim();
+      const rol = editUserRol.value;
+      const departamento = editUserDepartamento.value.trim();
+
+      if (!nombre || !email || !documento || !departamento) {
+        alert("Completa todos los campos requeridos del usuario.");
+        return;
+      }
+
+      let roleId;
+      try {
+        roleId = resolveRoleId(rol, access.rolId);
+      } catch (error) {
+        handleRequestError(error, "No fue posible determinar el rol seleccionado.");
+        return;
+      }
+
+      try {
+        const updatedUser = await apiRequest(`/usuarios/${access.id}`, {
+          method: "PATCH",
+          body: {
+            documento,
+            nombre,
+            correo: email,
+            area: departamento,
+            rol_id: roleId,
+          },
+        });
+
+        const updatedAccess = normalizeUser(updatedUser);
+        state.accesses = state.accesses.map((item) => (item.id === access.id ? updatedAccess : item));
+
+        renderTable();
+        addAuditEntry("editar", updatedAccess.nombre, `Se actualizó la información del perfil ${updatedAccess.rol}.`);
+        closeModal(editUserModal);
+      } catch (error) {
+        handleRequestError(error, "No fue posible actualizar el usuario.");
+      }
+    }
+
+    async function toggleAccess(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      const nextEstadoUi = access.estado === "Activo" ? "Inactivo" : "Activo";
+
+      try {
+        const updatedUser = await apiRequest(`/usuarios/${access.id}/estado`, {
+          method: "PATCH",
+          body: {
+            estado: normalizeEstadoForApi(nextEstadoUi),
+          },
+        });
+
+        const updatedAccess = normalizeUser(updatedUser);
+        state.accesses = state.accesses.map((item) => (item.id === access.id ? updatedAccess : item));
+
+        renderTable();
+        addAuditEntry(
+          updatedAccess.estado === "Activo" ? "activar" : "desactivar",
+          updatedAccess.nombre,
+          updatedAccess.estado === "Activo"
+            ? "La cuenta fue habilitada nuevamente para operar SCISE."
+            : "La cuenta fue deshabilitada para impedir acceso al sistema."
+        );
+      } catch (error) {
+        handleRequestError(error, "No fue posible actualizar el estado del usuario.");
+      }
+    }
+
+    async function deleteAccess(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      const userName = access.nombre;
+      const confirmed = window.confirm(`Vas a eliminar el usuario ${userName}. Esta accion no se puede deshacer.`);
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await apiRequest(`/usuarios/${access.id}`, {
+          method: "DELETE",
+        });
+
+        state.accesses = state.accesses.filter((item) => item.id !== accessIdValue);
+
+        if (state.passwordTargetId === accessIdValue) {
+          state.passwordTargetId = null;
+        }
+
+        renderTable();
+        updatePasswordTarget();
+        addAuditEntry("eliminar", userName, "La cuenta fue eliminada del catalogo de accesos del sistema.");
+      } catch (error) {
+        handleRequestError(error, "No fue posible eliminar el usuario.");
+      }
+    }
+
+    function updatePasswordTarget() {
+      const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
+
+      if (passwordTargetName instanceof HTMLElement) {
+        passwordTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningún usuario seleccionado";
+      }
+
+      if (passwordTargetMeta instanceof HTMLElement) {
+        passwordTargetMeta.textContent = access
+          ? `Documento ${access.documento}. Estado ${access.estado}.`
+          : "Usa la tabla de usuarios para elegir a quien deseas cambiar la contraseña.";
+      }
+
+      if (applyPasswordChange instanceof HTMLButtonElement) {
+        applyPasswordChange.disabled = !access;
+      }
+
+      if (passwordResetFeedback instanceof HTMLElement) {
+        passwordResetFeedback.textContent = access
+          ? "Ingresa una nueva contraseña segura y confírmala antes de aplicar."
+          : "La nueva contraseña debe tener al menos 6 caracteres.";
+      }
+    }
+
+    function openPassword(accessIdValue) {
+      const access = findAccessById(accessIdValue);
+
+      if (!access) {
+        return;
+      }
+
+      state.passwordTargetId = access.id;
+      updatePasswordTarget();
+
+      if (passwordNueva instanceof HTMLInputElement) passwordNueva.value = "";
+      if (passwordConfirmacion instanceof HTMLInputElement) passwordConfirmacion.value = "";
+
+      openModal(passwordModal);
+    }
+
+    async function applyPasswordReset(event) {
+      event.preventDefault();
+
+      const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
+
+      if (
+        !access ||
+        !(passwordNueva instanceof HTMLInputElement) ||
+        !(passwordConfirmacion instanceof HTMLInputElement) ||
+        !(passwordResetFeedback instanceof HTMLElement)
+      ) {
+        return;
+      }
+
+      const newPassword = passwordNueva.value.trim();
+      const confirmPassword = passwordConfirmacion.value.trim();
+
+      if (!newPassword || !confirmPassword) {
+        passwordResetFeedback.textContent = "Completa ambos campos de contraseña.";
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        passwordResetFeedback.textContent = "La contraseña debe tener al menos 6 caracteres.";
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        passwordResetFeedback.textContent = "Las contraseñas no coinciden.";
+        return;
+      }
+
+      try {
+        await apiRequest(`/usuarios/${access.id}/password`, {
+          method: "PATCH",
+          body: {
+            nueva_password: newPassword,
+            confirmacion: confirmPassword,
+          },
+        });
+
+        passwordNueva.value = "";
+        passwordConfirmacion.value = "";
+        addAuditEntry("contrasena", access.nombre, "Se realizó un cambio de contraseña desde configuración.");
+        passwordResetFeedback.textContent = `Contraseña actualizada para ${access.nombre}.`;
+        closeModal(passwordModal);
+      } catch (error) {
+        passwordResetFeedback.textContent =
+          error instanceof Error && error.message ? error.message : "No fue posible actualizar la contraseña.";
+      }
+    }
+
+    function handleTableAction(event) {
+      const target = event.target instanceof Element ? event.target.closest("button") : null;
+
+      if (!(target instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const accessIdValue = Number(target.dataset.accessId || 0);
+      const action = target.dataset.action;
+
+      if (action === "password") {
+        openPassword(accessIdValue);
+        return;
+      }
+
+      if (action === "toggle") {
+        void toggleAccess(accessIdValue);
+        return;
+      }
+
+      if (action === "edit") {
+        openEdit(accessIdValue);
+        return;
+      }
+
+      if (action === "delete") {
+        void deleteAccess(accessIdValue);
+      }
+    }
+
+    function handleModalClose(event) {
+      const closeTarget = event.target instanceof Element ? event.target.closest("[data-close-modal]") : null;
+
+      if (!(closeTarget instanceof HTMLElement)) {
+        return;
+      }
+
+      const modalId = closeTarget.dataset.closeModal;
+
+      if (!modalId) {
+        return;
+      }
+
+      closeModal(document.getElementById(modalId));
+    }
+
+    openCreateUserModalButton?.addEventListener("click", openCreateUser);
+    newUserForm?.addEventListener("submit", (event) => {
+      void createUser(event);
+    });
+    editUserForm?.addEventListener("submit", (event) => {
+      void saveEdit(event);
+    });
+    passwordResetForm?.addEventListener("submit", (event) => {
+      void applyPasswordReset(event);
+    });
+    tableBody?.addEventListener("click", handleTableAction);
+    document.addEventListener("click", handleModalClose);
+
+    togglePasswordVisibility?.addEventListener("change", () => {
+      const inputType =
+        togglePasswordVisibility instanceof HTMLInputElement && togglePasswordVisibility.checked
+          ? "text"
+          : "password";
+
+      if (passwordNueva instanceof HTMLInputElement) passwordNueva.type = inputType;
+      if (passwordConfirmacion instanceof HTMLInputElement) passwordConfirmacion.type = inputType;
+    });
+
+    updatePasswordTarget();
+    resetNewUserForm();
+    renderTable();
+    renderAudit();
+
+    (async () => {
+      try {
+        await refreshUsers();
+      } catch (error) {
+        handleRequestError(error, "No fue posible cargar los usuarios del sistema.");
+      }
+
+      try {
+        await refreshAudit();
+      } catch (error) {
+        handleRequestError(error, "No fue posible cargar la auditoría.");
+      }
+    })();
+  }
+</script>
+
