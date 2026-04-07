@@ -22,7 +22,7 @@
         <input
           id="equipmentSearchInput"
           type="search"
-          placeholder="Serial, nombre, tipo, documento o codigo de barras"
+          placeholder="Serial, nombre, tipo, documento o código de barras"
         />
       </div>
     </label>
@@ -37,12 +37,12 @@
         </span>
         <select id="equipmentTypeFilter">
           <option value="">Todos</option>
-          <option value="Portátil">Portátil</option>
+          <option value="PortÃ¡til">PortÃ¡til</option>
           <option value="Monitor">Monitor</option>
           <option value="Teclado">Teclado</option>
           <option value="Mouse">Mouse</option>
           <option value="Impresora">Impresora</option>
-          <option value="Escáner">Escáner</option>
+          <option value="EscÃ¡ner">EscÃ¡ner</option>
           <option value="Proyector">Proyector</option>
           <option value="Otro">Otro</option>
         </select>
@@ -80,13 +80,17 @@
           <th>Tipo</th>
           <th>Usuario asignado</th>
           <th>Estado actual</th>
+          <th>Fecha y hora</th>
         </tr>
       </thead>
       <tbody id="equipmentTableBody"></tbody>
     </table>
   </div>
 
+  <div class="users-pagination" id="equipmentPagination"></div>
+
   <div class="users-empty-state" id="equipmentEmptyState">
-    Aún no hay equipos registrados desde este módulo.
+    AÃºn no hay equipos registrados desde este mÃ³dulo.
   </div>
 </section>
+

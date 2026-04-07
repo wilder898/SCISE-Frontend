@@ -15,7 +15,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 </section>
 
 <script>
-  import { type MovementReportRow, type MovementType } from "../../lib/movimientos";
+  import { formatMovementDateTime, type MovementReportRow, type MovementType } from "../../lib/movimientos";
 
   interface ReportesResumenResponse {
     total_equipos?: number;
@@ -154,10 +154,38 @@ import CajaInformacion from "./CajaInformacion.astro";
     return localStorage.getItem("scise-auth-token") || "";
   }
 
+  function readSession(): Record<string, unknown> {
+    try {
+      const raw = localStorage.getItem("scise-session");
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function resolveIsAdmin(session: Record<string, unknown>): boolean {
+    const roleValue = String(session?.role || session?.rol || "").toLowerCase();
+    const backendRole = String(session?.roleBackend || "").toUpperCase();
+    return roleValue === "admin" || roleValue === "administrador" || backendRole === "ADMINISTRADOR";
+  }
+
+  const sessionData = readSession();
+  const isAdmin = resolveIsAdmin(sessionData);
+
+  if (!isAdmin) {
+    excelButton?.setAttribute("hidden", "true");
+    pdfButton?.setAttribute("hidden", "true");
+    allButton?.setAttribute("hidden", "true");
+  }
+
   function handleUnauthorized(detail?: string): void {
     localStorage.removeItem("scise-auth-token");
     localStorage.removeItem("scise-session");
-    state.errorMessage = detail || "Sesion vencida. Inicia sesion nuevamente.";
+    state.errorMessage = detail || "Sesión vencida. Inicia sesión nuevamente.";
     renderTable();
     window.setTimeout(() => {
       window.location.href = "/auth/login";
@@ -181,7 +209,7 @@ import CajaInformacion from "./CajaInformacion.astro";
 
   async function handleAuthStatus(response: Response): Promise<void> {
     if (response.status === 401) {
-      const detail = await getResponseDetail(response, "Sesion no autorizada.");
+      const detail = await getResponseDetail(response, "Sesión no autorizada.");
       handleUnauthorized(detail);
       throw new Error(detail);
     }
@@ -204,7 +232,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     const tipo = normalizeMovementType(item.tipo_movimiento || item.tipo);
     const equipoInfo = item.equipo || {};
     const usuarioInfo = item.usuario || item.estudiante || {};
-    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || new Date().toISOString());
+    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || "");
     const equipoId = String(item.equipo_id || equipoInfo.id || "");
     const serial = String(item.serial || equipoInfo.serial || "");
     const equipo = String(
@@ -300,13 +328,10 @@ import CajaInformacion from "./CajaInformacion.astro";
   }
 
   function formatDateTime(value: string): string {
-    const date = new Date(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+    if (!value) {
+      return "Sin fecha";
+    }
+    return formatMovementDateTime(value);
   }
 
   function escapeHtml(value: string): string {
@@ -330,7 +355,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       serial: "Serial",
       nombre_equipo: "Equipo",
       equipo_nombre: "Equipo",
-      equipo_descripcion: "Descripcion Equipo",
+      equipo_descripcion: "Descripción Equipo",
       nombre_usuario: "Usuario",
       usuario_nombre: "Usuario",
       documento: "Documento",
@@ -407,7 +432,7 @@ import CajaInformacion from "./CajaInformacion.astro";
       detailModalContent.innerHTML = `
         <article class="reportes-detail-item">
           <strong>Detalle</strong>
-          <span>No hay informacion disponible para este movimiento.</span>
+          <span>No hay información disponible para este movimiento.</span>
         </article>
       `;
     } else {
@@ -477,13 +502,13 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function fetchResumenFromApi(filters: ReportFilters): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
     const url = query.toString()
-      ? `${API_BASE_URL}/reportes/movimientos/resumen?${query.toString()}`
-      : `${API_BASE_URL}/reportes/movimientos/resumen`;
+      ? `${API_BASE_URL}/${isAdmin ? "reportes/movimientos/resumen" : "dashboard/resumen"}?${query.toString()}`
+      : `${API_BASE_URL}/${isAdmin ? "reportes/movimientos/resumen" : "dashboard/resumen"}`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -529,19 +554,25 @@ import CajaInformacion from "./CajaInformacion.astro";
   ): Promise<{ rows: MovementReportRow[]; totalItems: number; page: number; totalPages: number }> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
     const safePage = Math.max(1, page);
     const safePageSize = Math.max(1, pageSize);
-    const skip = (safePage - 1) * safePageSize;
-    query.set("skip", String(skip));
-    query.set("limit", String(safePageSize));
-    query.set("page", String(page));
-    query.set("page_size", String(pageSize));
+    if (isAdmin) {
+      const skip = (safePage - 1) * safePageSize;
+      query.set("skip", String(skip));
+      query.set("limit", String(safePageSize));
+      query.set("page", String(safePage));
+      query.set("page_size", String(safePageSize));
+    } else {
+      query.set("page", String(safePage));
+      query.set("limit", String(safePageSize));
+    }
 
-    const response = await fetch(`${API_BASE_URL}/reportes/movimientos/historial?${query.toString()}`, {
+    const endpoint = isAdmin ? "reportes/movimientos/historial" : "dashboard/historial-reciente";
+    const response = await fetch(`${API_BASE_URL}/${endpoint}?${query.toString()}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -564,7 +595,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     }
 
     const totalPages = state.pagination.totalPages;
-    pageInfo.textContent = `Pagina ${state.pagination.page} de ${totalPages}`;
+    pageInfo.textContent = `Página ${state.pagination.page} de ${totalPages}`;
     prevButton.disabled = state.pagination.page <= 1;
     nextButton.disabled = state.pagination.page >= totalPages;
 
@@ -596,8 +627,8 @@ import CajaInformacion from "./CajaInformacion.astro";
             <td>${formatDateTime(movement.fechaHora)}</td>
             <td><span class="movement-status">${movement.estado}</span></td>
             <td>
-              <button class="movement-more" type="button" data-movement-id="${movement.id}" aria-label="Mas opciones">
-                ...
+              <button class="movement-more" type="button" data-movement-id="${movement.id}" aria-label="Ver detalle del movimiento">
+                Detalle
               </button>
             </td>
           </tr>
@@ -628,7 +659,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function downloadExcelWithFilters(filters: ReportFilters, fallbackFilename: string): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
@@ -686,7 +717,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function downloadPdfWithFilters(filters: ReportFilters): Promise<void> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const query = buildFilterQuery(filters);
@@ -742,7 +773,7 @@ import CajaInformacion from "./CajaInformacion.astro";
   async function fetchMovimientoDetalleById(movimientoId: string): Promise<Record<string, unknown>> {
     const token = getAuthToken();
     if (!token) {
-      throw new Error("Sesion no valida. Inicia sesion nuevamente.");
+      throw new Error("Sesión no válida. Inicia sesión nuevamente.");
     }
 
     const endpoints = [
@@ -897,7 +928,7 @@ import CajaInformacion from "./CajaInformacion.astro";
     if (target.classList.contains("movement-more")) {
       const movementId = String(target.dataset.movementId || "");
       if (!movementId) {
-        state.errorMessage = "No se encontro el ID del movimiento.";
+        state.errorMessage = "No se encontró el ID del movimiento.";
         renderTable();
         return;
       }

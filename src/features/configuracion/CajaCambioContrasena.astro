@@ -1,4 +1,4 @@
-﻿<div class="config-modal" id="configPasswordModal" hidden>
+<div class="config-modal" id="configPasswordModal" hidden>
   <div class="config-modal__overlay" data-close-modal="configPasswordModal"></div>
 
   <section
@@ -9,14 +9,14 @@
   >
     <div class="config-modal__header">
       <div>
-        <h2 id="configPasswordModalTitle">Cambiar contrasena</h2>
-        <p>Actualiza la contrasena de acceso del usuario seleccionado.</p>
+        <h2 id="configPasswordModalTitle">Cambiar contraseña</h2>
+        <p>Actualiza la contraseña de acceso del usuario seleccionado.</p>
       </div>
 
       <button
         class="config-modal__close"
         type="button"
-        aria-label="Cerrar modal de contrasena"
+        aria-label="Cerrar modal de contraseña"
         data-close-modal="configPasswordModal"
       >
         x
@@ -25,43 +25,44 @@
 
     <div class="password-target-card">
       <span class="password-target-card__eyebrow">Usuario seleccionado</span>
-      <strong id="passwordTargetName">Ningun usuario seleccionado</strong>
+      <strong id="passwordTargetName">Ningún usuario seleccionado</strong>
       <p id="passwordTargetMeta">
-        Usa la tabla de usuarios para elegir a quien deseas actualizar la contrasena.
+        Usa la tabla de usuarios para elegir a quien deseas actualizar la contraseña.
       </p>
     </div>
 
     <form class="config-form" id="passwordResetForm">
       <div class="config-form-grid config-form-grid--single">
         <label class="config-field">
-          <span>Nueva contrasena</span>
-          <input id="passwordNueva" type="password" placeholder="Nueva contrasena" minlength="6" />
+          <span>Nueva contraseña</span>
+          <input id="passwordNueva" type="password" placeholder="Nueva contraseña" minlength="6" />
         </label>
 
         <label class="config-field">
-          <span>Confirmar contrasena</span>
+          <span>Confirmar contraseña</span>
           <input
             id="passwordConfirmacion"
             type="password"
-            placeholder="Confirma la nueva contrasena"
+            placeholder="Confirma la nueva contraseña"
             minlength="6"
           />
         </label>
 
         <label class="config-check">
           <input id="togglePasswordVisibility" type="checkbox" />
-          <span>Mostrar contrasenas</span>
+          <span>Mostrar contraseñas</span>
         </label>
       </div>
 
       <div class="config-actions-row">
         <p class="config-form-note" id="passwordResetFeedback">
-          La nueva contrasena debe tener al menos 6 caracteres.
+          La nueva contraseña debe tener al menos 6 caracteres.
         </p>
         <button class="config-button config-button--secondary" id="applyPasswordChange" type="submit">
-          Actualizar contrasena
+          Actualizar contraseña
         </button>
       </div>
     </form>
   </section>
 </div>
+

@@ -23,75 +23,6 @@ const adminPermissions = [
 
 const userPermissions = ["ver_equipos", "registrar_ingreso", "registrar_salida", "ver_reportes"];
 
-const initialAccessUsers = [
-  {
-    id: 1,
-    nombre: "Admin SENA",
-    documento: "1000000001",
-    email: "admin@sena.edu.co",
-    rol: "Administrador",
-    departamento: "Administracion del Sistema",
-    estado: "Activo",
-    permisos: adminPermissions,
-  },
-  {
-    id: 2,
-    nombre: "Control Principal",
-    documento: "1000000002",
-    email: "control.scise@sena.edu.co",
-    rol: "Usuario",
-    departamento: "Seguridad",
-    estado: "Activo",
-    permisos: userPermissions,
-  },
-  {
-    id: 3,
-    nombre: "Operador Turno",
-    documento: "1000000003",
-    email: "operacion.scise@sena.edu.co",
-    rol: "Usuario",
-    departamento: "Soporte Tecnico",
-    estado: "Activo",
-    permisos: userPermissions,
-  },
-  {
-    id: 4,
-    nombre: "Usuario Consulta",
-    documento: "1000000004",
-    email: "consulta.scise@sena.edu.co",
-    rol: "Usuario",
-    departamento: "Coordinacion",
-    estado: "Inactivo",
-    permisos: userPermissions,
-  },
-];
-
-const initialAuditLog = [
-  {
-    id: 1,
-    tipo: "activar",
-    usuario: "Control Principal",
-    actor: "Admin SENA",
-    detalle: "Acceso habilitado para control de ingresos y salidas.",
-    fecha: "2026-03-18 08:10",
-  },
-  {
-    id: 2,
-    tipo: "editar",
-    usuario: "Operador Turno",
-    actor: "Admin SENA",
-    detalle: "Perfil actualizado para operacion diaria del sistema.",
-    fecha: "2026-03-18 08:32",
-  },
-  {
-    id: 3,
-    tipo: "desactivar",
-    usuario: "Usuario Consulta",
-    actor: "Admin SENA",
-    detalle: "Cuenta pausada temporalmente por inactividad.",
-    fecha: "2026-03-18 09:05",
-  },
-];
 ---
 
 <section class="config-page">
@@ -111,12 +42,13 @@ const initialAuditLog = [
   </div>
 </section>
 
-<script define:vars={{ initialAccessUsers, initialAuditLog, roleCatalog, adminPermissions, userPermissions, apiBaseUrl }}>
+<script define:vars={{ roleCatalog, adminPermissions, userPermissions, apiBaseUrl }}>
   const API_BASE_URL = String(apiBaseUrl || "http://localhost:8000/api/v1").replace(/\/$/, "");
   const sessionData = JSON.parse(localStorage.getItem("scise-session") || "{}");
   const isAdmin = sessionData.role === "admin";
   const actorName = sessionData.username === "admin" ? "Admin SENA" : sessionData.username || "Administrador";
   const roleIdByName = { Administrador: 1, Usuario: 2 };
+  const COLOMBIA_TIME_ZONE = "America/Bogota";
 
   const adminContent = document.getElementById("configAdminContent");
   const deniedContent = document.getElementById("configDeniedContent");
@@ -201,6 +133,7 @@ const initialAuditLog = [
       }
 
       return parsed.toLocaleString("es-CO", {
+        timeZone: COLOMBIA_TIME_ZONE,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -251,7 +184,7 @@ const initialAuditLog = [
       const token = localStorage.getItem("scise-auth-token");
 
       if (!token) {
-        const authError = new Error("Tu sesion expiro. Inicia sesion nuevamente.");
+        const authError = new Error("Tu sesión expiró. Inicia sesión nuevamente.");
         authError.status = 401;
         throw authError;
       }
@@ -300,7 +233,7 @@ const initialAuditLog = [
       const status = Number(error?.status || 0);
 
       if (status === 401) {
-        alert(`${message} Debes iniciar sesion nuevamente.`);
+        alert(`${message} Debes iniciar sesión nuevamente.`);
         window.location.href = "/auth/login";
         return;
       }
@@ -361,11 +294,11 @@ const initialAuditLog = [
 
     function formatAuditType(type) {
       const map = {
-        crear: "Creacion",
-        editar: "Edicion",
-        activar: "Activacion",
-        desactivar: "Desactivacion",
-        contrasena: "Contrasena",
+        crear: "Creación",
+        editar: "edicion",
+        activar: "Activación",
+        desactivar: "Desactivación",
+        contrasena: "Contraseña",
         eliminar: "Eliminacion",
       };
 
@@ -393,6 +326,7 @@ const initialAuditLog = [
         actor: actorName,
         detalle: detail,
         fecha: new Date().toLocaleString("es-CO", {
+          timeZone: COLOMBIA_TIME_ZONE,
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
@@ -438,7 +372,7 @@ const initialAuditLog = [
               <small>${escapeHtml(item.fecha)}</small>
             </div>
             <p>${escapeHtml(item.detalle)}</p>
-            <span class="config-audit-item__actor">Accion realizada por ${escapeHtml(item.actor)}</span>
+            <span class="config-audit-item__actor">Acción realizada por ${escapeHtml(item.actor)}</span>
           </article>
         `)
         .join("");
@@ -506,7 +440,7 @@ const initialAuditLog = [
                       <span class="config-state-toggle__thumb"></span>
                     </span>
                   </button>
-                  <button class="config-icon-button is-password" type="button" title="Cambiar contrasena" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
+                  <button class="config-icon-button is-password" type="button" title="Cambiar contraseña" data-action="password" data-access-id="${access.id}">${keyIcon}</button>
                   <button class="config-icon-button is-edit" type="button" title="Editar usuario" data-action="edit" data-access-id="${access.id}">${editIcon}</button>
                   <button class="config-icon-button is-danger" type="button" title="Eliminar usuario" data-action="delete" data-access-id="${access.id}">${deleteIcon}</button>
                 </div>
@@ -608,7 +542,7 @@ const initialAuditLog = [
       }
 
       if (contrasena.length < 6) {
-        alert("La contrasena inicial debe tener al menos 6 caracteres.");
+        alert("La contraseña inicial debe tener al menos 6 caracteres.");
         return;
       }
 
@@ -716,7 +650,7 @@ const initialAuditLog = [
         state.accesses = state.accesses.map((item) => (item.id === access.id ? updatedAccess : item));
 
         renderTable();
-        addAuditEntry("editar", updatedAccess.nombre, `Se actualizo la informacion del perfil ${updatedAccess.rol}.`);
+        addAuditEntry("editar", updatedAccess.nombre, `Se actualizó la información del perfil ${updatedAccess.rol}.`);
         closeModal(editUserModal);
       } catch (error) {
         handleRequestError(error, "No fue posible actualizar el usuario.");
@@ -793,13 +727,13 @@ const initialAuditLog = [
       const access = state.passwordTargetId ? findAccessById(state.passwordTargetId) : null;
 
       if (passwordTargetName instanceof HTMLElement) {
-        passwordTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningun usuario seleccionado";
+        passwordTargetName.textContent = access ? `${access.nombre} - ${access.rol}` : "Ningún usuario seleccionado";
       }
 
       if (passwordTargetMeta instanceof HTMLElement) {
         passwordTargetMeta.textContent = access
           ? `Documento ${access.documento}. Estado ${access.estado}.`
-          : "Usa la tabla de usuarios para elegir a quien deseas cambiar la contrasena.";
+          : "Usa la tabla de usuarios para elegir a quien deseas cambiar la contraseña.";
       }
 
       if (applyPasswordChange instanceof HTMLButtonElement) {
@@ -808,8 +742,8 @@ const initialAuditLog = [
 
       if (passwordResetFeedback instanceof HTMLElement) {
         passwordResetFeedback.textContent = access
-          ? "Ingresa una nueva contrasena segura y confirmala antes de aplicar."
-          : "La nueva contrasena debe tener al menos 6 caracteres.";
+          ? "Ingresa una nueva contraseña segura y confírmala antes de aplicar."
+          : "La nueva contraseña debe tener al menos 6 caracteres.";
       }
     }
 
@@ -847,17 +781,17 @@ const initialAuditLog = [
       const confirmPassword = passwordConfirmacion.value.trim();
 
       if (!newPassword || !confirmPassword) {
-        passwordResetFeedback.textContent = "Completa ambos campos de contrasena.";
+        passwordResetFeedback.textContent = "Completa ambos campos de contraseña.";
         return;
       }
 
       if (newPassword.length < 6) {
-        passwordResetFeedback.textContent = "La contrasena debe tener al menos 6 caracteres.";
+        passwordResetFeedback.textContent = "La contraseña debe tener al menos 6 caracteres.";
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        passwordResetFeedback.textContent = "Las contrasenas no coinciden.";
+        passwordResetFeedback.textContent = "Las contraseñas no coinciden.";
         return;
       }
 
@@ -872,12 +806,12 @@ const initialAuditLog = [
 
         passwordNueva.value = "";
         passwordConfirmacion.value = "";
-        addAuditEntry("contrasena", access.nombre, "Se realizo un cambio de contrasena desde configuracion.");
-        passwordResetFeedback.textContent = `Contrasena actualizada para ${access.nombre}.`;
+        addAuditEntry("contrasena", access.nombre, "Se realizó un cambio de contraseña desde configuración.");
+        passwordResetFeedback.textContent = `Contraseña actualizada para ${access.nombre}.`;
         closeModal(passwordModal);
       } catch (error) {
         passwordResetFeedback.textContent =
-          error instanceof Error && error.message ? error.message : "No fue posible actualizar la contrasena.";
+          error instanceof Error && error.message ? error.message : "No fue posible actualizar la contraseña.";
       }
     }
 
@@ -965,8 +899,9 @@ const initialAuditLog = [
       try {
         await refreshAudit();
       } catch (error) {
-        handleRequestError(error, "No fue posible cargar la auditoria.");
+        handleRequestError(error, "No fue posible cargar la auditoría.");
       }
     })();
   }
 </script>
+

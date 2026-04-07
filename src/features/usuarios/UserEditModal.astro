@@ -8,7 +8,7 @@
   >
     <header class="user-modal__header">
       <div>
-        <p class="user-modal__eyebrow">Edicion de usuario</p>
+        <p class="user-modal__eyebrow">edicion de usuario</p>
         <h2 id="userModalTitle">Detalle del usuario</h2>
       </div>
       <button class="user-modal__close" id="closeUserModal" type="button" aria-label="Cerrar modal">
@@ -83,32 +83,23 @@
     <section class="user-modal__panel user-modal__panel--equipment">
       <div class="user-modal__section-title">
         <div>
-          <h3>Gestion de equipos</h3>
-          <p>Agrega o elimina equipos asociados.</p>
+          <h3>Gestión de equipos</h3>
+          <p>Busca equipos existentes y asocialos al estudiante.</p>
         </div>
       </div>
 
       <form class="equipment-form" id="equipmentForm">
         <label class="user-field">
-          <span>Serial</span>
-          <input id="equipmentSerial" type="text" />
+          <span>Buscar equipo</span>
+          <input id="equipmentSearchQuery" type="text" placeholder="Serial, nombre, tipo o documento" />
         </label>
 
-        <label class="user-field">
-          <span>Descripcion</span>
-          <input id="equipmentDescripcion" type="text" />
-        </label>
-
-        <label class="user-field">
-          <span>Tipo</span>
-          <input id="equipmentTipo" type="text" />
-        </label>
-
-        <button class="user-button user-button--primary" id="addEquipmentButton" type="submit">
-          Agregar equipo
+        <button class="user-button user-button--primary" id="searchEquipmentButton" type="submit">
+          Buscar equipo
         </button>
       </form>
 
+      <div class="equipment-search-results" id="equipmentSearchResults"></div>
       <div class="equipment-list" id="equipmentList"></div>
     </section>
 

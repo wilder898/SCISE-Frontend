@@ -1,14 +1,114 @@
 <article class="dashboard-card">
-  <h2>Bienvenido a SCISE</h2>
+  <h2>Resumen Operativo</h2>
   <p>
-    Este espacio central queda preparado para resumenes, metricas, alertas y
-    componentes de seguimiento operativo.
+    Indicadores actuales del inventario para seguimiento de ingresos y salidas.
   </p>
 
-  <ul>
-    <li>Registrar ingresos y salidas de equipos</li>
-    <li>Gestionar usuarios y equipos</li>
-    <li>Ver reportes y estadisticas</li>
-    <li>Configurar el sistema</li>
-  </ul>
+  <section class="dashboard-metrics" aria-label="Indicadores de equipos">
+    <article class="dashboard-metric dashboard-metric--ingreso">
+      <p>Equipos en instalación</p>
+      <strong id="dashboardInsidePct">0%</strong>
+      <span id="dashboardInsideMeta">0 equipos dentro</span>
+    </article>
+
+    <article class="dashboard-metric dashboard-metric--salida">
+      <p>Equipos fuera de instalación</p>
+      <strong id="dashboardOutsidePct">0%</strong>
+      <span id="dashboardOutsideMeta">0 equipos fuera</span>
+    </article>
+  </section>
 </article>
+
+<script>
+  interface DashboardResumenResponse {
+    total_equipos?: number;
+    equipos_en_instalacion?: number;
+    equipos_fuera_instalacion?: number;
+    inside_pct?: number;
+    outside_pct?: number;
+  }
+
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+
+  const insidePctElement = document.getElementById("dashboardInsidePct");
+  const insideMetaElement = document.getElementById("dashboardInsideMeta");
+  const outsidePctElement = document.getElementById("dashboardOutsidePct");
+  const outsideMetaElement = document.getElementById("dashboardOutsideMeta");
+
+  function handleUnauthorized(detail: string): void {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    window.setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 900);
+
+    if (insideMetaElement instanceof HTMLElement) {
+      insideMetaElement.textContent = detail;
+    }
+  }
+
+  async function getResponseDetail(response: Response, fallback: string): Promise<string> {
+    const payload = await response.json().catch(() => ({}));
+    if (typeof payload?.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+    return fallback;
+  }
+
+  async function loadDashboardResumen(): Promise<void> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/dashboard/resumen`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      const detail = await getResponseDetail(response, "Sesión no autorizada.");
+      handleUnauthorized(detail);
+      return;
+    }
+
+    if (!response.ok) {
+      const detail = await getResponseDetail(response, "No fue posible cargar indicadores.");
+      if (insideMetaElement instanceof HTMLElement) {
+        insideMetaElement.textContent = detail;
+      }
+      return;
+    }
+
+    const payload = (await response.json()) as DashboardResumenResponse;
+
+    const insideCount = Number(payload.equipos_en_instalacion ?? 0);
+    const outsideCount = Number(payload.equipos_fuera_instalacion ?? 0);
+    const insidePct = Number(payload.inside_pct ?? 0);
+    const outsidePct = Number(payload.outside_pct ?? 0);
+
+    if (insidePctElement instanceof HTMLElement) {
+      insidePctElement.textContent = `${insidePct}%`;
+    }
+
+    if (insideMetaElement instanceof HTMLElement) {
+      insideMetaElement.textContent = `${insideCount} equipos dentro`;
+    }
+
+    if (outsidePctElement instanceof HTMLElement) {
+      outsidePctElement.textContent = `${outsidePct}%`;
+    }
+
+    if (outsideMetaElement instanceof HTMLElement) {
+      outsideMetaElement.textContent = `${outsideCount} equipos fuera`;
+    }
+  }
+
+  window.addEventListener("scise:movimientos-updated", () => {
+    loadDashboardResumen();
+  });
+
+  loadDashboardResumen();
+</script>

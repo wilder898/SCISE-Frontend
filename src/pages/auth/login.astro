@@ -1,4 +1,4 @@
-﻿---
+---
 import AuthLayout from "../../layouts/AuthLayout.astro";
 import LoginView from "../../features/auth/LoginView.astro";
 import "../../styles/login.css";
@@ -74,7 +74,7 @@ import "../../styles/login.css";
         error.textContent =
           loginError instanceof Error && loginError.message
             ? loginError.message
-            : "No fue posible iniciar sesion. Verifica el backend y vuelve a intentar.";
+            : "No fue posible iniciar sesión. Verifica el backend y vuelve a intentar.";
       }
     });
   }

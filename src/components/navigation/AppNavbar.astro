@@ -1,11 +1,11 @@
 ---
 const currentPath = Astro.url.pathname;
 const links = [
-  { href: "/reportes", label: "Panel de Administracion", icon: "bar" },
+  { href: "/reportes", label: "Panel de Administración", icon: "bar" },
   { href: "/ingreso", label: "Registrar Ingreso", icon: "enter" },
   { href: "/salida", label: "Registrar Salida", icon: "exit" },
   { href: "/usuarios", label: "Gestionar Usuarios", icon: "users" },
-  { href: "/configuracion", label: "Configuracion", icon: "settings", adminOnly: true },
+  { href: "/configuracion", label: "Configuración", icon: "settings", adminOnly: true },
 ];
 ---
 
@@ -114,7 +114,7 @@ const links = [
   </div>
 
   <div class="app-sidebar-bottom">
-    <a class="app-logout" href="/auth/login" id="logoutButton">Cerrar sesion</a>
+    <a class="app-logout" href="/auth/login" id="logoutButton">Cerrar sesión</a>
   </div>
 </aside>
 
@@ -187,3 +187,38 @@ const links = [
     logout();
   });
 </script>
+
+<style is:global>
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .app-sidebar-middle {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+  }
+
+  .app-sidebar-bottom {
+    flex-shrink: 0;
+    padding-top: 0.35rem;
+    background: var(--color-primary);
+  }
+
+  @media (max-width: 900px) {
+    .app-sidebar {
+      position: static;
+      height: auto;
+      overflow: visible;
+    }
+
+    .app-sidebar-middle {
+      overflow: visible;
+      padding-right: 0;
+    }
+  }
+</style>
+

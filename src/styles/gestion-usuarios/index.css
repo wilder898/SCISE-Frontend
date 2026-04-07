@@ -1,4 +1,5 @@
 @import "./base.css";
+@import "../shared/scanner-card.css";
 @import "./caja-panel-inicial.css";
 @import "./caja-filtros.css";
 @import "./caja-tabla-usuarios.css";

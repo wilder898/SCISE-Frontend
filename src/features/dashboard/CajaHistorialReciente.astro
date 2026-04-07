@@ -2,64 +2,290 @@
   <header class="dashboard-card__header">
     <span class="dashboard-icon is-blue" aria-hidden="true">
       <svg viewBox="0 0 24 24">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="currentColor" stroke-width="2"></path>
+        <path
+          d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        ></path>
       </svg>
     </span>
     <h2>Historial Reciente</h2>
   </header>
 
-  <div id="recentMovementsList" class="recent-movements">
-    <!-- Los movimientos recientes se cargarán aquí -->
-  </div>
+  <div id="recentMovementsList" class="recent-movements"></div>
 
   <p id="noRecentMovements" class="no-recent">No hay movimientos recientes.</p>
+
+  <div class="dashboard-pagination">
+    <button class="dashboard-page-button" id="dashboardRecentPrevButton" type="button">
+      Anterior
+    </button>
+    <span id="dashboardRecentPageInfo">Página 1 de 1</span>
+    <button class="dashboard-page-button" id="dashboardRecentNextButton" type="button">
+      Siguiente
+    </button>
+  </div>
 </article>
 
 <script>
-  import { listMovements, formatMovementTime } from "../../lib/movimientos";
+  import { formatMovementDateTime } from "../../lib/movimientos";
 
+  interface HistorialApiMovimiento {
+    id?: string | number;
+    movimiento_id?: string | number;
+    tipo?: string;
+    tipo_movimiento?: string;
+    fecha_hora?: string;
+    fecha_registro?: string;
+    timestamp?: string;
+    serial?: string;
+    nombre_equipo?: string;
+    equipo_nombre?: string;
+    equipo_descripcion?: string;
+    descripcion?: string;
+    nombre_usuario?: string;
+    usuario_nombre?: string;
+    estudiante_nombre?: string;
+    documento?: string;
+    usuario_documento?: string;
+    estudiante_documento?: string;
+  }
+
+  interface HistorialApiResponse {
+    data?: HistorialApiMovimiento[];
+    items?: HistorialApiMovimiento[];
+    results?: HistorialApiMovimiento[];
+    movimientos?: HistorialApiMovimiento[];
+    meta?: {
+      total?: number;
+      limit?: number;
+      skip?: number;
+    };
+    total?: number;
+    page?: number;
+    current_page?: number;
+    total_pages?: number;
+  }
+
+  interface DashboardRecentMovement {
+    id: string;
+    tipo: string;
+    fechaHora: string;
+    serial: string;
+    equipo: string;
+    usuario: string;
+    documento: string;
+  }
+
+  interface DashboardHistoryState {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    items: DashboardRecentMovement[];
+    errorMessage: string;
+  }
+
+  const API_BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
   const recentMovementsList = document.getElementById("recentMovementsList");
   const noRecentMovements = document.getElementById("noRecentMovements");
+  const prevButton = document.getElementById("dashboardRecentPrevButton");
+  const nextButton = document.getElementById("dashboardRecentNextButton");
+  const pageInfo = document.getElementById("dashboardRecentPageInfo");
 
-  function renderRecentMovements() {
-    const movements = listMovements()
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5); // Show last 5 movements
+  const state: DashboardHistoryState = {
+    page: 1,
+    pageSize: 5,
+    totalPages: 1,
+    items: [],
+    errorMessage: "",
+  };
 
-    if (!recentMovementsList) return;
+  function escapeHtml(value: string): string {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
 
-    if (!movements.length) {
-      recentMovementsList.innerHTML = "";
-      if (noRecentMovements) noRecentMovements.style.display = "block";
+  function parseTipo(value: unknown): string {
+    const raw = String(value || "").toUpperCase();
+    return raw.startsWith("SALIDA") ? "Salida" : "Ingreso";
+  }
+
+  function mapMovement(item: HistorialApiMovimiento): DashboardRecentMovement {
+    const fechaHora = String(item.fecha_registro || item.fecha_hora || item.timestamp || "");
+
+    return {
+      id: String(item.movimiento_id || item.id || ""),
+      tipo: parseTipo(item.tipo_movimiento || item.tipo),
+      fechaHora,
+      serial: String(item.serial || "-"),
+      equipo: String(
+        item.nombre_equipo ||
+          item.equipo_nombre ||
+          item.equipo_descripcion ||
+          item.descripcion ||
+          "Equipo"
+      ),
+      usuario: String(item.nombre_usuario || item.usuario_nombre || item.estudiante_nombre || "Usuario"),
+      documento: String(item.usuario_documento || item.estudiante_documento || item.documento || "-"),
+    };
+  }
+
+  function parseHistorialResponse(payload: unknown): { rows: DashboardRecentMovement[]; totalPages: number; page: number } {
+    if (Array.isArray(payload)) {
+      const rows = payload.map((item) => mapMovement(item as HistorialApiMovimiento));
+      return {
+        rows,
+        page: state.page,
+        totalPages: Math.max(1, Math.ceil(rows.length / state.pageSize)),
+      };
+    }
+
+    const body = (payload || {}) as HistorialApiResponse;
+    const rawRows = body.data || body.items || body.results || body.movimientos || [];
+    const rows = (Array.isArray(rawRows) ? rawRows : []).map((item) => mapMovement(item));
+
+    const page = Number(body.page ?? body.current_page ?? state.page);
+    const totalPages = Number(body.total_pages ?? 1);
+
+    return {
+      rows,
+      page: Number.isFinite(page) && page > 0 ? page : state.page,
+      totalPages: Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1,
+    };
+  }
+
+  async function getResponseDetail(response: Response, fallback: string): Promise<string> {
+    const payload = await response.json().catch(() => ({}));
+    if (typeof payload?.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+    return fallback;
+  }
+
+  function handleUnauthorized(detail: string): void {
+    localStorage.removeItem("scise-auth-token");
+    localStorage.removeItem("scise-session");
+    state.errorMessage = detail;
+    renderRecentMovements();
+    window.setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 900);
+  }
+
+  async function fetchRecentMovements(page: number): Promise<void> {
+    const token = localStorage.getItem("scise-auth-token");
+    if (!token) {
       return;
     }
 
-    if (noRecentMovements) noRecentMovements.style.display = "none";
+    const params = new URLSearchParams();
+    params.set("page", String(Math.max(1, page)));
+    params.set("limit", String(state.pageSize));
 
-    recentMovementsList.innerHTML = movements
-      .map((movement) => `
-        <div class="recent-movement ${movement.tipo === "Ingreso" ? "is-ingreso" : "is-salida"}">
-          <div class="recent-movement__header">
-            <span class="recent-movement__type">${movement.tipo}</span>
-            <span class="recent-movement__time">${formatMovementTime(movement.timestamp)}</span>
+    const response = await fetch(`${API_BASE_URL}/dashboard/historial-reciente?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      const detail = await getResponseDetail(response, "Sesión no autorizada.");
+      handleUnauthorized(detail);
+      return;
+    }
+
+    if (!response.ok) {
+      const detail = await getResponseDetail(response, "No fue posible cargar el historial reciente.");
+      state.items = [];
+      state.totalPages = 1;
+      state.errorMessage = detail;
+      renderRecentMovements();
+      return;
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    const parsed = parseHistorialResponse(payload);
+    state.items = parsed.rows;
+    state.page = parsed.page;
+    state.totalPages = parsed.totalPages;
+    state.errorMessage = "";
+    renderRecentMovements();
+  }
+
+  function renderRecentMovements(): void {
+    if (!(recentMovementsList instanceof HTMLElement)) {
+      return;
+    }
+
+    if (pageInfo instanceof HTMLElement) {
+      pageInfo.textContent = `Página ${state.page} de ${state.totalPages}`;
+    }
+
+    if (prevButton instanceof HTMLButtonElement) {
+      prevButton.disabled = state.page <= 1;
+    }
+
+    if (nextButton instanceof HTMLButtonElement) {
+      nextButton.disabled = state.page >= state.totalPages;
+    }
+
+    if (!state.items.length) {
+      recentMovementsList.innerHTML = "";
+      if (noRecentMovements instanceof HTMLElement) {
+        noRecentMovements.style.display = "block";
+        noRecentMovements.textContent = state.errorMessage || "No hay movimientos recientes.";
+      }
+      return;
+    }
+
+    if (noRecentMovements instanceof HTMLElement) {
+      noRecentMovements.style.display = "none";
+    }
+
+    recentMovementsList.innerHTML = state.items
+      .map((movement) => {
+        const formattedDate = movement.fechaHora ? formatMovementDateTime(movement.fechaHora) : "Sin fecha";
+        const typeClass = movement.tipo === "Ingreso" ? "is-ingreso" : "is-salida";
+        return `
+          <div class="recent-movement ${typeClass}">
+            <div class="recent-movement__header">
+              <span class="recent-movement__type">${escapeHtml(movement.tipo)}</span>
+              <span class="recent-movement__time">${escapeHtml(formattedDate)}</span>
+            </div>
+            <div class="recent-movement__details">
+              <strong>${escapeHtml(movement.equipo)}</strong>
+              <small>Serial: ${escapeHtml(movement.serial)}</small>
+            </div>
+            <div class="recent-movement__user">
+              <small>${escapeHtml(movement.usuario)} (${escapeHtml(movement.documento)})</small>
+            </div>
           </div>
-          <div class="recent-movement__details">
-            <strong>${movement.equipoDescripcion}</strong>
-            <small>${movement.equipoSerial}</small>
-          </div>
-          <div class="recent-movement__user">
-            <small>${movement.usuarioNombre} (${movement.usuarioDocumento})</small>
-          </div>
-        </div>
-      `)
+        `;
+      })
       .join("");
   }
 
-  // Initial render
-  renderRecentMovements();
-
-  // Listen for movement updates
-  window.addEventListener("scise:movimientos-updated", () => {
-    renderRecentMovements();
+  prevButton?.addEventListener("click", () => {
+    if (state.page > 1) {
+      fetchRecentMovements(state.page - 1);
+    }
   });
+
+  nextButton?.addEventListener("click", () => {
+    if (state.page < state.totalPages) {
+      fetchRecentMovements(state.page + 1);
+    }
+  });
+
+  window.addEventListener("scise:movimientos-updated", () => {
+    fetchRecentMovements(1);
+  });
+
+  fetchRecentMovements(1);
 </script>
