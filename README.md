@@ -2,9 +2,9 @@
 
 Frontend de SCISE construido con Astro para autenticación, ingreso/salida de equipos, gestión de usuarios y consulta de reportes.
 
-## Estado actual
+## Modulos
 
-- Login/logout conectados a backend real (`/auth/login`, `/auth/logout`).
+- Login/logout.
 - Módulo `Ingreso` conectado a API:
   - buscar estudiante por documento/carnet
   - cargar equipos asociados
@@ -35,13 +35,7 @@ Frontend de SCISE construido con Astro para autenticación, ingreso/salida de eq
 npm install
 ```
 
-2. Configurar variable pública del frontend si se requiere un backend distinto:
-
-```env
-PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
-```
-
-3. Levantar entorno local de desarrollo:
+2. Levantar entorno local de desarrollo:
 
 ```bash
 npm run dev
@@ -181,4 +175,3 @@ src/
 
 - El frontend asume CORS habilitado en backend para el origen de desarrollo.
 - Usar la misma base (`localhost` o `127.0.0.1`) en frontend y backend evita errores de sesión y CORS.
-- Si cambia un contrato de API, actualizar primero el contrato backend y luego este README.
