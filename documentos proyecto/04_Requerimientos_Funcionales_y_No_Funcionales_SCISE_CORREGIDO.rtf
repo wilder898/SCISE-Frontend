@@ -1,0 +1,80 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Arial;}{\f1 Courier New;}}
+\fs24
+\pard\qc\b SCISE\par
+\pard\qc\b0 Requerimientos funcionales y no funcionales - version corregida\par
+\pard\qc Sistema de Control de Ingreso y Salida de Equipos\par
+\pard\qc SENA - ADSO - Ficha 2996731\par
+\pard\qc 2026\par
+\par
+\pard\ql\b 1. Objetivo del documento\b0\par
+Definir los requerimientos funcionales y no funcionales que describen el comportamiento real esperado del sistema SCISE, tomando como referencia el producto actualmente implementado.\par
+\par
+\b 2. Glosario basico\b0\par
+- Estudiante: persona identificada por documento o carnet, asociada a uno o varios equipos\par
+- Usuario del sistema: cuenta autenticada con rol Administrador o Usuario\par
+- Movimiento: registro de ingreso o salida de un equipo\par
+- Auditoria: historial de acciones administrativas del sistema\par
+- Dashboard: panel con indicadores y resumen operativo\par
+\par
+\b 3. Requerimientos funcionales\b0\par
+\f1
+RF-01  El sistema debe autenticar usuarios del sistema segun credenciales y rol.\par
+RF-02  El sistema debe redirigir al dashboard correspondiente segun el rol autenticado.\par
+RF-03  El sistema debe permitir consultar estudiantes por documento o lectura del carnet mediante camara.\par
+RF-04  El sistema debe mostrar los datos del estudiante consultado antes del registro de movimientos.\par
+RF-05  El sistema debe listar los equipos asociados disponibles para ingreso.\par
+RF-06  El sistema debe registrar ingresos de uno o varios equipos en una sola operacion.\par
+RF-07  El sistema debe listar los equipos con ingreso activo para registrar salida.\par
+RF-08  El sistema debe registrar salidas de uno o varios equipos en una sola operacion.\par
+RF-09  El sistema debe impedir ingresos duplicados cuando el equipo ya se encuentra dentro.\par
+RF-10  El sistema debe impedir salidas invalidas cuando el equipo no tiene ingreso activo.\par
+RF-11  El sistema debe mostrar indicadores de estado en dashboard y panel administrativo.\par
+RF-12  El sistema debe mostrar historial de movimientos en reportes con paginacion.\par
+RF-13  El sistema debe permitir filtrar reportes por tipo y rango de fechas.\par
+RF-14  El sistema debe exportar reportes en formato CSV/XLSX.\par
+RF-15  El sistema debe permitir crear usuarios del sistema.\par
+RF-16  El sistema debe permitir editar usuarios del sistema.\par
+RF-17  El sistema debe permitir activar, desactivar o eliminar usuarios del sistema segun permisos.\par
+RF-18  El sistema debe permitir crear, editar, asociar y consultar equipos.\par
+RF-19  El sistema debe permitir editar datos de estudiantes segun permisos definidos.\par
+RF-20  El sistema debe permitir cambiar la contrasena del usuario autenticado.\par
+RF-21  El sistema debe mostrar auditoria de accesos y acciones administrativas.\par
+RF-22  El sistema debe mostrar fechas y horas visibles en zona horaria de Colombia.\par
+RF-23  El sistema debe permitir operar por escaneo con camara o por documento manual.\par
+RF-24  El sistema debe restringir funciones de descarga y administracion segun rol.\par
+\f0
+\par
+\b 4. Requerimientos no funcionales\b0\par
+\f1
+RNF-01  El frontend debe compilar y validarse correctamente con Astro.\par
+RNF-02  El backend debe responder mediante API REST desacoplada del frontend.\par
+RNF-03  El sistema debe operar en navegadores modernos compatibles con camara web.\par
+RNF-04  El sistema debe permitir continuar la operacion manual si la camara falla o no tiene permisos.\par
+RNF-05  Las contrasenas deben almacenarse cifradas.\par
+RNF-06  La arquitectura debe separar rutas, logica de negocio y acceso a datos.\par
+RNF-07  Las vistas con historiales o listados deben soportar filtros y paginacion.\par
+RNF-08  La informacion debe mantenerse consistente entre frontend, backend y base de datos.\par
+RNF-09  El sistema debe ajustarse inicialmente a una sola sede operativa.\par
+RNF-10  El sistema debe mostrar mensajes claros de error o estado en flujos criticos.\par
+\f0
+\par
+\b 5. Restricciones asociadas\b0\par
+- El escaneo por camara depende del navegador, dispositivo y permisos del sitio\par
+- La generacion definitiva de PDF no forma parte de la version funcional actual\par
+- La operacion se centra en entorno web, no en aplicacion movil nativa\par
+\par
+\b 6. Criterios de verificacion\b0\par
+- El sistema autentica y restringe vistas por rol\par
+- Ingreso y salida registran movimientos reales sobre la base de datos\par
+- Reportes muestran historial con filtros y exportacion CSV/XLSX\par
+- Usuarios y configuracion operan con sus permisos respectivos\par
+- El escaneo por camara funciona cuando el navegador y permisos lo permiten\par
+\par
+\b 7. Control de cambios\b0\par
+\f1
+Version   Fecha        Cambios realizados                                           Responsable\par
+1.0       2026-02-12   Documento inicial                                             Equipo de proyecto\par
+1.1       2026-04-07   Requerimientos ampliados y alineados al producto real        Codex / revision del proyecto\par
+\f0
+}

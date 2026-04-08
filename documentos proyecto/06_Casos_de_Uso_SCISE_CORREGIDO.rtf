@@ -1,0 +1,115 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Arial;}{\f1 Courier New;}}
+\fs24
+\pard\qc\b SCISE\par
+\pard\qc\b0 Casos de uso - version corregida\par
+\pard\qc Sistema de Control de Ingreso y Salida de Equipos\par
+\pard\qc SENA - ADSO - Ficha 2996731\par
+\pard\qc 2026\par
+\par
+\pard\ql\b 1. Objetivo del documento\b0\par
+Describir las interacciones principales entre los actores y SCISE, conforme al producto realmente implementado.\par
+\par
+\b 2. Lista de casos de uso\b0\par
+\f1
+CU-01  Iniciar sesion\par
+CU-02  Gestionar estudiantes y equipos\par
+CU-03  Registrar ingreso de equipos\par
+CU-04  Registrar salida de equipos\par
+CU-05  Consultar historial y reportes\par
+CU-06  Gestionar usuarios del sistema\par
+CU-07  Administrar configuracion y accesos\par
+CU-08  Exportar reportes CSV/XLSX\par
+CU-09  Validar duplicidad y consistencia\par
+\f0
+\par
+\b 3. Desarrollo de casos de uso\b0\par
+\par
+\b CU-01 - Iniciar sesion\b0\par
+Actor principal: Usuario del sistema\par
+Descripcion: Permite autenticar al usuario y redirigirlo segun rol.\par
+Flujo principal:\par
+1. El usuario ingresa sus credenciales\par
+2. El sistema valida la informacion\par
+3. El sistema determina el rol\par
+4. El usuario accede al dashboard correspondiente\par
+Flujo alternativo: credenciales invalidas\par
+Resultado esperado: acceso seguro segun permisos\par
+\par
+\b CU-02 - Gestionar estudiantes y equipos\b0\par
+Actor principal: Administrador\par
+Descripcion: Permite registrar, editar y asociar equipos a estudiantes.\par
+Flujo principal:\par
+1. El administrador accede a Gestionar Usuarios\par
+2. Consulta estudiantes o equipos\par
+3. Crea o edita el registro requerido\par
+4. Guarda cambios\par
+Resultado esperado: la informacion queda persistida y disponible para ingreso/salida\par
+\par
+\b CU-03 - Registrar ingreso de equipos\b0\par
+Actor principal: Usuario operativo\par
+Descripcion: Registra el ingreso de uno o varios equipos asociados a un estudiante.\par
+Flujo principal:\par
+1. El operador identifica al estudiante por documento o camara\par
+2. El sistema consulta al estudiante\par
+3. El sistema carga los equipos disponibles para ingreso\par
+4. El operador selecciona uno o varios equipos\par
+5. El sistema valida consistencia y registra el movimiento\par
+Resultado esperado: los equipos quedan marcados como dentro\par
+\par
+\b CU-04 - Registrar salida de equipos\b0\par
+Actor principal: Usuario operativo\par
+Descripcion: Registra la salida de uno o varios equipos con ingreso activo.\par
+Flujo principal:\par
+1. El operador identifica al estudiante\par
+2. El sistema consulta los equipos con ingreso activo\par
+3. Muestra detalle y tiempo dentro del CTMA\par
+4. El operador selecciona equipos\par
+5. El sistema registra la salida\par
+Resultado esperado: los equipos quedan marcados como fuera\par
+\par
+\b CU-05 - Consultar historial y reportes\b0\par
+Actor principal: Administrador\par
+Descripcion: Permite consultar historial de movimientos y resumen operativo.\par
+Flujo principal:\par
+1. El administrador accede a Reportes\par
+2. Filtra por tipo y rango de fechas\par
+3. El sistema devuelve historial paginado\par
+4. El administrador revisa el resultado\par
+\par
+\b CU-06 - Gestionar usuarios del sistema\b0\par
+Actor principal: Administrador\par
+Descripcion: Crear, editar, activar, desactivar o eliminar usuarios del sistema.\par
+Resultado esperado: control administrativo de accesos internos.\par
+\par
+\b CU-07 - Administrar configuracion y accesos\b0\par
+Actor principal: Administrador\par
+Descripcion: Consultar auditoria, cambiar contrasena y administrar estado de acceso.\par
+\par
+\b CU-08 - Exportar reportes CSV/XLSX\b0\par
+Actor principal: Administrador\par
+Descripcion: Exportar la informacion filtrada para validacion administrativa.\par
+Resultado esperado: archivo estructurado con columnas y datos del historial.\par
+\par
+\b CU-09 - Validar duplicidad y consistencia\b0\par
+Actor principal: Sistema\par
+Descripcion: Evitar ingresos duplicados, salidas invalidas o datos incoherentes.\par
+Resultado esperado: integridad de movimientos y estados.\par
+\par
+\b 4. Escenarios especificos\b0\par
+Escenario 1: registro exitoso por documento manual\par
+Escenario 2: registro exitoso por camara\par
+Escenario 3: intento de ingreso duplicado\par
+Escenario 4: usuario sin equipos activos para salida\par
+Escenario 5: exportacion de reporte por rango de fechas\par
+\par
+\b 5. Observaciones\b0\par
+El documento original se centraba en una vision inicial del sistema. Esta version incorpora gestion administrativa, configuracion, exportacion CSV/XLSX y operacion por documento o camara.\par
+\par
+\b 6. Control de cambios\b0\par
+\f1
+Version   Fecha        Cambios realizados                                           Responsable\par
+1.0       2026-02-17   Documento inicial                                             Equipo de proyecto\par
+1.1       2026-04-07   Casos de uso alineados al SCISE actual                       Codex / revision del proyecto\par
+\f0
+}
