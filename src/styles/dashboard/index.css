@@ -1,5 +1,9 @@
 @import "./base.css";
 @import "./caja-panel-inicial.css";
+@import "./caja-panel-inicial-responsive.css";
 @import "./caja-acciones.css";
+@import "./caja-acciones-responsive.css";
 @import "./caja-bienvenida.css";
+@import "./caja-bienvenida-responsive.css";
 @import "./caja-historial-reciente.css";
+@import "./caja-historial-reciente-responsive.css";

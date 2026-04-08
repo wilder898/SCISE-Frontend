@@ -1,0 +1,78 @@
+@media (max-width: 900px) {
+  .recent-movements {
+    gap: 0.65rem;
+  }
+
+  .recent-movement {
+    padding: 0.7rem;
+  }
+
+  .dashboard-pagination {
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-page-button {
+    min-height: 2.25rem;
+    padding: 0.4rem 0.7rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .recent-movements {
+    gap: 0.55rem;
+  }
+
+  .recent-movement {
+    padding: 0.65rem;
+    border-radius: 0.75rem;
+  }
+
+  .recent-movement__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .recent-movement__type {
+    font-size: 0.68rem;
+    padding: 0.22rem 0.45rem;
+  }
+
+  .recent-movement__time {
+    font-size: 0.72rem;
+    text-align: left;
+  }
+
+  .recent-movement__details strong {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .recent-movement__details small,
+  .recent-movement__user small {
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .dashboard-pagination {
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  #dashboardRecentPageInfo {
+    width: 100%;
+    text-align: center;
+    font-size: 0.82rem;
+    color: #64748b;
+    order: -1;
+  }
+
+  .dashboard-page-button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.42rem 0.55rem;
+    font-size: 0.82rem;
+  }
+}
