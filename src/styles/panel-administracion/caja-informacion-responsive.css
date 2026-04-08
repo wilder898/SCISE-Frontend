@@ -1,0 +1,42 @@
+@media (max-width: 1000px) {
+  .reportes-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .reportes-info-grid {
+    gap: 0.9rem;
+  }
+
+  .reportes-info-card {
+    padding: 1.1rem 1.15rem;
+    border-radius: 1.2rem;
+  }
+
+  .reportes-info-card p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 640px) {
+  .reportes-info-grid {
+    gap: 0.8rem;
+  }
+
+  .reportes-info-card {
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+  }
+
+  .reportes-info-card strong {
+    margin-bottom: 0.45rem;
+    font-size: 0.94rem;
+  }
+
+  .reportes-info-card p {
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+}

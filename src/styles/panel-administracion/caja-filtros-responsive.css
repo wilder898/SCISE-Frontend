@@ -1,0 +1,78 @@
+@media (max-width: 1000px) {
+  .reportes-filter-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .reportes-filters {
+    grid-template-columns: 1fr;
+    align-items: start;
+    flex: 0 1 auto;
+    width: 100%;
+  }
+
+  .reportes-filter-actions {
+    justify-content: flex-start;
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .reportes-filter-card {
+    padding: 1.15rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .reportes-filters {
+    gap: 0.85rem;
+  }
+
+  .reportes-filter-actions {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .reportes-filter-card {
+    padding: 1rem;
+    border-radius: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .reportes-field {
+    gap: 0.35rem;
+    align-self: start;
+  }
+
+  .reportes-field span {
+    font-size: 0.82rem;
+  }
+
+  .reportes-field select,
+  .reportes-field input {
+    min-height: 0;
+    height: 3rem;
+    line-height: 1.2;
+    border-radius: 0.9rem;
+    padding: 0.76rem 0.9rem;
+    font-size: 0.92rem;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .reportes-field input[type="date"] {
+    display: block;
+    width: 100%;
+  }
+
+  .reportes-filter-actions {
+    gap: 0.65rem;
+  }
+
+  .reportes-filter-actions .reportes-button {
+    width: 100%;
+  }
+}
