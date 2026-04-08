@@ -1,0 +1,40 @@
+@media (max-width: 900px) {
+  .users-note-card {
+    padding: 1.15rem;
+    border-radius: 1.25rem;
+  }
+
+  .users-note-card__header {
+    margin-bottom: 0.75rem;
+  }
+
+  .users-note-card__list {
+    font-size: 0.94rem;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .users-note-card {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+
+  .users-note-card__header {
+    gap: 0.55rem;
+    margin-bottom: 0.65rem;
+    font-size: 0.95rem;
+  }
+
+  .users-note-card__icon {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .users-note-card__list {
+    padding-left: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    gap: 0.45rem;
+  }
+}

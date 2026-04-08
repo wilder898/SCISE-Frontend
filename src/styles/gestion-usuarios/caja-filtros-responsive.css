@@ -1,0 +1,80 @@
+@media (max-width: 1200px) {
+  .users-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .users-filters-card {
+    padding: 1.15rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .users-stats {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .users-stats--top {
+    align-items: stretch;
+  }
+
+  .users-actions-inline {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .new-user-launch,
+  .register-equipment-launch {
+    flex: 1;
+  }
+
+  .users-filters {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .users-filters-card {
+    padding: 1rem;
+    border-radius: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .users-stats {
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .users-stat-pill {
+    min-width: 0;
+    width: 100%;
+    padding: 0.85rem 0.9rem;
+    border-radius: 0.9rem;
+  }
+
+  .users-stat-pill span {
+    font-size: 0.72rem;
+  }
+
+  .users-stat-pill strong {
+    font-size: 1rem;
+  }
+
+  .users-actions-inline {
+    gap: 0.65rem;
+  }
+
+  .new-user-launch,
+  .register-equipment-launch,
+  #clearFiltersButton {
+    width: 100%;
+  }
+
+  .users-filters {
+    gap: 0.75rem;
+  }
+}
