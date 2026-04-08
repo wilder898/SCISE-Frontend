@@ -1,0 +1,42 @@
+@media (max-width: 1300px) {
+  .config-permissions-reference-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .config-permission-reference-card {
+    min-height: 0;
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+  }
+
+  .config-permission-reference-card strong {
+    font-size: 0.98rem;
+  }
+
+  .config-permission-reference-card p {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 640px) {
+  .config-permissions-reference-grid {
+    gap: 0.8rem;
+  }
+
+  .config-permission-reference-card {
+    padding: 0.85rem 0.9rem;
+    border-radius: 0.9rem;
+  }
+
+  .config-permission-reference-card p {
+    font-size: 0.88rem;
+  }
+
+  .config-permission-reference-card code {
+    font-size: 0.8rem;
+    word-break: break-word;
+  }
+}

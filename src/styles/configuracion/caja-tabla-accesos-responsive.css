@@ -1,0 +1,114 @@
+@media (max-width: 900px) {
+  .config-users-card__top {
+    margin: -1.2rem -1.2rem 1rem;
+    padding: 1rem 1.2rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .config-users-card__top h2 {
+    font-size: 1.35rem;
+  }
+
+  .config-table {
+    min-width: 900px;
+  }
+
+  .config-table th,
+  .config-table td {
+    padding: 0.9rem 0.75rem;
+  }
+
+  .config-table-actions {
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .config-card .config-table th:last-child,
+  .config-card .config-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: #ffffff;
+  }
+
+  .config-card .config-table th:last-child {
+    z-index: 3;
+    box-shadow: -10px 0 14px rgba(148, 163, 184, 0.08);
+  }
+
+  .config-card .config-table td:last-child {
+    z-index: 2;
+    box-shadow: -10px 0 14px rgba(148, 163, 184, 0.08);
+  }
+}
+
+@media (max-width: 640px) {
+  .config-users-card__top {
+    margin: -1rem -1rem 0.85rem;
+    padding: 0.9rem 1rem;
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  .config-users-card__top h2 {
+    font-size: 1.15rem;
+    line-height: 1.25;
+  }
+
+  .config-users-card__top p {
+    font-size: 0.86rem;
+    line-height: 1.4;
+  }
+
+  .config-table-wrap {
+    margin-inline: -0.15rem;
+    padding-bottom: 0.2rem;
+  }
+
+  .config-table {
+    min-width: 820px;
+  }
+
+  .config-table th,
+  .config-table td {
+    padding: 0.82rem 0.68rem;
+  }
+
+  .config-table th {
+    font-size: 0.72rem;
+  }
+
+  .config-user-cell small {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .config-role-pill,
+  .config-state-pill {
+    font-size: 0.75rem;
+  }
+
+  .config-state-toggle__track {
+    width: 2.7rem;
+    height: 1.5rem;
+  }
+
+  .config-state-toggle__thumb {
+    width: 1.18rem;
+    height: 1.18rem;
+  }
+
+  .config-state-toggle.is-active .config-state-toggle__thumb {
+    transform: translateX(1.18rem);
+  }
+
+  .config-icon-button {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .config-users-card__footer {
+    font-size: 0.88rem;
+  }
+}

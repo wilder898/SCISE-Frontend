@@ -1,0 +1,62 @@
+@media (max-width: 900px) {
+  .config-toolbar {
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 1.35rem 1.4rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .config-toolbar h1 {
+    font-size: 1.65rem;
+    line-height: 1.2;
+  }
+
+  .config-copy {
+    font-size: 0.96rem;
+    line-height: 1.5;
+  }
+
+  .config-toolbar__badge {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .config-toolbar {
+    gap: 0.9rem;
+    padding: 1.1rem 1rem;
+    border-radius: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .config-eyebrow {
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+  }
+
+  .config-toolbar h1 {
+    font-size: 1.38rem;
+  }
+
+  .config-copy {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .config-toolbar__badge {
+    padding: 0.9rem 0.95rem;
+    border-radius: 0.95rem;
+  }
+
+  .config-toolbar__badge strong {
+    font-size: 0.95rem;
+  }
+
+  .config-toolbar__badge span {
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+}

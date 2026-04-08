@@ -1,8 +1,15 @@
 @import "./base.css";
 @import "./caja-panel-inicial.css";
+@import "./caja-panel-inicial-responsive.css";
 @import "./caja-tabla-accesos.css";
+@import "./caja-tabla-accesos-responsive.css";
 @import "./caja-auditoria-accesos.css";
+@import "./caja-auditoria-accesos-responsive.css";
 @import "./caja-gestion-accesos.css";
+@import "./caja-gestion-accesos-responsive.css";
 @import "./caja-informacion.css";
+@import "./caja-informacion-responsive.css";
 @import "./caja-acceso-denegado.css";
+@import "./caja-acceso-denegado-responsive.css";
 @import "./modales.css";
+@import "./modales-responsive.css";
