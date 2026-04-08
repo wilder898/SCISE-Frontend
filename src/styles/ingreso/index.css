@@ -2,6 +2,10 @@
 @import "../shared/scanner-card.css";
 @import "./caja-panel-inicial.css";
 @import "./caja-escanear-carnet.css";
+@import "./caja-escanear-carnet-responsive.css";
 @import "./caja-seleccionar-equipo.css";
+@import "./caja-seleccionar-equipo-responsive.css";
 @import "./caja-acciones.css";
+@import "./caja-acciones-responsive.css";
 @import "./caja-informacion.css";
+@import "./caja-informacion-responsive.css";

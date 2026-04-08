@@ -35,10 +35,11 @@
 }
 
 .logo {
-  width: 82px;
-  height: 82px;
+  width: 220px;
+  height: 220px;
   display: block;
-  margin: 0 auto 0.9rem;
+  margin: 0 auto 1rem;
+  object-fit: contain;
 }
 
 .login-header h1 {
@@ -71,6 +72,10 @@
   font-weight: 700;
 }
 
+.password-input-wrap {
+  position: relative;
+}
+
 .form-input {
   width: 100%;
   min-height: 2.9rem;
@@ -85,6 +90,49 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(23, 134, 58, 0.15);
+}
+
+.password-input {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #334155;
+}
+
+.password-toggle__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.password-toggle__icon--hide {
+  display: none;
+}
+
+.password-toggle.is-visible .password-toggle__icon--show {
+  display: none;
+}
+
+.password-toggle.is-visible .password-toggle__icon--hide {
+  display: block;
 }
 
 .login-button {

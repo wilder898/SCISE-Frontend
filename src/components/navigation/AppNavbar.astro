@@ -19,13 +19,26 @@ const links = [
       </span>
     </a>
 
+    <button
+      id="appSidebarToggle"
+      class="app-sidebar-toggle"
+      type="button"
+      aria-label="Abrir menu de navegacion"
+      aria-expanded="false"
+      aria-controls="appSidebarMenu"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </button>
+
     <div class="app-sidebar-user">
       <span class="user-name" data-sidebar-name>Admin SENA</span>
       <span class="user-role" data-sidebar-role>Administrador</span>
     </div>
   </div>
 
-  <div class="app-sidebar-middle">
+  <div id="appSidebarMenu" class="app-sidebar-middle">
     <nav class="app-nav" aria-label="Navegacion principal">
       {
         links.map((link) => {
@@ -146,6 +159,25 @@ const links = [
   const sidebarRole = document.querySelector("[data-sidebar-role]");
   const adminOnlyLinks = document.querySelectorAll('[data-admin-only="true"]');
   const logoutButton = document.getElementById("logoutButton");
+  const sidebarToggle = document.getElementById("appSidebarToggle");
+  const sidebarMenu = document.getElementById("appSidebarMenu");
+
+  function setMobileMenuState(isOpen: boolean) {
+    if (!(sidebarToggle instanceof HTMLButtonElement) || !(sidebarMenu instanceof HTMLElement)) {
+      return;
+    }
+
+    sidebarToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    sidebarToggle.setAttribute(
+      "aria-label",
+      isOpen ? "Cerrar menu de navegacion" : "Abrir menu de navegacion"
+    );
+    sidebarMenu.classList.toggle("is-mobile-open", isOpen);
+  }
+
+  function closeMobileMenu() {
+    setMobileMenuState(false);
+  }
 
   adminOnlyLinks.forEach((link) => {
     if (link instanceof HTMLElement) {
@@ -186,9 +218,34 @@ const links = [
     event.preventDefault();
     logout();
   });
+
+  sidebarToggle?.addEventListener("click", () => {
+    if (!(sidebarToggle instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const isExpanded = sidebarToggle.getAttribute("aria-expanded") === "true";
+    setMobileMenuState(!isExpanded);
+  });
+
+  document.querySelectorAll(".app-nav-link").forEach((link) => {
+    link.addEventListener("click", () => {
+      closeMobileMenu();
+    });
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 900) {
+      closeMobileMenu();
+    }
+  });
+
+  closeMobileMenu();
 </script>
 
 <style is:global>
+  @import "../../styles/shared/app-navbar-responsive.css";
+
   .app-sidebar {
     position: sticky;
     top: 0;

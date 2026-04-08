@@ -1,0 +1,122 @@
+@media (max-width: 900px) {
+  .reportes-table-card {
+    padding: 1.15rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .reportes-table-header {
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+  }
+
+  .reportes-table-header h2 {
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+
+  .reportes-table {
+    min-width: 900px;
+  }
+
+  .reportes-table th,
+  .reportes-table td {
+    padding: 1rem 0.85rem;
+  }
+
+  .reportes-pagination {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .reportes-detail-modal__panel {
+    margin: 4vh 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .reportes-table-card {
+    padding: 1rem;
+    border-radius: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .reportes-table-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .reportes-table-header p {
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .reportes-table-wrap {
+    margin-inline: -0.15rem;
+    padding-bottom: 0.2rem;
+  }
+
+  .reportes-table {
+    min-width: 820px;
+  }
+
+  .reportes-table th,
+  .reportes-table td {
+    padding: 0.88rem 0.72rem;
+  }
+
+  .reportes-table th {
+    font-size: 0.74rem;
+  }
+
+  .movement-pill,
+  .movement-status {
+    padding: 0.46rem 0.72rem;
+    font-size: 0.8rem;
+  }
+
+  .movement-user span {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .movement-more {
+    padding: 0.52rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .reportes-empty-state {
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .reportes-pagination {
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
+  .reportes-detail-modal__panel {
+    margin: 3vh 0.75rem;
+    border-radius: 0.9rem;
+  }
+
+  .reportes-detail-modal__header,
+  .reportes-detail-modal__content,
+  .reportes-detail-modal__footer {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .reportes-detail-modal__header h3 {
+    font-size: 1rem;
+  }
+
+  .reportes-detail-modal__footer {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .reportes-detail-modal__footer .reportes-button {
+    width: 100%;
+  }
+}
