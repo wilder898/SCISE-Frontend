@@ -1,0 +1,68 @@
+@media (max-width: 900px) {
+  .users-toolbar {
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 1.4rem 1.45rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .users-toolbar h2 {
+    font-size: 1.75rem;
+  }
+
+  .users-copy {
+    font-size: 0.96rem;
+    line-height: 1.5;
+  }
+
+  .users-toolbar__actions {
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .users-download-group {
+    width: 100%;
+  }
+
+  .users-download-group .user-button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .users-toolbar {
+    gap: 0.9rem;
+    padding: 1.1rem 1rem;
+    border-radius: 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .users-eyebrow {
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+  }
+
+  .users-toolbar h2 {
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .users-copy {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .users-toolbar__actions {
+    gap: 0.65rem;
+  }
+
+  .users-download-group {
+    gap: 0.65rem;
+  }
+
+  .users-download-note {
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+}
