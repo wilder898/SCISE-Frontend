@@ -17,8 +17,22 @@ import "../../styles/login-responsive.css";
   const form = document.getElementById("loginForm") as HTMLFormElement | null;
   const usernameInput = document.getElementById("username") as HTMLInputElement | null;
   const passwordInput = document.getElementById("password") as HTMLInputElement | null;
+  const togglePasswordButton = document.getElementById("togglePasswordButton") as HTMLButtonElement | null;
   const loading = document.getElementById("loading") as HTMLElement | null;
   const error = document.getElementById("error") as HTMLElement | null;
+
+  if (passwordInput && togglePasswordButton) {
+    togglePasswordButton.addEventListener("click", () => {
+      const isVisible = passwordInput.type === "text";
+      passwordInput.type = isVisible ? "password" : "text";
+      togglePasswordButton.classList.toggle("is-visible", !isVisible);
+      togglePasswordButton.setAttribute("aria-pressed", String(!isVisible));
+      togglePasswordButton.setAttribute(
+        "aria-label",
+        isVisible ? "Mostrar contrasena" : "Ocultar contrasena"
+      );
+    });
+  }
 
   if (form && usernameInput && passwordInput && loading && error) {
     form.addEventListener("submit", async (event) => {
@@ -75,9 +89,8 @@ import "../../styles/login-responsive.css";
         error.textContent =
           loginError instanceof Error && loginError.message
             ? loginError.message
-            : "No fue posible iniciar sesión. Verifica el backend y vuelve a intentar.";
+            : "No fue posible iniciar sesion. Verifica el backend y vuelve a intentar.";
       }
     });
   }
 </script>
-
